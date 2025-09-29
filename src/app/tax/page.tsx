@@ -122,7 +122,37 @@ export default function TaxConfiguration() {
     setIsLoading(true)
 
     try {
-      const body: any = { mode: data.mode }
+      // Validate required fields based on mode
+      if (data.mode === "PERCENTAGE" && (data.percentage === undefined || isNaN(data.percentage))) {
+        toast.error("Please enter a valid percentage value")
+        setIsLoading(false)
+        return
+      }
+
+      if (data.mode === "FIXED" && (data.fixedAmount === undefined || isNaN(data.fixedAmount))) {
+        toast.error("Please enter a valid fixed amount")
+        setIsLoading(false)
+        return
+      }
+
+      if (data.mode === "HYBRID") {
+        if (data.percentage === undefined || isNaN(data.percentage)) {
+          toast.error("Please enter a valid percentage value")
+          setIsLoading(false)
+          return
+        }
+        if (data.fixedAmount === undefined || isNaN(data.fixedAmount)) {
+          toast.error("Please enter a valid fixed amount")
+          setIsLoading(false)
+          return
+        }
+      }
+
+      const body: {
+        mode: "PERCENTAGE" | "FIXED" | "HYBRID";
+        percentage?: number;
+        fixedAmount?: number;
+      } = { mode: data.mode }
 
       if (data.mode === "PERCENTAGE" || data.mode === "HYBRID") {
         body.percentage = data.percentage

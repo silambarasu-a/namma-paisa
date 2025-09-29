@@ -12,13 +12,13 @@ const taxSettingSchema = z
   })
   .refine(
     (data) => {
-      if (data.mode === "PERCENTAGE" && !data.percentage) {
+      if (data.mode === "PERCENTAGE" && data.percentage === undefined) {
         return false
       }
-      if (data.mode === "FIXED" && !data.fixedAmount) {
+      if (data.mode === "FIXED" && data.fixedAmount === undefined) {
         return false
       }
-      if (data.mode === "HYBRID" && (!data.percentage || !data.fixedAmount)) {
+      if (data.mode === "HYBRID" && (data.percentage === undefined || data.fixedAmount === undefined)) {
         return false
       }
       return true
@@ -95,7 +95,10 @@ export async function POST(request: Request) {
     return NextResponse.json(taxSetting, { status: existingTaxSetting ? 200 : 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues }, { status: 400 })
+      return NextResponse.json(
+        { error: error.issues[0]?.message || "Validation error" },
+        { status: 400 }
+      )
     }
     console.error("Error creating/updating tax setting:", error)
     return NextResponse.json(

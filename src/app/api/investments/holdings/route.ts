@@ -3,7 +3,6 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { Decimal } from "@prisma/client/runtime/library"
 
 const holdingSchema = z.object({
   bucket: z.enum(["MUTUAL_FUND", "IND_STOCK", "US_STOCK", "CRYPTO", "EMERGENCY_FUND"]),
@@ -57,7 +56,23 @@ export async function GET() {
       })
 
       return acc
-    }, {} as Record<string, any[]>)
+    }, {} as Record<string, Array<{
+      id: string;
+      bucket: string;
+      symbol: string;
+      name: string;
+      qty: number;
+      avgCost: number;
+      currentPrice: number | null;
+      investmentValue: number;
+      currentValue: number;
+      gainLoss: number;
+      gainLossPercent: number;
+      userId: string;
+      currency: string;
+      createdAt: Date;
+      updatedAt: Date;
+    }>>)
 
     // Calculate totals for each bucket
     const summary = Object.entries(groupedHoldings).map(([bucket, holdings]) => {
@@ -117,7 +132,7 @@ export async function POST(request: Request) {
     return NextResponse.json(holding, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues }, { status: 400 })
+      return NextResponse.json({ error: error.issues[0]?.message || "Validation error" }, { status: 400 })
     }
     console.error("Error creating holding:", error)
     return NextResponse.json(

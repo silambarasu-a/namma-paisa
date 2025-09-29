@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     return NextResponse.json(sip, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues }, { status: 400 })
+      return NextResponse.json({ error: error.issues[0]?.message || "Validation error" }, { status: 400 })
     }
     console.error("Error creating SIP:", error)
     return NextResponse.json(

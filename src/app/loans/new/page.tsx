@@ -150,7 +150,7 @@ export default function NewLoanPage() {
               </Label>
               <Select
                 value={loanType}
-                onValueChange={(value) => setValue("loanType", value as any)}
+                onValueChange={(value) => setValue("loanType", value as "HOME_LOAN" | "CAR_LOAN" | "PERSONAL_LOAN" | "EDUCATION_LOAN" | "BUSINESS_LOAN" | "GOLD_LOAN" | "CREDIT_CARD" | "OTHER")}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select loan type" />

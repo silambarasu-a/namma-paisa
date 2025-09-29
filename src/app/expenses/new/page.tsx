@@ -73,7 +73,15 @@ export default function AddExpense() {
         }
       }
 
-      const body: any = {
+      const body: {
+        date: string;
+        title: string;
+        expenseType: "EXPECTED" | "UNEXPECTED";
+        category: "NEEDS" | "PARTIAL_NEEDS" | "AVOID";
+        amount: number;
+        needsPortion?: number;
+        avoidPortion?: number;
+      } = {
         date,
         title,
         expenseType,
@@ -145,7 +153,7 @@ export default function AddExpense() {
 
               <div className="space-y-2">
                 <Label htmlFor="expenseType">Type *</Label>
-                <Select value={expenseType} onValueChange={(value: any) => setExpenseType(value)}>
+                <Select value={expenseType} onValueChange={(value: "EXPECTED" | "UNEXPECTED") => setExpenseType(value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select expense type" />
                   </SelectTrigger>
@@ -170,7 +178,7 @@ export default function AddExpense() {
 
             <div className="space-y-2">
               <Label htmlFor="category">Category *</Label>
-              <Select value={category} onValueChange={(value: any) => {
+              <Select value={category} onValueChange={(value: "NEEDS" | "PARTIAL_NEEDS" | "AVOID") => {
                 setCategory(value)
                 // Reset partial amounts when changing category
                 if (value !== "PARTIAL_NEEDS") {

@@ -14,7 +14,7 @@ import { CalendarDays, DollarSign, Trash2 } from "lucide-react"
 
 interface SalaryHistory {
   id: string
-  netSalary: number
+  netMonthly: number
   effectiveFrom: string
   createdAt: string
 }
@@ -384,7 +384,7 @@ export default function Profile() {
                           <DollarSign className="h-5 w-5 text-green-600" />
                           <div>
                             <p className="font-semibold">
-                              ₹{entry.netSalary.toLocaleString()}
+                              ₹{Number(entry.netMonthly).toLocaleString()}
                             </p>
                             <p className="text-sm text-gray-600 dark:text-gray-400">
                               Monthly Net Salary

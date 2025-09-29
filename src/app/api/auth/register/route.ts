@@ -54,10 +54,10 @@ export async function POST(request: NextRequest) {
       { message: "User created successfully", user },
       { status: 201 }
     )
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { message: "Validation error", errors: error.issues },
+        { message: error.issues[0]?.message || "Validation error" },
         { status: 400 }
       )
     }

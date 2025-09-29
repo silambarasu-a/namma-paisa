@@ -27,7 +27,18 @@ export async function PATCH(
     const body = await request.json()
     const data = sipUpdateSchema.parse(body)
 
-    const updateData: any = { ...data }
+    const updateData: {
+      name?: string;
+      amount?: number;
+      endDate?: Date | null;
+      isActive?: boolean;
+      description?: string;
+    } = {}
+
+    if (data.name !== undefined) updateData.name = data.name
+    if (data.amount !== undefined) updateData.amount = data.amount
+    if (data.isActive !== undefined) updateData.isActive = data.isActive
+    if (data.description !== undefined) updateData.description = data.description
     if (data.endDate !== undefined) {
       updateData.endDate = data.endDate ? new Date(data.endDate) : null
     }
@@ -51,7 +62,7 @@ export async function PATCH(
     return NextResponse.json(updatedSip)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues }, { status: 400 })
+      return NextResponse.json({ error: error.issues[0]?.message || "Validation error" }, { status: 400 })
     }
     console.error("Error updating SIP:", error)
     return NextResponse.json(

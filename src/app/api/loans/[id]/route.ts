@@ -96,7 +96,7 @@ export async function PATCH(
     return NextResponse.json(updatedLoan)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues }, { status: 400 })
+      return NextResponse.json({ error: error.issues[0]?.message || "Validation error" }, { status: 400 })
     }
     console.error("Error updating loan:", error)
     return NextResponse.json(

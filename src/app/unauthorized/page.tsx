@@ -11,7 +11,7 @@ export default function Unauthorized() {
             Access Denied
           </CardTitle>
           <CardDescription className="text-center">
-            You don't have permission to access this resource.
+            You don&apos;t have permission to access this resource.
           </CardDescription>
         </CardHeader>
         <CardContent>

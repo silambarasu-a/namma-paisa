@@ -38,20 +38,52 @@ export async function GET(request: NextRequest) {
     const filter = searchParams.get("filter") || "all"
     const sortBy = searchParams.get("sortBy") || "date"
     const limit = parseInt(searchParams.get("limit") || "50")
+    const period = searchParams.get("period") || null
 
     // Build where clause based on filter
-    let where: any = { userId: session.user.id }
+    const where: {
+      userId: string
+      date?: { gte: Date }
+      category?: "NEEDS" | "PARTIAL_NEEDS" | "AVOID"
+      expenseType?: "EXPECTED" | "UNEXPECTED"
+    } = { userId: session.user.id }
+
+    // Add period filter
+    if (period) {
+      const now = new Date()
+      let startDate: Date
+
+      switch (period) {
+        case "daily":
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+          break
+        case "weekly":
+          const dayOfWeek = now.getDay()
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek)
+          break
+        case "monthly":
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+          break
+        case "yearly":
+          startDate = new Date(now.getFullYear(), 0, 1)
+          break
+        default:
+          startDate = new Date(0)
+      }
+
+      where.date = { gte: startDate }
+    }
 
     if (filter !== "all") {
       if (["NEEDS", "PARTIAL_NEEDS", "AVOID"].includes(filter)) {
-        where.category = filter
+        where.category = filter as "NEEDS" | "PARTIAL_NEEDS" | "AVOID"
       } else if (["EXPECTED", "UNEXPECTED"].includes(filter)) {
-        where.expenseType = filter
+        where.expenseType = filter as "EXPECTED" | "UNEXPECTED"
       }
     }
 
     // Build orderBy clause
-    let orderBy: any = { date: "desc" }
+    let orderBy: { date?: "desc" | "asc"; amount?: "desc" | "asc"; title?: "asc"; category?: "asc" } = { date: "desc" }
     if (sortBy === "amount") {
       orderBy = { amount: "desc" }
     } else if (sortBy === "title") {
@@ -159,7 +191,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { message: "Validation error", errors: error.issues },
+        { message: error.issues[0]?.message || "Validation error" },
         { status: 400 }
       )
     }

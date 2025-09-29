@@ -16,7 +16,7 @@ const holdingSchema = z.object({
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -25,9 +25,11 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const { id } = await params
+
     const holding = await prisma.holding.findUnique({
       where: {
-        id: params.id,
+        id,
         userId: session.user.id,
       },
     })
@@ -48,7 +50,7 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -57,13 +59,14 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const { id } = await params
     const body = await request.json()
     const data = holdingSchema.parse(body)
 
     // Check if holding exists and belongs to user
     const existingHolding = await prisma.holding.findUnique({
       where: {
-        id: params.id,
+        id,
         userId: session.user.id,
       },
     })
@@ -73,7 +76,7 @@ export async function PATCH(
     }
 
     const updatedHolding = await prisma.holding.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         bucket: data.bucket,
         symbol: data.symbol,
@@ -88,7 +91,7 @@ export async function PATCH(
     return NextResponse.json(updatedHolding)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues }, { status: 400 })
+      return NextResponse.json({ error: error.issues[0]?.message || "Validation error" }, { status: 400 })
     }
     console.error("Error updating holding:", error)
     return NextResponse.json(
@@ -100,7 +103,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -109,10 +112,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const { id } = await params
+
     // Check if holding exists and belongs to user
     const existingHolding = await prisma.holding.findUnique({
       where: {
-        id: params.id,
+        id,
         userId: session.user.id,
       },
     })
@@ -122,7 +127,7 @@ export async function DELETE(
     }
 
     await prisma.holding.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     return NextResponse.json({ message: "Holding deleted successfully" })

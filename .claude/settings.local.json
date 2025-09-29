@@ -10,7 +10,8 @@
       "Bash(npx shadcn@latest add:*)",
       "Bash(npx next build:*)",
       "Bash(find:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []
