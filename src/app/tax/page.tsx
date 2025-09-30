@@ -24,7 +24,7 @@ interface TaxSetting {
 }
 
 interface SalaryInfo {
-  netMonthly: number
+  monthly: number
   effectiveFrom: string
 }
 
@@ -108,7 +108,7 @@ export default function TaxConfiguration() {
         const data = await response.json()
         if (data && data.length > 0) {
           setCurrentSalary({
-            netMonthly: data[0].netMonthly,
+            monthly: data[0].monthly,
             effectiveFrom: data[0].effectiveFrom,
           })
         }
@@ -188,15 +188,15 @@ export default function TaxConfiguration() {
   const calculateTax = () => {
     if (!currentSalary) return 0
 
-    const netMonthly = currentSalary.netMonthly
+    const monthlySalary = currentSalary.monthly
     let tax = 0
 
     if (watchedMode === "PERCENTAGE" && watchedPercentage !== undefined) {
-      tax = (netMonthly * watchedPercentage) / 100
+      tax = (monthlySalary * watchedPercentage) / 100
     } else if (watchedMode === "FIXED" && watchedFixedAmount !== undefined) {
       tax = watchedFixedAmount
     } else if (watchedMode === "HYBRID" && watchedPercentage !== undefined && watchedFixedAmount !== undefined) {
-      const percentageTax = (netMonthly * watchedPercentage) / 100
+      const percentageTax = (monthlySalary * watchedPercentage) / 100
       const fixedTax = watchedFixedAmount
       tax = Math.max(percentageTax, fixedTax)
     }
@@ -206,7 +206,7 @@ export default function TaxConfiguration() {
 
   const monthlyTax = calculateTax()
   const annualTax = monthlyTax * 12
-  const netAfterTax = currentSalary ? currentSalary.netMonthly - monthlyTax : 0
+  const netAfterTax = currentSalary ? currentSalary.monthly - monthlyTax : 0
 
   return (
     <div className="space-y-6">
@@ -226,7 +226,7 @@ export default function TaxConfiguration() {
               No Salary Information
             </CardTitle>
             <CardDescription className="text-yellow-700 dark:text-yellow-300">
-              Please set your net salary in the Profile section before configuring tax settings.
+              Please set your monthly salary in the Profile section before configuring tax settings.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -260,10 +260,10 @@ export default function TaxConfiguration() {
                       <RadioGroupItem value="PERCENTAGE" id="percentage-mode" />
                       <div className="flex-1 space-y-1">
                         <Label htmlFor="percentage-mode" className="font-medium cursor-pointer">
-                          Percentage of Net Salary
+                          Percentage of monthly salary
                         </Label>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Calculate tax as a percentage of your monthly net salary. Ideal for proportional deductions.
+                          Calculate tax as a percentage of your monthly monthly salary. Ideal for proportional deductions.
                         </p>
                       </div>
                       <Percent className="h-5 w-5 text-gray-400" />
@@ -324,7 +324,7 @@ export default function TaxConfiguration() {
                       </p>
                     )}
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Enter the percentage of your net salary to be deducted as tax (0-100)
+                      Enter the percentage of your monthly salary to be deducted as tax (0-100)
                     </p>
                   </div>
                 )}
@@ -361,15 +361,15 @@ export default function TaxConfiguration() {
                           Real-time Calculation Preview
                         </p>
                         <p className="text-sm text-blue-800 dark:text-blue-200">
-                          With net salary of <span className="font-semibold">₹{currentSalary.netMonthly.toLocaleString()}</span>,
+                          With monthly salary of <span className="font-semibold">₹{currentSalary.monthly.toLocaleString()}</span>,
                           your tax will be <span className="font-semibold">₹{monthlyTax.toLocaleString()}</span>,
                           leaving <span className="font-semibold">₹{netAfterTax.toLocaleString()}</span> after tax.
                         </p>
                         {watchedMode === "HYBRID" && watchedPercentage !== undefined && watchedFixedAmount !== undefined && (
                           <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
-                            Percentage: ₹{((currentSalary.netMonthly * watchedPercentage) / 100).toLocaleString()} |
+                            Percentage: ₹{((currentSalary.monthly * watchedPercentage) / 100).toLocaleString()} |
                             Fixed: ₹{watchedFixedAmount.toLocaleString()} |
-                            Using: ₹{Math.max((currentSalary.netMonthly * watchedPercentage) / 100, watchedFixedAmount).toLocaleString()} (higher)
+                            Using: ₹{Math.max((currentSalary.monthly * watchedPercentage) / 100, watchedFixedAmount).toLocaleString()} (higher)
                           </p>
                         )}
                       </div>
@@ -427,7 +427,7 @@ export default function TaxConfiguration() {
                       <div className="text-2xl font-bold">₹{monthlyTax.toLocaleString()}</div>
                       <p className="text-xs text-muted-foreground">
                         {currentSalary && monthlyTax > 0 ?
-                          `${((monthlyTax / currentSalary.netMonthly) * 100).toFixed(1)}% of net salary` :
+                          `${((monthlyTax / currentSalary.monthly) * 100).toFixed(1)}% of monthly salary` :
                           "Tax not configured"
                         }
                       </p>
@@ -473,10 +473,10 @@ export default function TaxConfiguration() {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                         <div>
-                          <h3 className="font-medium">Net Monthly Salary</h3>
+                          <h3 className="font-medium">Monthly Salary</h3>
                           <p className="text-sm text-muted-foreground">Base amount</p>
                         </div>
-                        <div className="text-lg font-bold">₹{currentSalary.netMonthly.toLocaleString()}</div>
+                        <div className="text-lg font-bold">₹{currentSalary.monthly.toLocaleString()}</div>
                       </div>
 
                       <div className="flex items-center justify-center">
@@ -487,7 +487,7 @@ export default function TaxConfiguration() {
                         <div>
                           <h3 className="font-medium">Tax Deduction</h3>
                           <p className="text-sm text-muted-foreground">
-                            {taxSetting?.mode === "PERCENTAGE" && `${taxSetting.percentage}% of net salary`}
+                            {taxSetting?.mode === "PERCENTAGE" && `${taxSetting.percentage}% of monthly salary`}
                             {taxSetting?.mode === "FIXED" && "Fixed amount"}
                             {taxSetting?.mode === "HYBRID" && "Higher of percentage or fixed"}
                           </p>
@@ -518,7 +518,7 @@ export default function TaxConfiguration() {
                   <Calculator className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Salary Data</h3>
                   <p className="text-gray-600 dark:text-gray-400">
-                    Set up your net salary in the Profile section to view tax projections.
+                    Set up your monthly salary in the Profile section to view tax projections.
                   </p>
                 </CardContent>
               </Card>

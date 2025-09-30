@@ -134,7 +134,7 @@ export default async function AdminPage() {
                   <TableHead>Email</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Role</TableHead>
-                  <TableHead>Net Salary</TableHead>
+                  <TableHead>Income</TableHead>
                   <TableHead>Expenses</TableHead>
                   <TableHead>Registered</TableHead>
                 </TableRow>
@@ -152,7 +152,7 @@ export default async function AdminPage() {
                       </TableCell>
                       <TableCell>
                         {user.salaries[0]
-                          ? `₹${Number(user.salaries[0].netMonthly).toLocaleString()}`
+                          ? `₹${Number(user.salaries[0].monthly).toLocaleString()}`
                           : "Not set"}
                       </TableCell>
                       <TableCell>{user.expenses.length}</TableCell>

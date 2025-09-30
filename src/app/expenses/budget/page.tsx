@@ -19,7 +19,7 @@ interface BudgetData {
 }
 
 interface AvailableAmount {
-  netSalary: number
+  salary: number
   taxAmount: number
   totalLoans: number
   totalInvestments: number
@@ -78,29 +78,29 @@ export default function ExpenseBudgetPage() {
 
       // Calculate available amount
       const salaryRes = await fetch("/api/profile/salary-history")
-      let netSalary = 0
+      let monthlySalary = 0
       if (salaryRes.ok) {
         const salaryHistory = await salaryRes.json()
         if (salaryHistory && salaryHistory.length > 0) {
-          netSalary = Number(salaryHistory[0].netMonthly)
+          monthlySalary = Number(salaryHistory[0].monthly)
         }
       }
 
-      if (netSalary > 0) {
+      if (monthlySalary > 0) {
         const calcRes = await fetch("/api/investments/calculate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ netMonthly: netSalary }),
+          body: JSON.stringify({ monthly: monthlySalary }),
         })
 
         if (calcRes.ok) {
           const calcData = await calcRes.json()
 
           // Available for expenses = netSalary - tax - loans - (SIPs + investments)
-          const availableForExpenses = netSalary - calcData.taxAmount - calcData.totalLoanEMI - calcData.totalSIPAmount
+          const availableForExpenses = monthlySalary - calcData.taxAmount - calcData.totalLoanEMI - calcData.totalSIPAmount
 
           setAvailable({
-            netSalary,
+            salary: monthlySalary,
             taxAmount: calcData.taxAmount,
             totalLoans: calcData.totalLoanEMI,
             totalInvestments: 0, // Not using investment allocations for deduction
@@ -248,9 +248,9 @@ export default function ExpenseBudgetPage() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Net Salary</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Income</p>
                 <p className="text-lg font-semibold text-green-600 dark:text-green-400">
-                  ₹{available.netSalary.toLocaleString()}
+                  ₹{available.salary.toLocaleString()}
                 </p>
               </div>
               <div>

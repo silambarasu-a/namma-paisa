@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 
 const salarySchema = z.object({
-  netMonthly: z.number().positive("Net monthly salary must be positive"),
+  monthly: z.number().positive("Monthly salary must be positive"),
   effectiveFrom: z.string().refine((date) => !isNaN(Date.parse(date)), {
     message: "Invalid date format",
   }),
@@ -23,18 +23,22 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { netMonthly, effectiveFrom } = salarySchema.parse(body)
+    const { monthly, effectiveFrom } = salarySchema.parse(body)
+
+    // Parse date as local timezone (not UTC)
+    const [year, month, day] = effectiveFrom.split('-').map(Number)
+    const effectiveFromDate = new Date(year, month - 1, day)
 
     // Create new salary history entry
-    const salaryHistory = await prisma.netSalaryHistory.create({
+    const salaryHistory = await prisma.salaryHistory.create({
       data: {
         userId: session.user.id,
-        netMonthly: netMonthly,
-        effectiveFrom: new Date(effectiveFrom),
+        monthly: monthly,
+        effectiveFrom: effectiveFromDate,
       },
       select: {
         id: true,
-        netMonthly: true,
+        monthly: true,
         effectiveFrom: true,
         createdAt: true,
       },
@@ -68,7 +72,7 @@ export async function DELETE(request: NextRequest) {
     const { id } = deleteSchema.parse(body)
 
     // Verify the salary entry belongs to the user
-    const salary = await prisma.netSalaryHistory.findUnique({
+    const salary = await prisma.salaryHistory.findUnique({
       where: { id },
       select: { userId: true },
     })
@@ -88,7 +92,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete the salary entry
-    await prisma.netSalaryHistory.delete({
+    await prisma.salaryHistory.delete({
       where: { id },
     })
 

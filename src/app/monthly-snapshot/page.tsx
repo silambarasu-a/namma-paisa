@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { formatDate } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
@@ -22,7 +23,7 @@ interface MonthlySnapshot {
   id: string
   month: number
   year: number
-  netSalary: number
+  salary: number
   taxAmount: number
   afterTax: number
   totalLoans: number
@@ -122,20 +123,97 @@ export default function MonthlySnapshotPage() {
     )
   }
 
+  const handleGenerateSnapshot = async () => {
+    try {
+      setIsClosing(true)
+      const response = await fetch("/api/monthly-snapshot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          month: selectedMonth,
+          year: selectedYear,
+        }),
+      })
+
+      if (response.ok) {
+        toast.success("Snapshot generated successfully")
+        loadSnapshot()
+      } else {
+        const data = await response.json()
+        toast.error(data.error || "Failed to generate snapshot")
+      }
+    } catch (error) {
+      toast.error("An error occurred")
+    } finally {
+      setIsClosing(false)
+    }
+  }
+
   if (!snapshot) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Monthly Snapshot</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Monthly Snapshot</h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Track and close your monthly finances
+          </p>
+        </div>
+
+        {/* Month/Year Selector */}
         <Card>
-          <CardContent className="p-6">
-            <p className="text-center text-muted-foreground">No data available for this month</p>
+          <CardHeader>
+            <CardTitle>Select Month</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4">
+              <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTHS.map((month, index) => (
+                    <SelectItem key={index} value={(index + 1).toString()}>
+                      {month}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 5 }, (_, i) => currentDate.getFullYear() - 2 + i).map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6 text-center space-y-4">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
+            <div>
+              <p className="text-lg font-semibold mb-2">No snapshot available for {MONTHS[selectedMonth - 1]} {selectedYear}</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Generate a snapshot to view your financial summary for this month
+              </p>
+            </div>
+            <Button onClick={handleGenerateSnapshot} disabled={isClosing}>
+              {isClosing ? "Generating..." : "Generate Snapshot"}
+            </Button>
           </CardContent>
         </Card>
       </div>
     )
   }
 
-  const totalAvailableWithCarryForward = snapshot.availableAmount + snapshot.previousSurplus
+  const totalAvailableWithCarryForward = Number(snapshot.availableAmount) + Number(snapshot.previousSurplus)
 
   return (
     <div className="space-y-6 pb-8">
@@ -213,11 +291,11 @@ export default function MonthlySnapshotPage() {
       <div className="grid gap-6 md:grid-cols-3">
         <Card className="border-l-4 border-l-green-500">
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Net Salary</CardTitle>
+            <CardTitle className="text-sm font-medium">Income</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {formatAmount(snapshot.netSalary)}
+              {formatAmount(snapshot.salary)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Gross income</p>
           </CardContent>
@@ -267,14 +345,14 @@ export default function MonthlySnapshotPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {/* Net Salary */}
+            {/* Income */}
             <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
               <div>
-                <p className="font-semibold">Net Salary</p>
+                <p className="font-semibold">Income</p>
                 <p className="text-sm text-muted-foreground">Monthly income</p>
               </div>
               <p className="text-xl font-bold text-green-600 dark:text-green-400">
-                {formatAmount(snapshot.netSalary)}
+                {formatAmount(snapshot.salary)}
               </p>
             </div>
 
@@ -475,7 +553,7 @@ export default function MonthlySnapshotPage() {
             <div className="flex items-center space-x-2 text-green-600 dark:text-green-400">
               <CheckCircle className="h-5 w-5" />
               <p className="font-semibold">
-                Month closed on {new Date(snapshot.closedAt).toLocaleDateString()}
+                Month closed on {formatDate(snapshot.closedAt)}
               </p>
             </div>
           </CardContent>

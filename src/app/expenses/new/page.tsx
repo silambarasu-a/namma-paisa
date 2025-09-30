@@ -164,7 +164,7 @@ export default function AddExpense() {
 
       if (response.ok) {
         toast.success("Expense added successfully!")
-        router.push("/expenses/overview")
+        router.push("/expenses")
       } else {
         const data = await response.json()
         toast.error(data.message || "Failed to add expense")
@@ -422,7 +422,7 @@ export default function AddExpense() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => router.push("/expenses/overview")}
+                onClick={() => router.push("/expenses")}
               >
                 Cancel
               </Button>

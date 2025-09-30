@@ -75,7 +75,7 @@ model User {
 
   profiles          Profile[]
   taxSettings       TaxSetting[]
-  salaries          NetSalaryHistory[]
+  salaries          SalaryHistory[]
   incomes           Income[]
   allocations       InvestmentAllocation[]
   sips              SIP[]
@@ -152,10 +152,10 @@ model Profile {
   @@map("profiles")
 }
 
-model NetSalaryHistory {
+model SalaryHistory {
   id            String   @id @default(cuid())
   userId        String
-  netMonthly    Decimal  @db.Decimal(12, 2)
+  monthly       Decimal  @db.Decimal(12, 2)
   effectiveFrom DateTime
   effectiveTo   DateTime?
   createdAt     DateTime @default(now())
@@ -358,7 +358,7 @@ model MonthlySnapshot {
   year              Int
 
   // Salary & Deductions
-  netSalary         Decimal  @db.Decimal(12, 2)
+  salary            Decimal  @db.Decimal(12, 2)
   taxAmount         Decimal  @db.Decimal(12, 2)
   afterTax          Decimal  @db.Decimal(12, 2)
 

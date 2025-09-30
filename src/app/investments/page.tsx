@@ -6,8 +6,9 @@ import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { TrendingUp, Wallet, Settings, PlusCircle, Eye, AlertCircle } from "lucide-react"
+import { TrendingUp, Wallet, Settings, PlusCircle, Eye, AlertCircle, Calendar } from "lucide-react"
 import { toast } from "sonner"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface AllocationData {
   id: string
@@ -50,10 +51,12 @@ export default function InvestmentsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [allocations, setAllocations] = useState<AllocationData[]>([])
   const [calculateData, setCalculateData] = useState<CalculateData | null>(null)
+  const [selectedMonth, setSelectedMonth] = useState<string>(String(new Date().getMonth() + 1))
+  const [selectedYear, setSelectedYear] = useState<string>(String(new Date().getFullYear()))
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [selectedMonth, selectedYear])
 
   const loadData = async () => {
     try {
@@ -61,11 +64,11 @@ export default function InvestmentsPage() {
 
       // Fetch current salary from salary history (most recent entry)
       const profileResponse = await fetch("/api/profile/salary-history")
-      let netSalary = 0
+      let monthlySalary = 0
       if (profileResponse.ok) {
         const salaryHistory = await profileResponse.json()
         if (salaryHistory && salaryHistory.length > 0) {
-          netSalary = Number(salaryHistory[0].netMonthly)
+          monthlySalary = Number(salaryHistory[0].monthly)
         }
       }
 
@@ -77,11 +80,11 @@ export default function InvestmentsPage() {
       }
 
       // Calculate available investment amount
-      if (netSalary > 0) {
+      if (monthlySalary > 0) {
         const calcResponse = await fetch("/api/investments/calculate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ netMonthly: netSalary }),
+          body: JSON.stringify({ monthly: monthlySalary }),
         })
 
         if (calcResponse.ok) {
@@ -116,16 +119,65 @@ export default function InvestmentsPage() {
   const totalAllocated = allocations.reduce((sum, a) => sum + Number(a.percent), 0)
   const hasAllocations = allocations.length > 0
 
+  const months = [
+    { value: "1", label: "January" },
+    { value: "2", label: "February" },
+    { value: "3", label: "March" },
+    { value: "4", label: "April" },
+    { value: "5", label: "May" },
+    { value: "6", label: "June" },
+    { value: "7", label: "July" },
+    { value: "8", label: "August" },
+    { value: "9", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" },
+  ]
+
+  const currentYear = new Date().getFullYear()
+  const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Investment Portfolio
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Manage your investment allocations and track portfolio performance
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Investment Portfolio
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Manage your investment allocations and track portfolio performance
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-gray-500" />
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Month" />
+            </SelectTrigger>
+            <SelectContent>
+              {months.map((month) => (
+                <SelectItem key={month.value} value={month.value}>
+                  {month.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedYear} onValueChange={setSelectedYear}>
+            <SelectTrigger className="w-[100px]">
+              <SelectValue placeholder="Year" />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map((year) => (
+                <SelectItem key={year} value={String(year)}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Available Investment Amount */}

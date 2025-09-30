@@ -49,17 +49,24 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get("sortBy") || "date"
     const limit = parseInt(searchParams.get("limit") || "50")
     const period = searchParams.get("period") || null
+    const month = searchParams.get("month") ? parseInt(searchParams.get("month")!) : null
+    const year = searchParams.get("year") ? parseInt(searchParams.get("year")!) : null
 
     // Build where clause based on filter
     const where: {
       userId: string
-      date?: { gte: Date }
+      date?: { gte: Date; lt?: Date }
       category?: "NEEDS" | "PARTIAL_NEEDS" | "AVOID"
       expenseType?: "EXPECTED" | "UNEXPECTED"
     } = { userId: session.user.id }
 
-    // Add period filter
-    if (period) {
+    // Add month/year filter (takes precedence over period)
+    if (month && year) {
+      const startDate = new Date(year, month - 1, 1)
+      const endDate = new Date(year, month, 1)
+      where.date = { gte: startDate, lt: endDate }
+    } else if (period) {
+      // Add period filter
       const now = new Date()
       let startDate: Date
 
@@ -119,9 +126,9 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    // Calculate summary
+    // Calculate summary with the same filter
     const allExpenses = await prisma.expense.findMany({
-      where: { userId: session.user.id },
+      where,
       select: {
         amount: true,
         expenseType: true,

@@ -132,14 +132,14 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
   const endDate = new Date(year, month, 0, 23, 59, 59)
 
   // Get salary
-  const latestSalary = await prisma.netSalaryHistory.findFirst({
+  const latestSalary = await prisma.salaryHistory.findFirst({
     where: {
       userId,
       effectiveFrom: { lte: endDate }
     },
     orderBy: { effectiveFrom: "desc" },
   })
-  const netSalary = latestSalary ? Number(latestSalary.netMonthly) : 0
+  const salary = latestSalary ? Number(latestSalary.monthly) : 0
 
   // Get tax
   const taxSetting = await prisma.taxSetting.findFirst({
@@ -148,23 +148,23 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
   })
 
   let taxAmount = 0
-  if (taxSetting && netSalary > 0) {
+  if (taxSetting && salary > 0) {
     switch (taxSetting.mode) {
       case "PERCENTAGE":
-        taxAmount = taxSetting.percentage ? (netSalary * Number(taxSetting.percentage)) / 100 : 0
+        taxAmount = taxSetting.percentage ? (salary * Number(taxSetting.percentage)) / 100 : 0
         break
       case "FIXED":
         taxAmount = taxSetting.fixedAmount ? Number(taxSetting.fixedAmount) : 0
         break
       case "HYBRID":
-        const percentAmount = taxSetting.percentage ? (netSalary * Number(taxSetting.percentage)) / 100 : 0
+        const percentAmount = taxSetting.percentage ? (salary * Number(taxSetting.percentage)) / 100 : 0
         const fixedAmount = taxSetting.fixedAmount ? Number(taxSetting.fixedAmount) : 0
         taxAmount = percentAmount + fixedAmount
         break
     }
   }
 
-  const afterTax = netSalary - taxAmount
+  const afterTax = salary - taxAmount
 
   // Get loans for this month
   const loans = await prisma.loan.findMany({
@@ -276,7 +276,7 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
   const previousSurplus = previousSnapshot ? Number(previousSnapshot.surplusAmount) : 0
 
   return {
-    netSalary,
+    salary,
     taxAmount,
     afterTax,
     totalLoans,

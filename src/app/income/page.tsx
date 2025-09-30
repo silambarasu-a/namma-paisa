@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { formatDate } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -20,6 +20,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface Income {
   id: string
@@ -34,7 +44,7 @@ interface Income {
 
 interface Salary {
   id: string
-  netMonthly: number
+  monthly: number
   effectiveFrom: string
   effectiveTo?: string
 }
@@ -65,6 +75,10 @@ export default function IncomePage() {
   const [currentIncome, setCurrentIncome] = useState<Income | null>(null)
   const [totalIncome, setTotalIncome] = useState(0)
   const [isSalaryDialogOpen, setIsSalaryDialogOpen] = useState(false)
+  const [deleteIncomeDialogOpen, setDeleteIncomeDialogOpen] = useState(false)
+  const [deleteSalaryDialogOpen, setDeleteSalaryDialogOpen] = useState(false)
+  const [incomeToDelete, setIncomeToDelete] = useState<string | null>(null)
+  const [salaryToDelete, setSalaryToDelete] = useState<string | null>(null)
 
   // Form state
   const [date, setDate] = useState("")
@@ -178,11 +192,11 @@ export default function IncomePage() {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this income?")) return
+  const handleDelete = async () => {
+    if (!incomeToDelete) return
 
     try {
-      const response = await fetch(`/api/income/${id}`, {
+      const response = await fetch(`/api/income/${incomeToDelete}`, {
         method: "DELETE",
       })
 
@@ -194,7 +208,15 @@ export default function IncomePage() {
       }
     } catch (error) {
       toast.error("An error occurred")
+    } finally {
+      setDeleteIncomeDialogOpen(false)
+      setIncomeToDelete(null)
     }
+  }
+
+  const openDeleteIncomeDialog = (id: string) => {
+    setIncomeToDelete(id)
+    setDeleteIncomeDialogOpen(true)
   }
 
   const handleSalarySubmit = async (e: React.FormEvent) => {
@@ -202,7 +224,7 @@ export default function IncomePage() {
 
     try {
       const body = {
-        netMonthly: parseFloat(salaryAmount),
+        monthly: parseFloat(salaryAmount),
         effectiveFrom: salaryEffectiveFrom,
       }
 
@@ -227,7 +249,38 @@ export default function IncomePage() {
     }
   }
 
-  const monthlyTotal = (salary?.netMonthly || 0) + totalIncome
+  const handleDeleteSalary = async () => {
+    if (!salaryToDelete) return
+
+    try {
+      const response = await fetch(`/api/profile/salary`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: salaryToDelete }),
+      })
+
+      if (response.ok) {
+        toast.success("Salary entry deleted successfully")
+        loadData()
+      } else {
+        toast.error("Failed to delete salary entry")
+      }
+    } catch (error) {
+      toast.error("An error occurred")
+    } finally {
+      setDeleteSalaryDialogOpen(false)
+      setSalaryToDelete(null)
+    }
+  }
+
+  const openDeleteSalaryDialog = (id: string) => {
+    setSalaryToDelete(id)
+    setDeleteSalaryDialogOpen(true)
+  }
+
+  const monthlyTotal = (salary?.monthly || 0) + totalIncome
 
   return (
     <div className="space-y-6">
@@ -308,17 +361,17 @@ export default function IncomePage() {
         <Card className="border-l-4 border-l-green-500">
           <CardHeader>
             <CardTitle className="text-sm font-medium">Monthly Salary</CardTitle>
-            <CardDescription>From profile</CardDescription>
+            <CardDescription>Current base salary</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-              ₹{(salary?.netMonthly || 0).toLocaleString()}
+              ₹{(salary?.monthly || 0).toLocaleString()}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              <Link href="/profile" className="underline hover:text-primary">
-                Update salary
-              </Link>
-            </p>
+            {salary?.effectiveFrom && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Effective from {formatDate(salary.effectiveFrom)}
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -400,11 +453,7 @@ export default function IncomePage() {
                       <p className="text-sm text-muted-foreground mb-1">{income.description}</p>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      {new Date(income.date).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric'
-                      })}
+                      {formatDate(income.date)}
                     </p>
                   </div>
                   <div className="flex items-center space-x-4">
@@ -425,7 +474,7 @@ export default function IncomePage() {
                         variant="outline"
                         size="sm"
                         className="text-red-600 hover:text-red-700"
-                        onClick={() => handleDelete(income.id)}
+                        onClick={() => openDeleteIncomeDialog(income.id)}
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -462,10 +511,10 @@ export default function IncomePage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                ₹{salary ? Number(salary.netMonthly).toLocaleString() : '0'}
+                ₹{salary ? Number(salary.monthly).toLocaleString() : '0'}
               </div>
               <p className="text-sm text-muted-foreground mt-2">
-                Net monthly take-home
+                Monthly take-home
               </p>
             </CardContent>
           </Card>
@@ -509,7 +558,7 @@ export default function IncomePage() {
                     >
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
-                          <h4 className="font-semibold">₹{Number(salaryItem.netMonthly).toLocaleString()}</h4>
+                          <h4 className="font-semibold">₹{Number(salaryItem.monthly).toLocaleString()}</h4>
                           {index === 0 && (
                             <Badge variant="default" className="text-xs">
                               Current
@@ -517,21 +566,21 @@ export default function IncomePage() {
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          From {new Date(salaryItem.effectiveFrom).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
-                          })}
+                          From {formatDate(salaryItem.effectiveFrom)}
                           {salaryItem.effectiveTo && (
-                            <> to {new Date(salaryItem.effectiveTo).toLocaleDateString('en-IN', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric'
-                            })}</>
+                            <> to {formatDate(salaryItem.effectiveTo)}</>
                           )}
                           {!salaryItem.effectiveTo && index === 0 && <> (Active)</>}
                         </p>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openDeleteSalaryDialog(salaryItem.id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -652,7 +701,7 @@ export default function IncomePage() {
           </DialogHeader>
           <form onSubmit={handleSalarySubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="salaryAmount">Net Monthly Salary (₹) *</Label>
+              <Label htmlFor="salaryAmount">Monthly Salary (₹) *</Label>
               <Input
                 id="salaryAmount"
                 type="number"
@@ -695,6 +744,42 @@ export default function IncomePage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Income Confirmation Dialog */}
+      <AlertDialog open={deleteIncomeDialogOpen} onOpenChange={setDeleteIncomeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Income</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this income entry? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Salary Confirmation Dialog */}
+      <AlertDialog open={deleteSalaryDialogOpen} onOpenChange={setDeleteSalaryDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Salary Entry</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this salary entry? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteSalary} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

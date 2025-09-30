@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
 const calculateSchema = z.object({
-  netMonthly: z.number().positive("Net monthly income must be positive"),
+  monthly: z.number().positive("Net monthly income must be positive"),
 })
 
 export async function POST(request: Request) {
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { netMonthly } = calculateSchema.parse(body)
+    const { monthly } = calculateSchema.parse(body)
 
     // Get user's tax settings
     const taxSetting = await prisma.taxSetting.findFirst({
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       switch (taxSetting.mode) {
         case "PERCENTAGE":
           if (taxSetting.percentage) {
-            taxAmount = (netMonthly * Number(taxSetting.percentage)) / 100
+            taxAmount = (monthly * Number(taxSetting.percentage)) / 100
           }
           break
         case "FIXED":
@@ -41,14 +41,14 @@ export async function POST(request: Request) {
           break
         case "HYBRID":
           if (taxSetting.percentage && taxSetting.fixedAmount) {
-            const percentageAmount = (netMonthly * Number(taxSetting.percentage)) / 100
+            const percentageAmount = (monthly * Number(taxSetting.percentage)) / 100
             taxAmount = percentageAmount + Number(taxSetting.fixedAmount)
           }
           break
       }
     }
 
-    const afterTax = netMonthly - taxAmount
+    const afterTax = monthly - taxAmount
 
     // Get active SIPs for the current month
     const now = new Date()
@@ -127,9 +127,9 @@ export async function POST(request: Request) {
 
     // Calculate breakdown
     const breakdown = {
-      grossIncome: netMonthly,
+      grossIncome: monthly,
       taxAmount,
-      taxPercentage: netMonthly > 0 ? (taxAmount / netMonthly) * 100 : 0,
+      taxPercentage: monthly > 0 ? (taxAmount / monthly) * 100 : 0,
       afterTax,
       sipCount: activeSIPs.length,
       totalSIPAmount,

@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
 const calculateRequestSchema = z.object({
-  netMonthly: z.number().positive(),
+  monthly: z.number().positive(),
 })
 
 export async function POST(request: Request) {
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
           )
         }
         calculatedTax =
-          (data.netMonthly * Number(taxSetting.percentage)) / 100
+          (data.monthly * Number(taxSetting.percentage)) / 100
         break
 
       case "FIXED":
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
           )
         }
         calculatedTax =
-          (data.netMonthly * Number(taxSetting.percentage)) / 100 +
+          (data.monthly * Number(taxSetting.percentage)) / 100 +
           Number(taxSetting.fixedAmount)
         break
 
@@ -76,12 +76,12 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      netMonthly: data.netMonthly,
+      monthly: data.monthly,
       taxMode: taxSetting.mode,
       percentage: taxSetting.percentage ? Number(taxSetting.percentage) : null,
       fixedAmount: taxSetting.fixedAmount ? Number(taxSetting.fixedAmount) : null,
       calculatedTax: Number(calculatedTax.toFixed(2)),
-      netAfterTax: Number((data.netMonthly - calculatedTax).toFixed(2)),
+      netAfterTax: Number((data.monthly - calculatedTax).toFixed(2)),
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
