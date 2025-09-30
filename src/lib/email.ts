@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer"
 import { PasswordResetOTPTemplate } from "./email-templates/password-reset-otp"
+import { PasswordResetLinkTemplate } from "./email-templates/password-reset-link"
 
 // Create reusable transporter
 const transporter = nodemailer.createTransport({
@@ -24,6 +25,25 @@ export async function sendPasswordResetOTP(email: string, otp: string, name?: st
     })
 
     console.log("Email sent successfully:", info.messageId)
+    return { success: true, data: info }
+  } catch (error) {
+    console.error("Email sending error:", error)
+    return { success: false, error }
+  }
+}
+
+export async function sendPasswordResetLink(email: string, resetLink: string, name?: string) {
+  const emailHtml = PasswordResetLinkTemplate({ resetLink, name })
+
+  try {
+    const info = await transporter.sendMail({
+      from: `"Namma Paisa" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Password Reset Link - Namma Paisa",
+      html: emailHtml,
+    })
+
+    console.log("Password reset link email sent successfully:", info.messageId)
     return { success: true, data: info }
   } catch (error) {
     console.error("Email sending error:", error)

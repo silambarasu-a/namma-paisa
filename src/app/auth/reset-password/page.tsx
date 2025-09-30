@@ -21,7 +21,19 @@ export default function ResetPassword() {
   const router = useRouter()
 
   useEffect(() => {
-    // Get email and OTP from session storage
+    // Check URL params first (from admin reset link)
+    const searchParams = new URLSearchParams(window.location.search)
+    const urlEmail = searchParams.get("email")
+    const urlOtp = searchParams.get("otp")
+
+    if (urlEmail && urlOtp) {
+      // Admin sent reset link
+      setEmail(urlEmail)
+      setOtp(urlOtp)
+      return
+    }
+
+    // Otherwise check session storage (from normal forgot password flow)
     const storedEmail = sessionStorage.getItem("resetEmail")
     const storedOtp = sessionStorage.getItem("verifiedOtp")
 

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Users, Plus, Edit, Trash2, Ban, CheckCircle, Shield } from "lucide-react"
+import { Users, Plus, Edit, Trash2, Ban, CheckCircle, Shield, Mail, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -52,6 +52,7 @@ export default function UserManagementPage() {
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [roleFilter, setRoleFilter] = useState<"all" | "SUPER_ADMIN" | "CUSTOMER">("all")
+  const [sendingResetLink, setSendingResetLink] = useState<string | null>(null)
 
   // Filter users by role and search
   const filteredUsers = users
@@ -215,6 +216,27 @@ export default function UserManagementPage() {
     setDeleteDialogOpen(true)
   }
 
+  const handleSendResetLink = async (userId: string, userEmail: string) => {
+    setSendingResetLink(userId)
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/send-reset-link`, {
+        method: "POST",
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast.success(`Password reset link sent to ${userEmail}`)
+      } else {
+        toast.error(data.error || "Failed to send reset link")
+      }
+    } catch (error) {
+      toast.error("An error occurred")
+    } finally {
+      setSendingResetLink(null)
+    }
+  }
+
   return (
     <div className="space-y-8 pb-8">
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-900 dark:to-pink-900 -mx-6 md:-mx-8 -mt-20 px-6 md:px-8 pt-24 pb-8 mb-6">
@@ -328,7 +350,21 @@ export default function UserManagementPage() {
                             <Button
                               variant="ghost"
                               size="sm"
+                              onClick={() => handleSendResetLink(user.id, user.email)}
+                              title="Send password reset link"
+                              disabled={user.isBlocked || sendingResetLink === user.id}
+                            >
+                              {sendingResetLink === user.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Mail className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => handleOpenDialog(user)}
+                              title="Edit user"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -337,6 +373,7 @@ export default function UserManagementPage() {
                               size="sm"
                               onClick={() => handleToggleBlock(user.id, user.isBlocked)}
                               className={user.isBlocked ? "text-green-600" : "text-orange-600"}
+                              title={user.isBlocked ? "Unblock user" : "Block user"}
                             >
                               {user.isBlocked ? (
                                 <CheckCircle className="h-4 w-4" />
@@ -349,6 +386,7 @@ export default function UserManagementPage() {
                               size="sm"
                               onClick={() => openDeleteDialog(user.id)}
                               className="text-red-600"
+                              title="Delete user"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
