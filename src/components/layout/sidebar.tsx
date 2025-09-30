@@ -39,12 +39,13 @@ interface NavigationItem {
 const navigation: NavigationItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Profile", href: "/profile", icon: User },
+  { name: "Income", href: "/income", icon: TrendingUp },
   { name: "Tax", href: "/tax", icon: Calculator },
   { name: "Loans", href: "/loans", icon: Wallet },
   {
     name: "Investments",
     href: "/investments",
-    icon: TrendingUp,
+    icon: PiggyBank,
     children: [
       { name: "Overview", href: "/investments/overview", icon: FolderKanban },
       { name: "Allocations", href: "/investments/allocations", icon: PieChart },
