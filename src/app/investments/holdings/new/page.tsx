@@ -1,14 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
-import { PlusCircle } from "lucide-react"
+import { PlusCircle, Search, Loader2 } from "lucide-react"
 
 const BUCKETS = [
   { id: "MUTUAL_FUND", label: "Mutual Funds" },
@@ -18,16 +19,135 @@ const BUCKETS = [
   { id: "EMERGENCY_FUND", label: "Emergency Fund" },
 ]
 
+interface SearchResult {
+  symbol?: string
+  id?: string
+  name: string
+  category?: string
+  exchange?: string
+  sector?: string
+  amc?: string
+}
+
 export default function NewHoldingPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
   const [bucket, setBucket] = useState("")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [showResults, setShowResults] = useState(false)
   const [symbol, setSymbol] = useState("")
   const [name, setName] = useState("")
   const [qty, setQty] = useState("")
   const [avgCost, setAvgCost] = useState("")
   const [currentPrice, setCurrentPrice] = useState("")
   const [currency, setCurrency] = useState("INR")
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowResults(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  // Auto-set currency based on bucket
+  useEffect(() => {
+    if (bucket === "US_STOCK") {
+      setCurrency("USD")
+    } else {
+      setCurrency("INR")
+    }
+  }, [bucket])
+
+  // Search for investments
+  useEffect(() => {
+    if (!bucket || searchQuery.length < 2) {
+      setSearchResults([])
+      return
+    }
+
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+
+    // Set new timeout for debouncing
+    searchTimeoutRef.current = setTimeout(async () => {
+      setIsSearching(true)
+      try {
+        let endpoint = ""
+        const params = new URLSearchParams({ q: searchQuery })
+
+        if (bucket === "MUTUAL_FUND") {
+          endpoint = "/api/search/funds"
+        } else if (bucket === "IND_STOCK") {
+          endpoint = "/api/search/stocks"
+          params.append("market", "IN")
+        } else if (bucket === "US_STOCK") {
+          endpoint = "/api/search/stocks"
+          params.append("market", "US")
+        } else if (bucket === "CRYPTO") {
+          endpoint = "/api/search/crypto"
+        }
+
+        if (endpoint) {
+          const response = await fetch(`${endpoint}?${params}`)
+          if (response.ok) {
+            const results = await response.json()
+            setSearchResults(results)
+            setShowResults(true)
+          }
+        }
+      } catch (error) {
+        console.error("Search error:", error)
+      } finally {
+        setIsSearching(false)
+      }
+    }, 300) // Debounce delay
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  }, [searchQuery, bucket])
+
+  const handleSelectResult = async (result: SearchResult) => {
+    const selectedSymbol = result.symbol || result.id || ""
+    setSymbol(selectedSymbol)
+    setName(result.name)
+    setSearchQuery(result.name)
+    setShowResults(false)
+    setSearchResults([])
+
+    // Auto-fetch current price
+    if (bucket && bucket !== "EMERGENCY_FUND") {
+      toast.info("Fetching current price...")
+      try {
+        const priceResponse = await fetch(`/api/price?symbol=${encodeURIComponent(selectedSymbol)}&bucket=${bucket}`)
+        if (priceResponse.ok) {
+          const priceData = await priceResponse.json()
+          if (priceData.price) {
+            setCurrentPrice(priceData.price.toString())
+            toast.success(`Current price: ${currency === "USD" ? "$" : "₹"}${priceData.price}`)
+          } else {
+            toast.warning("Could not fetch current price. Please enter manually.")
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching price:", error)
+        toast.warning("Could not fetch current price. Please enter manually.")
+      }
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -61,12 +181,27 @@ export default function NewHoldingPage() {
         router.push(`/investments/holdings?bucket=${bucket}`)
       } else {
         const data = await response.json()
-        toast.error(data.message || "Failed to add holding")
+        toast.error(data.error || "Failed to add holding")
       }
     } catch (error) {
       toast.error("An error occurred")
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const getSearchPlaceholder = () => {
+    switch (bucket) {
+      case "MUTUAL_FUND":
+        return "Search mutual funds... (e.g., ICICI, Axis, HDFC)"
+      case "IND_STOCK":
+        return "Search Indian stocks... (e.g., Reliance, TCS, HDFC Bank)"
+      case "US_STOCK":
+        return "Search US stocks... (e.g., Apple, Microsoft, Tesla)"
+      case "CRYPTO":
+        return "Search crypto... (e.g., Bitcoin, Ethereum, BNB)"
+      default:
+        return "First select an investment bucket"
     }
   }
 
@@ -77,7 +212,7 @@ export default function NewHoldingPage() {
           Add New Holding
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Record a new investment in your portfolio
+          Search and add investments to your portfolio
         </p>
       </div>
 
@@ -88,14 +223,20 @@ export default function NewHoldingPage() {
             <span>Holding Details</span>
           </CardTitle>
           <CardDescription>
-            Enter the details of your investment holding
+            Select bucket and search for your investment
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="bucket">Investment Bucket *</Label>
-              <Select value={bucket} onValueChange={setBucket}>
+              <Select value={bucket} onValueChange={(value) => {
+                setBucket(value)
+                setSearchQuery("")
+                setSymbol("")
+                setName("")
+                setSearchResults([])
+              }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select bucket" />
                 </SelectTrigger>
@@ -109,50 +250,138 @@ export default function NewHoldingPage() {
               </Select>
             </div>
 
+            {bucket && bucket !== "EMERGENCY_FUND" && (
+              <div className="space-y-2" ref={dropdownRef}>
+                <Label htmlFor="search">Search Investment *</Label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                    {isSearching ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Search className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
+                  <Input
+                    id="search"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => searchResults.length > 0 && setShowResults(true)}
+                    placeholder={getSearchPlaceholder()}
+                    className="pl-10"
+                  />
+
+                  {/* Search Results Dropdown */}
+                  {showResults && searchResults.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                      {searchResults.map((result, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => handleSelectResult(result)}
+                          className="px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-0"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2">
+                                <span className="font-semibold text-sm">
+                                  {result.symbol || result.id}
+                                </span>
+                                {result.exchange && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {result.exchange}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                {result.name}
+                              </p>
+                              {(result.sector || result.category || result.amc) && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {result.sector || result.category || result.amc}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {showResults && searchQuery.length >= 2 && searchResults.length === 0 && !isSearching && (
+                    <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4">
+                      <p className="text-sm text-muted-foreground text-center">
+                        No results found. Try a different search term.
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Start typing to search from our database
+                </p>
+              </div>
+            )}
+
+            {symbol && name && (
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                      Selected: {symbol}
+                    </p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                      {name}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSymbol("")
+                      setName("")
+                      setSearchQuery("")
+                    }}
+                  >
+                    Change
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Manual entry for Emergency Fund */}
+            {bucket === "EMERGENCY_FUND" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="symbol">Account/Institution *</Label>
+                  <Input
+                    id="symbol"
+                    value={symbol}
+                    onChange={(e) => setSymbol(e.target.value)}
+                    placeholder="e.g., HDFC Bank, SBI Savings"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Account Name *</Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g., Emergency Savings Account"
+                    required
+                  />
+                </div>
+              </>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="symbol">Symbol *</Label>
-                <Input
-                  id="symbol"
-                  value={symbol}
-                  onChange={(e) => setSymbol(e.target.value)}
-                  placeholder="e.g., RELIANCE, BTC, etc."
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="currency">Currency</Label>
-                <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="INR">INR (₹)</SelectItem>
-                    <SelectItem value="USD">USD ($)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., Reliance Industries Ltd."
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="qty">Quantity *</Label>
+                <Label htmlFor="qty">
+                  {bucket === "EMERGENCY_FUND" ? "Amount" : "Quantity"} *
+                </Label>
                 <Input
                   id="qty"
                   type="number"
-                  step="0.000001"
+                  step={bucket === "CRYPTO" ? "0.00000001" : "0.000001"}
                   min="0"
                   value={qty}
                   onChange={(e) => setQty(e.target.value)}
@@ -162,7 +391,9 @@ export default function NewHoldingPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="avgCost">Average Cost ({currency === "USD" ? "$" : "₹"}) *</Label>
+                <Label htmlFor="avgCost">
+                  {bucket === "EMERGENCY_FUND" ? "Value" : "Average Cost"} ({currency === "USD" ? "$" : "₹"}) *
+                </Label>
                 <Input
                   id="avgCost"
                   type="number"
@@ -176,26 +407,41 @@ export default function NewHoldingPage() {
               </div>
             </div>
 
+            {bucket !== "EMERGENCY_FUND" && (
+              <div className="space-y-2">
+                <Label htmlFor="currentPrice">
+                  Current Price ({currency === "USD" ? "$" : "₹"}) (Optional)
+                </Label>
+                <Input
+                  id="currentPrice"
+                  type="number"
+                  step="any"
+                  min="0"
+                  value={currentPrice}
+                  onChange={(e) => setCurrentPrice(e.target.value)}
+                  placeholder="0.00"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Leave blank if you don&apos;t have the current price yet
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="currentPrice">
-                Current Price ({currency === "USD" ? "$" : "₹"}) (Optional)
-              </Label>
-              <Input
-                id="currentPrice"
-                type="number"
-                step="0.01"
-                min="0"
-                value={currentPrice}
-                onChange={(e) => setCurrentPrice(e.target.value)}
-                placeholder="0.00"
-              />
-              <p className="text-xs text-muted-foreground">
-                Leave blank if you don&apos;t have the current price yet
-              </p>
+              <Label htmlFor="currency">Currency</Label>
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="INR">INR (₹)</SelectItem>
+                  <SelectItem value="USD">USD ($)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex space-x-4">
-              <Button type="submit" disabled={isLoading} className="flex-1">
+              <Button type="submit" disabled={isLoading || !symbol || !name} className="flex-1">
                 {isLoading ? "Adding..." : "Add Holding"}
               </Button>
               <Button

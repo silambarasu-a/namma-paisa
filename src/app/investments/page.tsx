@@ -23,6 +23,9 @@ interface CalculateData {
   sipCount: number
   totalSIPAmount: number
   afterSIPs: number
+  loanCount: number
+  totalLoanEMI: number
+  afterLoans: number
   availableForInvestment: number
 }
 
@@ -47,7 +50,6 @@ export default function InvestmentsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [allocations, setAllocations] = useState<AllocationData[]>([])
   const [calculateData, setCalculateData] = useState<CalculateData | null>(null)
-  const [netSalary, setNetSalary] = useState(85000) // Default value
 
   useEffect(() => {
     loadData()
@@ -57,6 +59,16 @@ export default function InvestmentsPage() {
     try {
       setIsLoading(true)
 
+      // Fetch current salary from salary history (most recent entry)
+      const profileResponse = await fetch("/api/profile/salary-history")
+      let netSalary = 0
+      if (profileResponse.ok) {
+        const salaryHistory = await profileResponse.json()
+        if (salaryHistory && salaryHistory.length > 0) {
+          netSalary = Number(salaryHistory[0].netMonthly)
+        }
+      }
+
       // Fetch allocations
       const allocResponse = await fetch("/api/investments/allocations")
       if (allocResponse.ok) {
@@ -65,15 +77,17 @@ export default function InvestmentsPage() {
       }
 
       // Calculate available investment amount
-      const calcResponse = await fetch("/api/investments/calculate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ netMonthly: netSalary }),
-      })
+      if (netSalary > 0) {
+        const calcResponse = await fetch("/api/investments/calculate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ netMonthly: netSalary }),
+        })
 
-      if (calcResponse.ok) {
-        const calcData = await calcResponse.json()
-        setCalculateData(calcData)
+        if (calcResponse.ok) {
+          const calcData = await calcResponse.json()
+          setCalculateData(calcData)
+        }
       }
     } catch (error) {
       console.error("Error loading data:", error)
@@ -122,7 +136,7 @@ export default function InvestmentsPage() {
             <span>Available for Investment</span>
           </CardTitle>
           <CardDescription>
-            Monthly amount available after tax and SIPs
+            Monthly amount available after tax, loan EMIs, and SIPs
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -135,7 +149,7 @@ export default function InvestmentsPage() {
             </div>
 
             {calculateData && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t">
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Gross Income</p>
                   <p className="text-lg font-semibold">₹{calculateData.grossIncome.toLocaleString()}</p>
@@ -147,6 +161,12 @@ export default function InvestmentsPage() {
                   </p>
                 </div>
                 <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Loan EMIs ({calculateData.loanCount})</p>
+                  <p className="text-lg font-semibold text-purple-600 dark:text-purple-400">
+                    -₹{calculateData.totalLoanEMI.toLocaleString()}
+                  </p>
+                </div>
+                <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">SIPs ({calculateData.sipCount})</p>
                   <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">
                     -₹{calculateData.totalSIPAmount.toLocaleString()}
@@ -155,7 +175,7 @@ export default function InvestmentsPage() {
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">After Deductions</p>
                   <p className="text-lg font-semibold text-green-600 dark:text-green-400">
-                    ₹{calculateData.afterSIPs.toLocaleString()}
+                    ₹{calculateData.afterLoans.toLocaleString()}
                   </p>
                 </div>
               </div>

@@ -137,7 +137,8 @@ export default async function Dashboard() {
 
   // Calculate salary flow
   const afterTax = netSalary - taxAmount
-  const afterSIPs = afterTax - sipsData.totalAmount
+  const afterLoans = afterTax - loansData.totalEMI
+  const afterSIPs = afterLoans - sipsData.totalAmount
   const availableForExpenses = Math.max(0, afterSIPs)
 
   // Calculate investment allocation if there are allocations set
@@ -267,6 +268,30 @@ export default async function Dashboard() {
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Remaining: ₹{afterTax.toLocaleString('en-IN')}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center">
+              <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90" />
+            </div>
+
+            {/* Loans */}
+            <div className="flex items-center justify-between p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border-l-4 border-orange-500">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                  <h3 className="font-semibold text-lg">Loan EMIs</h3>
+                  <Badge variant="secondary">{loansData.count} active</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">Monthly loan payments</p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                  -₹{loansData.totalEMI.toLocaleString('en-IN')}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Remaining: ₹{afterLoans.toLocaleString('en-IN')}
                 </p>
               </div>
             </div>

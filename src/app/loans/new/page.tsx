@@ -74,6 +74,52 @@ export default function NewLoanPage() {
   })
 
   const loanType = watch("loanType")
+  const principalAmount = watch("principalAmount")
+  const interestRate = watch("interestRate")
+  const tenure = watch("tenure")
+  const emiAmount = watch("emiAmount")
+
+  // Auto-calculate EMI based on principal, interest rate, and tenure
+  const calculateEMI = (principal: number, rate: number, months: number): number => {
+    if (rate === 0) {
+      return principal / months
+    }
+    const monthlyRate = rate / 12 / 100
+    const emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1)
+    return Math.round(emi * 100) / 100
+  }
+
+  // Auto-calculate tenure based on principal, interest rate, and EMI
+  const calculateTenure = (principal: number, rate: number, emi: number): number => {
+    if (rate === 0) {
+      return Math.ceil(principal / emi)
+    }
+    const monthlyRate = rate / 12 / 100
+    const tenure = Math.log(emi / (emi - principal * monthlyRate)) / Math.log(1 + monthlyRate)
+    return Math.ceil(tenure)
+  }
+
+  // Auto-calculate when fields change
+  const handleFieldChange = (field: string, value: string) => {
+    const principal = field === "principalAmount" ? Number(value) : Number(principalAmount)
+    const rate = field === "interestRate" ? Number(value) : Number(interestRate)
+    const months = field === "tenure" ? Number(value) : Number(tenure)
+    const emi = field === "emiAmount" ? Number(value) : Number(emiAmount)
+
+    // Only auto-calculate if we have valid inputs
+    if (principal > 0 && rate >= 0) {
+      // If EMI is empty or 0, calculate it from tenure
+      if (field !== "emiAmount" && months > 0 && (!emi || emi === 0)) {
+        const calculatedEMI = calculateEMI(principal, rate, months)
+        setValue("emiAmount", calculatedEMI.toString())
+      }
+      // If tenure is empty or 0, calculate it from EMI
+      else if (field !== "tenure" && emi > 0 && (!months || months === 0)) {
+        const calculatedTenure = calculateTenure(principal, rate, emi)
+        setValue("tenure", calculatedTenure.toString())
+      }
+    }
+  }
 
   const onSubmit = async (data: LoanFormData) => {
     try {
@@ -193,6 +239,10 @@ export default function NewLoanPage() {
                   step="0.01"
                   placeholder="500000"
                   {...register("principalAmount")}
+                  onChange={(e) => {
+                    setValue("principalAmount", e.target.value)
+                    handleFieldChange("principalAmount", e.target.value)
+                  }}
                 />
                 {errors.principalAmount && (
                   <p className="text-sm text-red-500">{errors.principalAmount.message}</p>
@@ -209,6 +259,10 @@ export default function NewLoanPage() {
                   step="0.01"
                   placeholder="8.5"
                   {...register("interestRate")}
+                  onChange={(e) => {
+                    setValue("interestRate", e.target.value)
+                    handleFieldChange("interestRate", e.target.value)
+                  }}
                 />
                 {errors.interestRate && (
                   <p className="text-sm text-red-500">{errors.interestRate.message}</p>
@@ -226,10 +280,17 @@ export default function NewLoanPage() {
                   type="number"
                   placeholder="240"
                   {...register("tenure")}
+                  onChange={(e) => {
+                    setValue("tenure", e.target.value)
+                    handleFieldChange("tenure", e.target.value)
+                  }}
                 />
                 {errors.tenure && (
                   <p className="text-sm text-red-500">{errors.tenure.message}</p>
                 )}
+                <p className="text-xs text-muted-foreground">
+                  Auto-calculated if EMI is entered first
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -242,10 +303,17 @@ export default function NewLoanPage() {
                   step="0.01"
                   placeholder="5000"
                   {...register("emiAmount")}
+                  onChange={(e) => {
+                    setValue("emiAmount", e.target.value)
+                    handleFieldChange("emiAmount", e.target.value)
+                  }}
                 />
                 {errors.emiAmount && (
                   <p className="text-sm text-red-500">{errors.emiAmount.message}</p>
                 )}
+                <p className="text-xs text-muted-foreground">
+                  Auto-calculated if tenure is entered first
+                </p>
               </div>
             </div>
 

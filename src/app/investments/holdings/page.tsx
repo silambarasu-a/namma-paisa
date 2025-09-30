@@ -48,7 +48,9 @@ export default function HoldingsPage() {
       const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
-        setHoldings(data)
+        // Convert grouped holdings object to flat array
+        const allHoldings = Object.values(data.holdings).flat() as Holding[]
+        setHoldings(allHoldings)
       } else {
         toast.error("Failed to load holdings")
       }

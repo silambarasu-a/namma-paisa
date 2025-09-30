@@ -81,7 +81,7 @@ export default function AllocationsPage() {
       const response = await fetch("/api/investments/allocations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ allocations: allocationData }),
+        body: JSON.stringify(allocationData),
       })
 
       if (response.ok) {

@@ -25,6 +25,7 @@ import {
   PieChart,
   Plus,
   FileText,
+  Calendar,
   type LucideIcon,
 } from "lucide-react"
 
@@ -40,7 +41,6 @@ const navigation: NavigationItem[] = [
   { name: "Profile", href: "/profile", icon: User },
   { name: "Tax", href: "/tax", icon: Calculator },
   { name: "Loans", href: "/loans", icon: Wallet },
-  { name: "SIPs", href: "/sips", icon: Repeat },
   {
     name: "Investments",
     href: "/investments",
@@ -49,6 +49,7 @@ const navigation: NavigationItem[] = [
       { name: "Overview", href: "/investments/overview", icon: FolderKanban },
       { name: "Allocations", href: "/investments/allocations", icon: PieChart },
       { name: "Holdings", href: "/investments/holdings", icon: BarChart3 },
+      { name: "SIPs", href: "/sips", icon: Repeat },
     ],
   },
   {
@@ -61,6 +62,7 @@ const navigation: NavigationItem[] = [
       { name: "Reports", href: "/expenses/reports", icon: FileText },
     ],
   },
+  { name: "Monthly Snapshot", href: "/monthly-snapshot", icon: Calendar },
 ]
 
 const adminNavigation: NavigationItem[] = [

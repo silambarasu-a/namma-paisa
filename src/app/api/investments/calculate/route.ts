@@ -91,8 +91,39 @@ export async function POST(request: Request) {
       }
     }
 
+    // Get active loans for the current month
+    // Include loans that start in the current or previous months
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const activeLoans = await prisma.loan.findMany({
+      where: {
+        userId: session.user.id,
+        startDate: {
+          lte: new Date(now.getFullYear(), now.getMonth() + 1, 0), // End of current month
+        },
+      },
+    })
+
+    // Calculate total loan EMI for current month
+    let totalLoanEMI = 0
+    for (const loan of activeLoans) {
+      const startDate = new Date(loan.startDate)
+      const loanStartMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1)
+      const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+      // Calculate months between loan start and now (considering the month, not the day)
+      const monthsSinceStart = (currentMonth.getFullYear() - loanStartMonth.getFullYear()) * 12 +
+                                (currentMonth.getMonth() - loanStartMonth.getMonth())
+
+      // Check if loan is still active (within tenure)
+      // Include loans that start this month or earlier, and haven't completed their tenure
+      if (monthsSinceStart >= 0 && monthsSinceStart < loan.tenure) {
+        totalLoanEMI += Number(loan.emiAmount)
+      }
+    }
+
     const afterSIPs = afterTax - totalSIPAmount
-    const availableForInvestment = Math.max(0, afterSIPs)
+    const afterLoans = afterSIPs - totalLoanEMI
+    const availableForInvestment = Math.max(0, afterLoans)
 
     // Calculate breakdown
     const breakdown = {
@@ -103,6 +134,16 @@ export async function POST(request: Request) {
       sipCount: activeSIPs.length,
       totalSIPAmount,
       afterSIPs,
+      loanCount: activeLoans.filter(loan => {
+        const startDate = new Date(loan.startDate)
+        const loanStartMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1)
+        const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+        const monthsSinceStart = (currentMonth.getFullYear() - loanStartMonth.getFullYear()) * 12 +
+                                  (currentMonth.getMonth() - loanStartMonth.getMonth())
+        return monthsSinceStart >= 0 && monthsSinceStart < loan.tenure
+      }).length,
+      totalLoanEMI,
+      afterLoans,
       availableForInvestment,
       sips: activeSIPs.map((sip) => ({
         id: sip.id,

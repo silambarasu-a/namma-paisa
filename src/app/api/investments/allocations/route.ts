@@ -12,10 +12,10 @@ const allocationItemSchema = z.object({
 const allocationsSchema = z.array(allocationItemSchema).refine(
   (allocations) => {
     const total = allocations.reduce((sum, item) => sum + item.percent, 0)
-    return Math.abs(total - 100) < 0.01
+    return total <= 100.01
   },
   {
-    message: "Total allocation must equal 100%",
+    message: "Total allocation cannot exceed 100%",
   }
 )
 

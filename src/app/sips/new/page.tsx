@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -12,7 +12,9 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { ArrowLeft, Loader2 } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import { ArrowLeft, Loader2, Search } from "lucide-react"
 import {
   Form,
   FormControl,
@@ -23,8 +25,34 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 
+const BUCKETS = [
+  { id: "MUTUAL_FUND", label: "Mutual Funds" },
+  { id: "IND_STOCK", label: "Indian Stocks" },
+  { id: "US_STOCK", label: "US Stocks" },
+  { id: "CRYPTO", label: "Cryptocurrency" },
+]
+
+interface SearchResult {
+  symbol?: string
+  id?: string
+  name: string
+  category?: string
+  exchange?: string
+  sector?: string
+  amc?: string
+}
+
+interface Holding {
+  id: string
+  symbol: string
+  name: string
+  bucket: string
+}
+
 const sipFormSchema = z.object({
-  name: z.string().min(1, "Name is required").max(100, "Name too long"),
+  bucket: z.string().min(1, "Please select an investment type"),
+  symbol: z.string().min(1, "Please select an investment"),
+  name: z.string().min(1, "Name is required"),
   amount: z.string().min(1, "Amount is required").refine(
     (val) => !isNaN(Number(val)) && Number(val) > 0,
     "Amount must be a positive number"
@@ -65,10 +93,20 @@ type SIPFormData = z.infer<typeof sipFormSchema>
 export default function NewSIPPage() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [showResults, setShowResults] = useState(false)
+  const [holdings, setHoldings] = useState<Holding[]>([])
+  const [isLoadingHoldings, setIsLoadingHoldings] = useState(true)
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   const form = useForm<SIPFormData>({
     resolver: zodResolver(sipFormSchema),
     defaultValues: {
+      bucket: "",
+      symbol: "",
       name: "",
       amount: "",
       frequency: "MONTHLY",
@@ -80,6 +118,109 @@ export default function NewSIPPage() {
   })
 
   const watchFrequency = form.watch("frequency")
+  const watchBucket = form.watch("bucket")
+  const watchSymbol = form.watch("symbol")
+  const watchName = form.watch("name")
+
+  // Load user's holdings
+  useEffect(() => {
+    loadHoldings()
+  }, [])
+
+  const loadHoldings = async () => {
+    try {
+      setIsLoadingHoldings(true)
+      const response = await fetch("/api/investments/holdings")
+      if (response.ok) {
+        const data = await response.json()
+        const allHoldings = Object.values(data.holdings).flat() as Holding[]
+        setHoldings(allHoldings.filter(h => h.bucket !== "EMERGENCY_FUND"))
+      }
+    } catch (error) {
+      console.error("Error loading holdings:", error)
+    } finally {
+      setIsLoadingHoldings(false)
+    }
+  }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowResults(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  // Filter holdings by bucket
+  const filteredHoldings = watchBucket
+    ? holdings.filter(h => h.bucket === watchBucket)
+    : []
+
+  // Search for investments
+  useEffect(() => {
+    if (!watchBucket || searchQuery.length < 2) {
+      setSearchResults([])
+      return
+    }
+
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+
+    // Set new timeout for debouncing
+    searchTimeoutRef.current = setTimeout(async () => {
+      setIsSearching(true)
+      try {
+        let endpoint = ""
+        const params = new URLSearchParams({ q: searchQuery })
+
+        if (watchBucket === "MUTUAL_FUND") {
+          endpoint = "/api/search/funds"
+        } else if (watchBucket === "IND_STOCK") {
+          endpoint = "/api/search/stocks"
+          params.append("market", "IN")
+        } else if (watchBucket === "US_STOCK") {
+          endpoint = "/api/search/stocks"
+          params.append("market", "US")
+        } else if (watchBucket === "CRYPTO") {
+          endpoint = "/api/search/crypto"
+        }
+
+        if (endpoint) {
+          const response = await fetch(`${endpoint}?${params}`)
+          if (response.ok) {
+            const results = await response.json()
+            setSearchResults(results)
+            setShowResults(true)
+          }
+        }
+      } catch (error) {
+        console.error("Search error:", error)
+      } finally {
+        setIsSearching(false)
+      }
+    }, 300)
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  }, [searchQuery, watchBucket])
+
+  const handleSelectResult = (result: SearchResult | Holding, isFromHolding = false) => {
+    const selectedSymbol = result.symbol || (result as SearchResult).id || ""
+    form.setValue("symbol", selectedSymbol)
+    form.setValue("name", result.name)
+    setSearchQuery(result.name)
+    setShowResults(false)
+    setSearchResults([])
+  }
 
   const onSubmit = async (data: SIPFormData) => {
     try {
@@ -93,6 +234,8 @@ export default function NewSIPPage() {
         startDate: data.startDate,
         endDate: data.endDate || undefined,
         description: data.description || undefined,
+        bucket: data.bucket,
+        symbol: data.symbol,
       }
 
       const response = await fetch("/api/sips", {
@@ -113,6 +256,21 @@ export default function NewSIPPage() {
       console.error(error)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const getSearchPlaceholder = () => {
+    switch (watchBucket) {
+      case "MUTUAL_FUND":
+        return "Search mutual funds..."
+      case "IND_STOCK":
+        return "Search Indian stocks..."
+      case "US_STOCK":
+        return "Search US stocks..."
+      case "CRYPTO":
+        return "Search crypto..."
+      default:
+        return "First select an investment type"
     }
   }
 
@@ -141,29 +299,192 @@ export default function NewSIPPage() {
         <CardHeader>
           <CardTitle>SIP Details</CardTitle>
           <CardDescription>
-            Enter the details of your systematic investment plan. All fields marked with * are required.
+            Select an investment from your holdings or search for a new one
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Name */}
+              {/* Investment Type */}
               <FormField
                 control={form.control}
-                name="name"
+                name="bucket"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Mutual Fund SIP, PPF Investment" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      A descriptive name for this SIP
-                    </FormDescription>
+                    <FormLabel>Investment Type *</FormLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={(value) => {
+                        field.onChange(value)
+                        form.setValue("symbol", "")
+                        form.setValue("name", "")
+                        setSearchQuery("")
+                        setSearchResults([])
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select investment type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {BUCKETS.map((b) => (
+                          <SelectItem key={b.id} value={b.id}>
+                            {b.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {/* Investment Search */}
+              {watchBucket && (
+                <div className="space-y-2" ref={dropdownRef}>
+                  <Label>Select Investment *</Label>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                      {isSearching ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      ) : (
+                        <Search className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onFocus={() => {
+                        if (filteredHoldings.length > 0 || searchResults.length > 0) {
+                          setShowResults(true)
+                        }
+                      }}
+                      placeholder={getSearchPlaceholder()}
+                      className="pl-10"
+                    />
+
+                    {/* Dropdown Results */}
+                    {showResults && (filteredHoldings.length > 0 || searchResults.length > 0) && (
+                      <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                        {/* User Holdings */}
+                        {searchQuery.length < 2 && filteredHoldings.length > 0 && (
+                          <>
+                            <div className="px-3 py-2 bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                              <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+                                YOUR HOLDINGS
+                              </p>
+                            </div>
+                            {filteredHoldings.map((holding) => (
+                              <div
+                                key={holding.id}
+                                onClick={() => handleSelectResult(holding, true)}
+                                className="px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-0"
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="font-semibold text-sm">{holding.symbol}</span>
+                                      <Badge variant="outline" className="text-xs">
+                                        {holding.bucket.replace('_', ' ')}
+                                      </Badge>
+                                    </div>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                      {holding.name}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </>
+                        )}
+
+                        {/* Search Results */}
+                        {searchQuery.length >= 2 && searchResults.length > 0 && (
+                          <>
+                            <div className="px-3 py-2 bg-blue-100 dark:bg-blue-900 border-b border-blue-200 dark:border-blue-700">
+                              <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">
+                                SEARCH RESULTS
+                              </p>
+                            </div>
+                            {searchResults.map((result, idx) => (
+                              <div
+                                key={idx}
+                                onClick={() => handleSelectResult(result)}
+                                className="px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-0"
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="font-semibold text-sm">
+                                        {result.symbol || result.id}
+                                      </span>
+                                      {result.exchange && (
+                                        <Badge variant="outline" className="text-xs">
+                                          {result.exchange}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                      {result.name}
+                                    </p>
+                                    {(result.sector || result.category || result.amc) && (
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        {result.sector || result.category || result.amc}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {showResults && searchQuery.length >= 2 && searchResults.length === 0 && !isSearching && (
+                      <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4">
+                        <p className="text-sm text-muted-foreground text-center">
+                          No results found. Try a different search term.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {searchQuery.length < 2
+                      ? "Select from your holdings or start typing to search"
+                      : "Start typing to search from our database"}
+                  </p>
+                </div>
+              )}
+
+              {/* Selected Investment Display */}
+              {watchSymbol && watchName && (
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                        Selected: {watchSymbol}
+                      </p>
+                      <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                        {watchName}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        form.setValue("symbol", "")
+                        form.setValue("name", "")
+                        setSearchQuery("")
+                      }}
+                    >
+                      Change
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* Amount */}
               <FormField
@@ -171,7 +492,7 @@ export default function NewSIPPage() {
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Amount *</FormLabel>
+                    <FormLabel>SIP Amount *</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -181,6 +502,7 @@ export default function NewSIPPage() {
                           type="number"
                           placeholder="5000"
                           className="pl-8"
+                          step="0.01"
                           {...field}
                         />
                       </div>

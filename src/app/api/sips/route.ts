@@ -12,6 +12,8 @@ const sipSchema = z.object({
   startDate: z.string(),
   endDate: z.string().optional(),
   description: z.string().optional(),
+  bucket: z.enum(["MUTUAL_FUND", "IND_STOCK", "US_STOCK", "CRYPTO", "EMERGENCY_FUND"]).optional(),
+  symbol: z.string().optional(),
 })
 
 export async function GET() {

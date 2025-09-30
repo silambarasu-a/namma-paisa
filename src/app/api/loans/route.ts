@@ -37,7 +37,12 @@ export async function GET() {
       where: { userId: session.user.id },
       include: {
         emis: {
-          where: { isPaid: false },
+          where: {
+            isPaid: false,
+            dueDate: {
+              gte: new Date(), // Only show EMIs due today or in the future
+            }
+          },
           orderBy: { dueDate: "asc" },
           take: 3,
         },
@@ -45,7 +50,20 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     })
 
-    return NextResponse.json(loans)
+    // Transform the response to ensure proper data types
+    const transformedLoans = loans.map(loan => ({
+      ...loan,
+      principalAmount: Number(loan.principalAmount),
+      interestRate: Number(loan.interestRate),
+      emiAmount: Number(loan.emiAmount),
+      currentOutstanding: Number(loan.currentOutstanding),
+      emis: loan.emis.map(emi => ({
+        ...emi,
+        emiAmount: Number(emi.emiAmount),
+      }))
+    }))
+
+    return NextResponse.json(transformedLoans)
   } catch (error) {
     console.error("Error fetching loans:", error)
     return NextResponse.json(
@@ -66,33 +84,35 @@ export async function POST(request: Request) {
     const body = await request.json()
     const data = loanSchema.parse(body)
 
-    const loan = await prisma.loan.create({
-      data: {
-        ...data,
-        userId: session.user.id,
-        startDate: new Date(data.startDate),
-        currentOutstanding: data.principalAmount,
-      },
-    })
-
     // Generate EMI schedule
-    const emiSchedule = []
-    const startDate = new Date(data.startDate)
-
+    const emis = []
     for (let i = 0; i < data.tenure; i++) {
-      const dueDate = new Date(startDate)
-      dueDate.setMonth(dueDate.getMonth() + i + 1)
-
-      emiSchedule.push({
-        loanId: loan.id,
+      const dueDate = new Date(data.startDate)
+      dueDate.setMonth(dueDate.getMonth() + i)
+      emis.push({
         emiAmount: data.emiAmount,
         dueDate,
         isPaid: false,
       })
     }
 
-    await prisma.eMI.createMany({
-      data: emiSchedule,
+    // Create loan with EMI schedule
+    const loan = await prisma.loan.create({
+      data: {
+        ...data,
+        userId: session.user.id,
+        startDate: new Date(data.startDate),
+        currentOutstanding: data.principalAmount,
+        emis: {
+          create: emis,
+        },
+      },
+      include: {
+        emis: {
+          orderBy: { dueDate: "asc" },
+          take: 3,
+        },
+      },
     })
 
     return NextResponse.json(loan, { status: 201 })
