@@ -1,11 +1,18 @@
+import { Metadata } from "next"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { requireRole } from "@/lib/authz"
 import { prisma } from "@/lib/prisma"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Users, TrendingUp, Receipt, IndianRupee, Shield } from "lucide-react"
+import { Users, TrendingUp, Receipt, IndianRupee, Shield, ArrowRight } from "lucide-react"
+import Link from "next/link"
+
+export const metadata: Metadata = {
+  title: "Admin Dashboard",
+}
 
 async function getStats() {
   const [totalUsers, totalExpenses, totalSIPs, totalLoans] = await Promise.all([
@@ -123,8 +130,18 @@ export default async function AdminPage() {
       {/* Users Table */}
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle>Recent Users</CardTitle>
-          <CardDescription>Last 10 registered users</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Recent Users</CardTitle>
+              <CardDescription>Last 10 registered users</CardDescription>
+            </div>
+            <Link href="/admin/users">
+              <Button>
+                Manage Users
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
@@ -146,9 +163,13 @@ export default async function AdminPage() {
                       <TableCell className="font-medium">{user.email}</TableCell>
                       <TableCell>{user.name || "-"}</TableCell>
                       <TableCell>
-                        <Badge variant={user.role === "SUPER_ADMIN" ? "destructive" : "secondary"}>
-                          {user.role}
-                        </Badge>
+                        <div className="flex gap-1">
+                          {user.roles.map((role) => (
+                            <Badge key={role} variant={role === "SUPER_ADMIN" ? "destructive" : "secondary"}>
+                              {role}
+                            </Badge>
+                          ))}
+                        </div>
                       </TableCell>
                       <TableCell>
                         {user.salaries[0]

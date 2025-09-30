@@ -37,7 +37,7 @@ export function Header() {
               Welcome back, {session.user.name?.split(" ")[0] || "User"}
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              {session.user.role === "SUPER_ADMIN" ? "Super Admin" : "Customer"}
+              {session.user.roles.includes("SUPER_ADMIN") ? "Super Admin" : "Customer"}
             </p>
           </div>
         </div>
@@ -72,14 +72,6 @@ export function Header() {
                   Profile
                 </Link>
               </DropdownMenuItem>
-              {session.user.role === "SUPER_ADMIN" && (
-                <DropdownMenuItem asChild>
-                  <Link href="/admin" className="flex items-center">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Admin Panel
-                  </Link>
-                </DropdownMenuItem>
-              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-red-600 focus:text-red-600"

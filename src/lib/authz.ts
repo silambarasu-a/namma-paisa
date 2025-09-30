@@ -7,7 +7,8 @@ export function requireRole(session: Session | null, allowedRoles: Role[]) {
     redirect("/auth/signin")
   }
 
-  if (!allowedRoles.includes(session.user.role)) {
+  const hasRole = session.user.roles.some(role => allowedRoles.includes(role))
+  if (!hasRole) {
     throw new Error("Forbidden: Insufficient permissions")
   }
 }
@@ -19,14 +20,14 @@ export function requireAuth(session: Session | null) {
 }
 
 export function isSuperAdmin(session: Session | null): boolean {
-  return session?.user?.role === "SUPER_ADMIN"
+  return session?.user?.roles?.includes("SUPER_ADMIN") ?? false
 }
 
 export function canAccessUserData(session: Session | null, userId: string): boolean {
   if (!session || !session.user) return false
 
   // Super admin can access all data
-  if (session.user.role === "SUPER_ADMIN") return true
+  if (session.user.roles.includes("SUPER_ADMIN")) return true
 
   // Users can only access their own data
   return session.user.id === userId

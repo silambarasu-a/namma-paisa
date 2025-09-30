@@ -64,14 +64,18 @@ enum PaymentMethod {
 }
 
 model User {
-  id             String   @id @default(cuid())
-  email          String   @unique
-  hashedPassword String
-  name           String?
-  image          String?
-  role           Role     @default(CUSTOMER)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  hashedPassword     String
+  name               String?
+  image              String?
+  phoneNumber        String?
+  countryCode        String?   @default("+91")
+  roles              Role[]    @default([CUSTOMER])
+  isBlocked          Boolean   @default(false)
+  recentlyAccessedAt DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   profiles          Profile[]
   taxSettings       TaxSetting[]

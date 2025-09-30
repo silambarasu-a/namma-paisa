@@ -1,3 +1,10 @@
+import { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Monthly Snapshot",
+}
+
+
 "use client"
 
 import { useState, useEffect } from "react"

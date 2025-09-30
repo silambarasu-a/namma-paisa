@@ -1,3 +1,10 @@
+import { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "SIPs",
+}
+
+
 "use client"
 
 import { useEffect, useState } from "react"

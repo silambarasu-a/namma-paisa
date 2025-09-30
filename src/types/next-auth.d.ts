@@ -3,7 +3,8 @@ import "next-auth"
 
 declare module "next-auth" {
   interface User {
-    role: Role
+    roles: Role[]
+    isBlocked?: boolean
   }
 
   interface Session {
@@ -12,13 +13,15 @@ declare module "next-auth" {
       email: string
       name?: string | null
       image?: string | null
-      role: Role
+      roles: Role[]
+      isBlocked?: boolean
     }
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    role: Role
+    roles: Role[]
+    isBlocked?: boolean
   }
 }

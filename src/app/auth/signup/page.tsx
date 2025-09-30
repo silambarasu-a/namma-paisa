@@ -14,6 +14,8 @@ export default function SignUp() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [phoneNumber, setPhoneNumber] = useState("")
+  const [countryCode, setCountryCode] = useState("+91")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
@@ -42,6 +44,8 @@ export default function SignUp() {
           name,
           email,
           password,
+          phoneNumber,
+          countryCode,
         }),
       })
 
@@ -65,7 +69,7 @@ export default function SignUp() {
         <CardHeader>
           <CardTitle className="text-2xl text-center">Sign Up</CardTitle>
           <CardDescription className="text-center">
-            Create your en-rupee account
+            Create your Namma Paisa account
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -91,6 +95,27 @@ export default function SignUp() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number (Optional)</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="countryCode"
+                  type="text"
+                  placeholder="+91"
+                  value={countryCode}
+                  onChange={(e) => setCountryCode(e.target.value)}
+                  className="w-20"
+                />
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="Phone number"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  className="flex-1"
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>

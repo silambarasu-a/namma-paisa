@@ -128,9 +128,13 @@ export default function Profile() {
         <div>
           <h2 className="text-xl font-semibold">{session.user.name}</h2>
           <p className="text-gray-600 dark:text-gray-400">{session.user.email}</p>
-          <Badge variant={session.user.role === "SUPER_ADMIN" ? "destructive" : "default"}>
-            {session.user.role === "SUPER_ADMIN" ? "Super Admin" : "Customer"}
-          </Badge>
+          <div className="flex gap-1 mt-1">
+            {session.user.roles.map((role) => (
+              <Badge key={role} variant={role === "SUPER_ADMIN" ? "destructive" : "default"}>
+                {role === "SUPER_ADMIN" ? "Super Admin" : "Customer"}
+              </Badge>
+            ))}
+          </div>
         </div>
       </div>
 

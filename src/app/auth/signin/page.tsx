@@ -28,7 +28,14 @@ export default function SignIn() {
       })
 
       if (result?.error) {
-        toast.error("Invalid email or password")
+        // Check if error is due to blocked user
+        if (result.error.includes("BLOCKED_USER")) {
+          toast.error("You have been blocked by the admin", {
+            duration: 5000,
+          })
+        } else {
+          toast.error("Invalid email or password")
+        }
       } else {
         router.push("/dashboard")
         router.refresh()
@@ -46,7 +53,7 @@ export default function SignIn() {
         <CardHeader>
           <CardTitle className="text-2xl text-center">Sign In</CardTitle>
           <CardDescription className="text-center">
-            Enter your credentials to access en-rupee
+            Enter your credentials to access Namma Paisa
           </CardDescription>
         </CardHeader>
         <CardContent>

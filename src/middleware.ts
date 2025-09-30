@@ -5,7 +5,7 @@ export default withAuth(
   function middleware(req) {
     // Check if accessing admin routes
     if (req.nextUrl.pathname.startsWith("/admin")) {
-      if (req.nextauth.token?.role !== "SUPER_ADMIN") {
+      if (!req.nextauth.token?.roles?.includes("SUPER_ADMIN")) {
         return NextResponse.rewrite(new URL("/unauthorized", req.url))
       }
     }

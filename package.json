@@ -1,5 +1,5 @@
 {
-  "name": "en-rupee",
+  "name": "namma-paisa",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -24,6 +24,7 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-toast": "^1.2.15",
     "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

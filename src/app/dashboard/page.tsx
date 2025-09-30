@@ -1,3 +1,4 @@
+import { Metadata } from "next"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { requireAuth } from "@/lib/authz"
@@ -9,6 +10,10 @@ import { SalaryFlowChart } from "@/components/dashboard/salary-flow-chart"
 import { InvestmentBreakdownChart } from "@/components/dashboard/investment-breakdown-chart"
 import { DashboardFilter } from "@/components/dashboard/dashboard-filter"
 import { cn } from "@/lib/utils"
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+}
 
 async function getSalary(userId: string, month: number, year: number) {
   // Get salary that was effective during the selected month/year

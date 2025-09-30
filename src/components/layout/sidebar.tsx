@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -26,8 +26,13 @@ import {
   Plus,
   FileText,
   Calendar,
+  Users,
+  Shield,
   type LucideIcon,
 } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { Logo } from "@/components/icons/logo"
 
 interface NavigationItem {
   name: string
@@ -68,7 +73,17 @@ const navigation: NavigationItem[] = [
 ]
 
 const adminNavigation: NavigationItem[] = [
-  { name: "Admin", href: "/admin", icon: Settings },
+  { name: "Admin Dashboard", href: "/admin", icon: Shield },
+  {
+    name: "User Management",
+    href: "/admin/users",
+    icon: Users,
+    children: [
+      { name: "Super Admins", href: "/admin/users/super-admins", icon: Shield },
+      { name: "Customers", href: "/admin/users/customers", icon: User },
+    ],
+  },
+  { name: "System Settings", href: "/admin/settings", icon: Settings },
 ]
 
 interface SidebarProps {
@@ -78,14 +93,39 @@ interface SidebarProps {
 export function Sidebar({ className }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
   const { data: session } = useSession()
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/")
+  const isSuperAdmin = session?.user?.roles?.includes("SUPER_ADMIN")
 
-  const allNavigation = [
-    ...navigation,
-    ...(session?.user?.role === "SUPER_ADMIN" ? adminNavigation : []),
-  ]
+  // Determine view mode based on current route
+  const isAdminRoute = pathname.startsWith("/admin")
+  const viewMode = isAdminRoute ? "admin" : "customer"
+
+  // Handle view mode toggle - redirect to appropriate dashboard
+  const handleViewModeChange = (checked: boolean) => {
+    if (checked) {
+      router.push("/admin")
+    } else {
+      router.push("/dashboard")
+    }
+  }
+
+  const isActive = (href: string) => {
+    // Exact match for the href
+    if (pathname === href) return true
+
+    // For admin routes, check if the current path starts with the href
+    // but exclude parent route when on a child route
+    if (href === "/admin" && pathname.startsWith("/admin/")) {
+      return false // Don't highlight "Admin Dashboard" when on /admin/users or /admin/settings
+    }
+
+    // For other routes, check if path starts with href + "/"
+    return pathname.startsWith(href + "/")
+  }
+
+  const allNavigation = viewMode === "admin" && isSuperAdmin ? adminNavigation : navigation
 
   return (
     <>
@@ -108,11 +148,48 @@ export function Sidebar({ className }: SidebarProps) {
         )}
       >
         <div className="flex flex-col h-full">
-          <div className="flex items-center justify-center h-16 px-4 border-b border-gray-200 dark:border-gray-800">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              en-rupee
-            </h1>
+          <div className="flex items-center justify-center gap-3 h-16 px-4 border-b border-gray-200 dark:border-gray-800">
+            <Logo className="h-10 w-10" />
+            <div className="flex flex-col leading-tight">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                Namma Paisa
+              </h1>
+            </div>
           </div>
+
+          {/* Role Switcher for Super Admins */}
+          {isSuperAdmin && (
+            <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-800">
+              <div className="flex items-center justify-between space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <Label
+                    htmlFor="view-mode"
+                    className="text-sm font-medium cursor-pointer"
+                  >
+                    Customer
+                  </Label>
+                </div>
+                <Switch
+                  id="view-mode"
+                  checked={viewMode === "admin"}
+                  onCheckedChange={handleViewModeChange}
+                />
+                <div className="flex items-center space-x-2">
+                  <Shield className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  <Label
+                    htmlFor="view-mode"
+                    className="text-sm font-medium cursor-pointer"
+                  >
+                    Admin
+                  </Label>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+                {viewMode === "admin" ? "Admin View" : "Customer View"}
+              </p>
+            </div>
+          )}
 
           <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
             {allNavigation.map((item) => (

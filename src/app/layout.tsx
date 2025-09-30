@@ -17,8 +17,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "en-rupee",
+  title: {
+    default: "Namma Paisa",
+    template: "Namma Paisa - %s",
+  },
   description: "Personal Finance Management App",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
