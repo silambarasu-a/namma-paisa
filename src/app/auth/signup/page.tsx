@@ -50,7 +50,11 @@ export default function SignUp() {
       })
 
       if (res.ok) {
-        toast.success("Account created successfully!")
+        const data = await res.json()
+        toast.success("Account created successfully!", {
+          description: "Please check your email to verify your account before signing in.",
+          duration: 6000,
+        })
         router.push("/auth/signin")
       } else {
         const data = await res.json()

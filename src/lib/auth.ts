@@ -52,6 +52,11 @@ export const authOptions: NextAuthOptions = {
           throw new Error("BLOCKED_USER")
         }
 
+        // Check if email is verified
+        if (!user.emailVerified) {
+          throw new Error("EMAIL_NOT_VERIFIED")
+        }
+
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
           user.hashedPassword

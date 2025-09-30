@@ -73,6 +73,9 @@ model User {
   countryCode        String?   @default("+91")
   roles              Role[]    @default([CUSTOMER])
   isBlocked          Boolean   @default(false)
+  emailVerified      Boolean   @default(false)
+  verificationToken  String?   @unique
+  verificationExpiry DateTime?
   recentlyAccessedAt DateTime?
   resetOtp           String?
   resetOtpExpiry     DateTime?

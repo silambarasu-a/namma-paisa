@@ -23,7 +23,12 @@ export const metadata: Metadata = {
   },
   description: "Personal Finance Management App",
   icons: {
-    icon: "/favicon.svg",
+    icon: [
+      { url: "/favicon.ico?v=2", sizes: "32x32", type: "image/x-icon" },
+      { url: "/favicon.svg?v=2", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.ico?v=2",
+    apple: "/favicon.svg?v=2",
   },
 };
 

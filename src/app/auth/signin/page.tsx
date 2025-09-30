@@ -33,6 +33,10 @@ export default function SignIn() {
           toast.error("You have been blocked by the admin", {
             duration: 5000,
           })
+        } else if (result.error.includes("EMAIL_NOT_VERIFIED")) {
+          toast.error("Please verify your email before signing in. Check your inbox for the verification link.", {
+            duration: 6000,
+          })
         } else {
           toast.error("Invalid email or password")
         }

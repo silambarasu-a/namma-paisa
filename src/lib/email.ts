@@ -1,6 +1,8 @@
 import nodemailer from "nodemailer"
 import { PasswordResetOTPTemplate } from "./email-templates/password-reset-otp"
 import { PasswordResetLinkTemplate } from "./email-templates/password-reset-link"
+import { EmailVerificationTemplate } from "./email-templates/email-verification"
+import crypto from "crypto"
 
 // Create reusable transporter
 const transporter = nodemailer.createTransport({
@@ -51,6 +53,29 @@ export async function sendPasswordResetLink(email: string, resetLink: string, na
   }
 }
 
+export async function sendEmailVerification(email: string, verificationLink: string, name?: string) {
+  const emailHtml = EmailVerificationTemplate({ verificationLink, name })
+
+  try {
+    const info = await transporter.sendMail({
+      from: `"Namma Paisa" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Verify Your Email - Namma Paisa",
+      html: emailHtml,
+    })
+
+    console.log("Email verification sent successfully:", info.messageId)
+    return { success: true, data: info }
+  } catch (error) {
+    console.error("Email sending error:", error)
+    return { success: false, error }
+  }
+}
+
 export function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString()
+}
+
+export function generateVerificationToken(): string {
+  return crypto.randomBytes(32).toString("hex")
 }

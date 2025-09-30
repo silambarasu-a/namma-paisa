@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import bcrypt from "bcrypt"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
+import { generateVerificationToken, sendEmailVerification } from "@/lib/email"
 
 const registerSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -31,6 +32,10 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12)
 
+    // Generate verification token
+    const verificationToken = generateVerificationToken()
+    const verificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+
     // Create user
     const user = await prisma.user.create({
       data: {
@@ -39,6 +44,9 @@ export async function POST(request: NextRequest) {
         hashedPassword,
         phoneNumber,
         countryCode: countryCode || "+91",
+        verificationToken,
+        verificationExpiry,
+        emailVerified: false,
         profiles: {
           create: {
             displayName: name,
@@ -54,8 +62,23 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // Send verification email
+    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
+    const verificationLink = `${baseUrl}/auth/verify-email?token=${verificationToken}`
+
+    const emailResult = await sendEmailVerification(email, verificationLink, name)
+
+    if (!emailResult.success) {
+      console.error("Failed to send verification email:", emailResult.error)
+      // Continue even if email fails - user can request new verification email
+    }
+
     return NextResponse.json(
-      { message: "User created successfully", user },
+      {
+        message: "User created successfully. Please check your email to verify your account.",
+        user,
+        emailSent: emailResult.success
+      },
       { status: 201 }
     )
   } catch (error: unknown) {
