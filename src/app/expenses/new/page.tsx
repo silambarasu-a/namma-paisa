@@ -8,11 +8,20 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Receipt, AlertCircle } from "lucide-react"
+import { Receipt, AlertCircle, CreditCard as CardIcon, Wallet } from "lucide-react"
+
+interface CreditCard {
+  id: string
+  cardName: string
+  lastFourDigits: string
+  bank: string
+  billingCycle: number
+}
 
 export default function AddExpense() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [creditCards, setCreditCards] = useState<CreditCard[]>([])
 
   // Form states
   const [date, setDate] = useState("")
@@ -22,11 +31,29 @@ export default function AddExpense() {
   const [amount, setAmount] = useState("")
   const [needsPortion, setNeedsPortion] = useState("")
   const [avoidPortion, setAvoidPortion] = useState("")
+  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "UPI" | "NET_BANKING" | "OTHER">("CASH")
+  const [creditCardId, setCreditCardId] = useState("")
 
   // Set default date to today
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0]
     setDate(today)
+  }, [])
+
+  // Load credit cards
+  useEffect(() => {
+    const loadCreditCards = async () => {
+      try {
+        const response = await fetch("/api/credit-cards")
+        if (response.ok) {
+          const data = await response.json()
+          setCreditCards(data.filter((card: CreditCard) => card.isActive))
+        }
+      } catch (error) {
+        console.error("Error loading credit cards:", error)
+      }
+    }
+    loadCreditCards()
   }, [])
 
   // Auto-calculate total amount for partial-needs
@@ -73,6 +100,32 @@ export default function AddExpense() {
         }
       }
 
+      // Validate payment method
+      if (paymentMethod === "CARD" && !creditCardId) {
+        toast.error("Please select a credit card")
+        setIsLoading(false)
+        return
+      }
+
+      // Calculate expense date based on billing cycle for credit cards
+      let expenseDate = date
+      if (paymentMethod === "CARD" && creditCardId) {
+        const selectedCard = creditCards.find(c => c.id === creditCardId)
+        if (selectedCard) {
+          const transactionDate = new Date(date)
+          const transactionDay = transactionDate.getDate()
+
+          // If transaction date > billing cycle, move to next month
+          if (transactionDay > selectedCard.billingCycle) {
+            const nextMonth = new Date(transactionDate)
+            nextMonth.setMonth(nextMonth.getMonth() + 1)
+            expenseDate = nextMonth.toISOString().split('T')[0]
+
+            toast.info(`Credit card expense will be recorded for next month (billing cycle: ${selectedCard.billingCycle})`)
+          }
+        }
+      }
+
       const body: {
         date: string;
         title: string;
@@ -81,17 +134,24 @@ export default function AddExpense() {
         amount: number;
         needsPortion?: number;
         avoidPortion?: number;
+        paymentMethod: string;
+        creditCardId?: string;
       } = {
-        date,
+        date: expenseDate,
         title,
         expenseType,
         category,
         amount: parseFloat(amount),
+        paymentMethod,
       }
 
       if (category === "PARTIAL_NEEDS") {
         body.needsPortion = parseFloat(needsPortion) || 0
         body.avoidPortion = parseFloat(avoidPortion) || 0
+      }
+
+      if (paymentMethod === "CARD" && creditCardId) {
+        body.creditCardId = creditCardId
       }
 
       const response = await fetch("/api/expenses", {
@@ -280,6 +340,80 @@ export default function AddExpense() {
                 />
               </div>
             )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="paymentMethod">Payment Method *</Label>
+                <Select value={paymentMethod} onValueChange={(value: "CASH" | "CARD" | "UPI" | "NET_BANKING" | "OTHER") => {
+                  setPaymentMethod(value)
+                  if (value !== "CARD") {
+                    setCreditCardId("")
+                  }
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CASH">
+                      <div className="flex items-center space-x-2">
+                        <Wallet className="h-4 w-4" />
+                        <span>Cash</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="CARD">
+                      <div className="flex items-center space-x-2">
+                        <CardIcon className="h-4 w-4" />
+                        <span>Credit/Debit Card</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="UPI">
+                      <div className="flex items-center space-x-2">
+                        <span>UPI</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="NET_BANKING">
+                      <div className="flex items-center space-x-2">
+                        <span>Net Banking</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="OTHER">
+                      <div className="flex items-center space-x-2">
+                        <span>Other</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {paymentMethod === "CARD" && (
+                <div className="space-y-2">
+                  <Label htmlFor="creditCard">Select Card *</Label>
+                  <Select value={creditCardId} onValueChange={setCreditCardId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select credit card" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {creditCards.length === 0 ? (
+                        <div className="p-4 text-sm text-center text-muted-foreground">
+                          No active cards found. <a href="/credit-cards" className="text-primary underline">Add a card</a>
+                        </div>
+                      ) : (
+                        creditCards.map((card) => (
+                          <SelectItem key={card.id} value={card.id}>
+                            {card.bank} - {card.cardName} (••••{card.lastFourDigits})
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {creditCardId && creditCards.find(c => c.id === creditCardId) && (
+                    <p className="text-xs text-muted-foreground">
+                      Billing cycle: {creditCards.find(c => c.id === creditCardId)?.billingCycle}th of month
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
 
             <div className="flex space-x-4">
               <Button type="submit" disabled={isLoading} className="flex-1">

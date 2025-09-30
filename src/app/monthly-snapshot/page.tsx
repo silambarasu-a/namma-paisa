@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Calendar, Lock, Unlock, TrendingUp, TrendingDown, DollarSign, ArrowRight, CheckCircle } from "lucide-react"
+import { Calendar, Lock, Unlock, TrendingUp, TrendingDown, DollarSign, ArrowRight, CheckCircle, AlertCircle } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,6 +48,12 @@ const MONTHS = [
 export default function MonthlySnapshotPage() {
   const [snapshot, setSnapshot] = useState<MonthlySnapshot | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  // Helper function to format currency or show dash for zero values
+  const formatAmount = (amount: number, showZero = false) => {
+    if (amount === 0 && !showZero) return "-"
+    return `₹${amount.toLocaleString()}`
+  }
   const [isClosing, setIsClosing] = useState(false)
   const [showCloseDialog, setShowCloseDialog] = useState(false)
 
@@ -211,7 +217,7 @@ export default function MonthlySnapshotPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-              ₹{snapshot.netSalary.toLocaleString()}
+              {formatAmount(snapshot.netSalary)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Gross income</p>
           </CardContent>
@@ -223,10 +229,10 @@ export default function MonthlySnapshotPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              ₹{totalAvailableWithCarryForward.toLocaleString()}
+              {formatAmount(totalAvailableWithCarryForward, true)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              After deductions + ₹{snapshot.previousSurplus.toLocaleString()} carried forward
+              After deductions {snapshot.previousSurplus > 0 ? `+ ${formatAmount(snapshot.previousSurplus)} carried forward` : ''}
             </p>
           </CardContent>
         </Card>
@@ -244,7 +250,7 @@ export default function MonthlySnapshotPage() {
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${snapshot.surplusAmount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-              {snapshot.surplusAmount >= 0 ? '+' : ''}₹{snapshot.surplusAmount.toLocaleString()}
+              {snapshot.surplusAmount === 0 ? '-' : `${snapshot.surplusAmount >= 0 ? '+' : ''}₹${Math.abs(snapshot.surplusAmount).toLocaleString()}`}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Available - Spent
@@ -268,7 +274,7 @@ export default function MonthlySnapshotPage() {
                 <p className="text-sm text-muted-foreground">Monthly income</p>
               </div>
               <p className="text-xl font-bold text-green-600 dark:text-green-400">
-                ₹{snapshot.netSalary.toLocaleString()}
+                {formatAmount(snapshot.netSalary)}
               </p>
             </div>
 
@@ -277,49 +283,60 @@ export default function MonthlySnapshotPage() {
             </div>
 
             {/* Tax */}
-            <div className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-              <div>
-                <p className="font-semibold">Tax Deduction</p>
-                <p className="text-sm text-muted-foreground">Remaining: ₹{snapshot.afterTax.toLocaleString()}</p>
+            {snapshot.taxAmount > 0 && (
+              <div className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                <div>
+                  <p className="font-semibold">Tax Deduction</p>
+                  <p className="text-sm text-muted-foreground">Remaining: {formatAmount(snapshot.afterTax)}</p>
+                </div>
+                <p className="text-xl font-bold text-red-600 dark:text-red-400">
+                  -{formatAmount(snapshot.taxAmount).replace('₹', '₹')}
+                </p>
               </div>
-              <p className="text-xl font-bold text-red-600 dark:text-red-400">
-                -₹{snapshot.taxAmount.toLocaleString()}
-              </p>
-            </div>
-
-            <div className="flex justify-center">
-              <ArrowRight className="h-5 w-5 text-muted-foreground rotate-90" />
-            </div>
+            )}
+            {snapshot.taxAmount > 0 && (
+              <div className="flex justify-center">
+                <ArrowRight className="h-5 w-5 text-muted-foreground rotate-90" />
+              </div>
+            )}
 
             {/* Loans */}
-            <div className="flex items-center justify-between p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-              <div>
-                <p className="font-semibold">Loan EMIs</p>
-                <p className="text-sm text-muted-foreground">Monthly payments</p>
+            {snapshot.totalLoans > 0 && (
+              <div className="flex items-center justify-between p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                <div>
+                  <p className="font-semibold">Loan EMIs</p>
+                  <p className="text-sm text-muted-foreground">Monthly payments</p>
+                </div>
+                <p className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                  -{formatAmount(snapshot.totalLoans).replace('₹', '₹')}
+                </p>
               </div>
-              <p className="text-xl font-bold text-orange-600 dark:text-orange-400">
-                -₹{snapshot.totalLoans.toLocaleString()}
-              </p>
-            </div>
+            )}
 
-            <div className="flex justify-center">
-              <ArrowRight className="h-5 w-5 text-muted-foreground rotate-90" />
-            </div>
+            {snapshot.totalLoans > 0 && (
+              <div className="flex justify-center">
+                <ArrowRight className="h-5 w-5 text-muted-foreground rotate-90" />
+              </div>
+            )}
 
             {/* SIPs */}
-            <div className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-              <div>
-                <p className="font-semibold">SIP Investments</p>
-                <p className="text-sm text-muted-foreground">Systematic investments</p>
+            {snapshot.totalSIPs > 0 && (
+              <div className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                <div>
+                  <p className="font-semibold">SIP Investments</p>
+                  <p className="text-sm text-muted-foreground">Systematic investments</p>
+                </div>
+                <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                  -{formatAmount(snapshot.totalSIPs).replace('₹', '₹')}
+                </p>
               </div>
-              <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
-                -₹{snapshot.totalSIPs.toLocaleString()}
-              </p>
-            </div>
+            )}
 
-            <div className="flex justify-center">
-              <ArrowRight className="h-5 w-5 text-muted-foreground rotate-90" />
-            </div>
+            {snapshot.totalSIPs > 0 && (
+              <div className="flex justify-center">
+                <ArrowRight className="h-5 w-5 text-muted-foreground rotate-90" />
+              </div>
+            )}
 
             {/* Available (Current Month) */}
             <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-2 border-blue-300 dark:border-blue-700">
@@ -328,7 +345,7 @@ export default function MonthlySnapshotPage() {
                 <p className="text-sm text-muted-foreground">After all deductions</p>
               </div>
               <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                ₹{snapshot.availableAmount.toLocaleString()}
+                {formatAmount(snapshot.availableAmount, true)}
               </p>
             </div>
 
@@ -345,7 +362,7 @@ export default function MonthlySnapshotPage() {
                     <p className="text-sm text-muted-foreground">From previous month</p>
                   </div>
                   <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                    +₹{snapshot.previousSurplus.toLocaleString()}
+                    +{formatAmount(snapshot.previousSurplus)}
                   </p>
                 </div>
 
@@ -360,7 +377,7 @@ export default function MonthlySnapshotPage() {
                     <p className="text-sm text-muted-foreground">Current + Carried Forward</p>
                   </div>
                   <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    ₹{totalAvailableWithCarryForward.toLocaleString()}
+                    {formatAmount(totalAvailableWithCarryForward, true)}
                   </p>
                 </div>
               </>
@@ -380,12 +397,12 @@ export default function MonthlySnapshotPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
                 <p className="text-sm text-muted-foreground">Total Expenses</p>
-                <p className="text-2xl font-bold">₹{snapshot.totalExpenses.toLocaleString()}</p>
+                <p className="text-2xl font-bold">{formatAmount(snapshot.totalExpenses)}</p>
               </div>
               <div className="p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
                 <p className="text-sm text-muted-foreground">Remaining</p>
                 <p className={`text-2xl font-bold ${snapshot.surplusAmount >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                  ₹{(totalAvailableWithCarryForward - snapshot.spentAmount).toLocaleString()}
+                  {formatAmount(totalAvailableWithCarryForward - snapshot.spentAmount, true)}
                 </p>
               </div>
             </div>
@@ -396,7 +413,7 @@ export default function MonthlySnapshotPage() {
                   <p className="text-sm font-medium">Expected</p>
                   <Badge variant="secondary">Planned</Badge>
                 </div>
-                <p className="text-xl font-semibold">₹{snapshot.expectedExpenses.toLocaleString()}</p>
+                <p className="text-xl font-semibold">{formatAmount(snapshot.expectedExpenses)}</p>
               </div>
 
               <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
@@ -404,7 +421,7 @@ export default function MonthlySnapshotPage() {
                   <p className="text-sm font-medium">Unexpected</p>
                   <Badge variant="destructive">Unplanned</Badge>
                 </div>
-                <p className="text-xl font-semibold">₹{snapshot.unexpectedExpenses.toLocaleString()}</p>
+                <p className="text-xl font-semibold">{formatAmount(snapshot.unexpectedExpenses)}</p>
               </div>
 
               <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
@@ -412,7 +429,7 @@ export default function MonthlySnapshotPage() {
                   <p className="text-sm font-medium">Needs</p>
                   <Badge variant="outline" className="text-green-600">Essential</Badge>
                 </div>
-                <p className="text-xl font-semibold">₹{snapshot.needsExpenses.toLocaleString()}</p>
+                <p className="text-xl font-semibold">{formatAmount(snapshot.needsExpenses)}</p>
               </div>
 
               <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
@@ -420,7 +437,7 @@ export default function MonthlySnapshotPage() {
                   <p className="text-sm font-medium">Avoid</p>
                   <Badge variant="outline" className="text-red-600">Non-Essential</Badge>
                 </div>
-                <p className="text-xl font-semibold">₹{snapshot.avoidExpenses.toLocaleString()}</p>
+                <p className="text-xl font-semibold">{formatAmount(snapshot.avoidExpenses)}</p>
               </div>
             </div>
           </div>
@@ -471,11 +488,16 @@ export default function MonthlySnapshotPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Close {MONTHS[selectedMonth - 1]} {selectedYear}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently lock the month's data. The surplus amount of{" "}
-              <span className="font-bold text-foreground">
-                ₹{snapshot.surplusAmount.toLocaleString()}
-              </span>{" "}
-              will be carried forward to the next month.
+              This will permanently lock the month's data.{" "}
+              {snapshot.surplusAmount !== 0 && (
+                <>
+                  The surplus amount of{" "}
+                  <span className="font-bold text-foreground">
+                    {snapshot.surplusAmount >= 0 ? '+' : ''}₹{Math.abs(snapshot.surplusAmount).toLocaleString()}
+                  </span>{" "}
+                  will be carried forward to the next month.
+                </>
+              )}
               <br /><br />
               You cannot undo this action.
             </AlertDialogDescription>

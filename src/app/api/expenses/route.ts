@@ -14,6 +14,8 @@ const expenseSchema = z.object({
   amount: z.number().positive("Amount must be positive"),
   needsPortion: z.number().optional(),
   avoidPortion: z.number().optional(),
+  paymentMethod: z.enum(["CASH", "CARD", "UPI", "NET_BANKING", "OTHER"]),
+  creditCardId: z.string().optional(),
 }).refine((data) => {
   if (data.category === "PARTIAL_NEEDS") {
     if (!data.needsPortion && !data.avoidPortion) {
@@ -25,6 +27,14 @@ const expenseSchema = z.object({
   return true
 }, {
   message: "For partial-needs, at least one portion must be provided and sum must equal total amount",
+}).refine((data) => {
+  // If payment method is CARD, creditCardId is required
+  if (data.paymentMethod === "CARD" && !data.creditCardId) {
+    return false
+  }
+  return true
+}, {
+  message: "Credit card must be selected when payment method is CARD",
 })
 
 export async function GET(request: NextRequest) {
@@ -184,6 +194,8 @@ export async function POST(request: NextRequest) {
         amount: validatedData.amount,
         needsPortion: validatedData.needsPortion || null,
         avoidPortion: validatedData.avoidPortion || null,
+        paymentMethod: validatedData.paymentMethod,
+        creditCardId: validatedData.creditCardId || null,
       },
     })
 

@@ -6,6 +6,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const symbol = searchParams.get("symbol") || ""
     const bucket = searchParams.get("bucket") || ""
+    const currency = searchParams.get("currency") || "INR"
 
     if (!symbol || !bucket) {
       return NextResponse.json({ error: "Symbol and bucket are required" }, { status: 400 })
@@ -25,7 +26,7 @@ export async function GET(request: Request) {
           price = await getStockPrice(symbol, "US")
           break
         case "CRYPTO":
-          price = await getCryptoPrice(symbol)
+          price = await getCryptoPrice(symbol, currency)
           break
         case "EMERGENCY_FUND":
           // Emergency fund doesn't need price updates
@@ -103,13 +104,14 @@ async function getStockPrice(symbol: string, market: string): Promise<number | n
 }
 
 // Fetch crypto price from CoinGecko
-async function getCryptoPrice(cryptoId: string): Promise<number | null> {
+async function getCryptoPrice(cryptoId: string, currency: string = "INR"): Promise<number | null> {
   try {
     // Convert symbol to CoinGecko ID if needed
     const coinId = cryptoId.toLowerCase()
+    const vsCurrency = currency === "USD" ? "usd" : "inr"
 
     const response = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=inr`,
+      `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=${vsCurrency}`,
       {
         next: { revalidate: 300 } // Cache for 5 minutes
       }
@@ -120,7 +122,7 @@ async function getCryptoPrice(cryptoId: string): Promise<number | null> {
     }
 
     const data = await response.json()
-    const price = data?.[coinId]?.inr
+    const price = data?.[coinId]?.[vsCurrency]
 
     return price ? parseFloat(price) : null
   } catch (error) {

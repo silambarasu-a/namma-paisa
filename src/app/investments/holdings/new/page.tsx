@@ -45,6 +45,7 @@ export default function NewHoldingPage() {
   const [currency, setCurrency] = useState("INR")
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const initialCurrencySet = useRef(false)
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -66,6 +67,38 @@ export default function NewHoldingPage() {
       setCurrency("INR")
     }
   }, [bucket])
+
+  // Refetch price when currency changes (if we already have a symbol selected)
+  useEffect(() => {
+    // Skip on initial render
+    if (!initialCurrencySet.current) {
+      initialCurrencySet.current = true
+      return
+    }
+
+    const fetchPriceForCurrency = async () => {
+      if (symbol && bucket && bucket !== "EMERGENCY_FUND") {
+        toast.info(`Fetching price in ${currency}...`)
+        try {
+          const priceResponse = await fetch(`/api/price?symbol=${encodeURIComponent(symbol)}&bucket=${bucket}&currency=${currency}`)
+          if (priceResponse.ok) {
+            const priceData = await priceResponse.json()
+            if (priceData.price) {
+              setCurrentPrice(priceData.price.toString())
+              toast.success(`Updated price: ${currency === "USD" ? "$" : "₹"}${priceData.price}`)
+            } else {
+              toast.warning("Could not fetch price in selected currency")
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching price for currency:", error)
+          toast.warning("Could not fetch price in selected currency")
+        }
+      }
+    }
+
+    fetchPriceForCurrency()
+  }, [currency]) // Only trigger when currency changes
 
   // Search for investments
   useEffect(() => {
@@ -121,7 +154,8 @@ export default function NewHoldingPage() {
   }, [searchQuery, bucket])
 
   const handleSelectResult = async (result: SearchResult) => {
-    const selectedSymbol = result.symbol || result.id || ""
+    // For crypto, use 'id' for symbol (coingecko ID), otherwise use symbol
+    const selectedSymbol = bucket === "CRYPTO" ? (result.id || result.symbol || "") : (result.symbol || result.id || "")
     setSymbol(selectedSymbol)
     setName(result.name)
     setSearchQuery(result.name)
@@ -132,7 +166,7 @@ export default function NewHoldingPage() {
     if (bucket && bucket !== "EMERGENCY_FUND") {
       toast.info("Fetching current price...")
       try {
-        const priceResponse = await fetch(`/api/price?symbol=${encodeURIComponent(selectedSymbol)}&bucket=${bucket}`)
+        const priceResponse = await fetch(`/api/price?symbol=${encodeURIComponent(selectedSymbol)}&bucket=${bucket}&currency=${currency}`)
         if (priceResponse.ok) {
           const priceData = await priceResponse.json()
           if (priceData.price) {
@@ -228,26 +262,41 @@ export default function NewHoldingPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="bucket">Investment Bucket *</Label>
-              <Select value={bucket} onValueChange={(value) => {
-                setBucket(value)
-                setSearchQuery("")
-                setSymbol("")
-                setName("")
-                setSearchResults([])
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select bucket" />
-                </SelectTrigger>
-                <SelectContent>
-                  {BUCKETS.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bucket">Investment Bucket *</Label>
+                <Select value={bucket} onValueChange={(value) => {
+                  setBucket(value)
+                  setSearchQuery("")
+                  setSymbol("")
+                  setName("")
+                  setSearchResults([])
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select bucket" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BUCKETS.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        {b.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="currency">Currency</Label>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INR">INR (₹)</SelectItem>
+                    <SelectItem value="USD">USD ($)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {bucket && bucket !== "EMERGENCY_FUND" && (
@@ -426,19 +475,6 @@ export default function NewHoldingPage() {
                 </p>
               </div>
             )}
-
-            <div className="space-y-2">
-              <Label htmlFor="currency">Currency</Label>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="INR">INR (₹)</SelectItem>
-                  <SelectItem value="USD">USD ($)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
 
             <div className="flex space-x-4">
               <Button type="submit" disabled={isLoading || !symbol || !name} className="flex-1">

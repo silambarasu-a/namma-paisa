@@ -62,6 +62,7 @@ const navigation: NavigationItem[] = [
       { name: "Reports", href: "/expenses/reports", icon: FileText },
     ],
   },
+  { name: "Credit Cards", href: "/credit-cards", icon: CreditCard },
   { name: "Monthly Snapshot", href: "/monthly-snapshot", icon: Calendar },
 ]
 
