@@ -3,13 +3,14 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
+import { Role } from "@/constants"
 
 // GET - List all users (admin only)
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session?.user || !session.user.roles.includes("SUPER_ADMIN")) {
+    if (!session?.user || !session.user.roles.includes(Role.SUPER_ADMIN)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
 
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session?.user || !session.user.roles.includes("SUPER_ADMIN")) {
+    if (!session?.user || !session.user.roles.includes(Role.SUPER_ADMIN)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
 
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
         name: name || null,
         phoneNumber: phoneNumber || null,
         countryCode: countryCode || "+91",
-        roles: roles || ["CUSTOMER"],
+        roles: roles || [Role.CUSTOMER],
       },
       select: {
         id: true,

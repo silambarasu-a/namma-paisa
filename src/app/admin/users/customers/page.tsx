@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Users, Plus, Edit, Trash2, Ban, CheckCircle } from "lucide-react"
 import { toast } from "sonner"
+import { Role, ROLE_LABELS } from "@/constants"
 import {
   Dialog,
   DialogContent,
@@ -34,7 +35,7 @@ interface User {
   name: string | null
   phoneNumber: string | null
   countryCode: string | null
-  roles: ("SUPER_ADMIN" | "CUSTOMER")[]
+  roles: Role[]
   isBlocked: boolean
   createdAt: string
   updatedAt: string
@@ -57,11 +58,11 @@ export default function CustomersPage() {
   const [name, setName] = useState("")
   const [phoneNumber, setPhoneNumber] = useState("")
   const [countryCode, setCountryCode] = useState("+91")
-  const [roles, setRoles] = useState<("SUPER_ADMIN" | "CUSTOMER")[]>(["CUSTOMER"])
+  const [roles, setRoles] = useState<Role[]>([Role.CUSTOMER])
 
   // Filter customers (includes users with both roles)
   const customers = users
-    .filter(user => user.roles.includes("CUSTOMER"))
+    .filter(user => user.roles.includes(Role.CUSTOMER))
     .filter(user => {
       if (!searchQuery) return true
       const query = searchQuery.toLowerCase()
@@ -116,7 +117,7 @@ export default function CustomersPage() {
     setName("")
     setPhoneNumber("")
     setCountryCode("+91")
-    setRoles(["CUSTOMER"])
+    setRoles([Role.CUSTOMER])
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -416,32 +417,32 @@ export default function CustomersPage() {
                   <label className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      checked={roles.includes("CUSTOMER")}
+                      checked={roles.includes(Role.CUSTOMER)}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setRoles([...roles, "CUSTOMER"])
+                          setRoles([...roles, Role.CUSTOMER])
                         } else {
-                          setRoles(roles.filter(r => r !== "CUSTOMER"))
+                          setRoles(roles.filter(r => r !== Role.CUSTOMER))
                         }
                       }}
                       className="h-4 w-4"
                     />
-                    <span>Customer</span>
+                    <span>{ROLE_LABELS[Role.CUSTOMER]}</span>
                   </label>
                   <label className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      checked={roles.includes("SUPER_ADMIN")}
+                      checked={roles.includes(Role.SUPER_ADMIN)}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setRoles([...roles, "SUPER_ADMIN"])
+                          setRoles([...roles, Role.SUPER_ADMIN])
                         } else {
-                          setRoles(roles.filter(r => r !== "SUPER_ADMIN"))
+                          setRoles(roles.filter(r => r !== Role.SUPER_ADMIN))
                         }
                       }}
                       className="h-4 w-4"
                     />
-                    <span>Super Admin</span>
+                    <span>{ROLE_LABELS[Role.SUPER_ADMIN]}</span>
                   </label>
                 </div>
               </div>

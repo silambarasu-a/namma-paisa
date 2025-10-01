@@ -10,21 +10,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { Settings, Save, Percent, DollarSign, Info } from "lucide-react"
+import type { InvestmentAllocation } from "@/types"
+import { INVESTMENT_BUCKETS } from "@/constants"
 
-const BUCKETS = [
-  { id: "MUTUAL_FUND", label: "Mutual Funds", color: "bg-blue-500" },
-  { id: "IND_STOCK", label: "Indian Stocks", color: "bg-green-500" },
-  { id: "US_STOCK", label: "US Stocks", color: "bg-purple-500" },
-  { id: "CRYPTO", label: "Cryptocurrency", color: "bg-orange-500" },
-  { id: "EMERGENCY_FUND", label: "Emergency Fund", color: "bg-red-500" },
-]
-
-interface Allocation {
-  bucket: string
-  allocationType: "PERCENTAGE" | "AMOUNT"
-  percent?: number | null
-  customAmount?: number | null
-}
+type Allocation = InvestmentAllocation
 
 interface AllocationState {
   type: "PERCENTAGE" | "AMOUNT"
@@ -209,7 +198,7 @@ export default function AllocationsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {BUCKETS.map((bucket) => {
+          {INVESTMENT_BUCKETS.map((bucket) => {
             const alloc = allocations[bucket.id]
             return (
               <div

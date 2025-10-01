@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { Role } from "@/constants"
 
 // PUT - Update user (admin only)
 export async function PUT(
@@ -11,7 +12,7 @@ export async function PUT(
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session?.user || !session.user.roles.includes("SUPER_ADMIN")) {
+    if (!session?.user || !session.user.roles.includes(Role.SUPER_ADMIN)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
 
@@ -28,7 +29,7 @@ export async function PUT(
     }
 
     // Prevent admin from removing their own admin role
-    if (session.user.id === id && roles && !roles.includes("SUPER_ADMIN")) {
+    if (session.user.id === id && roles && !roles.includes(Role.SUPER_ADMIN)) {
       return NextResponse.json(
         { error: "You cannot remove your own SUPER_ADMIN role" },
         { status: 400 }
@@ -39,13 +40,13 @@ export async function PUT(
       name?: string
       phoneNumber?: string
       countryCode?: string
-      roles?: ("SUPER_ADMIN" | "CUSTOMER")[]
+      roles?: Role[]
       isBlocked?: boolean
     } = {}
     if (name !== undefined) updateData.name = name
     if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber
     if (countryCode !== undefined) updateData.countryCode = countryCode
-    if (roles !== undefined) updateData.roles = roles as ("SUPER_ADMIN" | "CUSTOMER")[]
+    if (roles !== undefined) updateData.roles = roles as Role[]
     if (isBlocked !== undefined) updateData.isBlocked = isBlocked
 
     const user = await prisma.user.update({
@@ -80,7 +81,7 @@ export async function DELETE(
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session?.user || !session.user.roles.includes("SUPER_ADMIN")) {
+    if (!session?.user || !session.user.roles.includes(Role.SUPER_ADMIN)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
 

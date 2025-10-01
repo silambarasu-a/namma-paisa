@@ -30,36 +30,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-
-interface Income {
-  id: string
-  date: string
-  title: string
-  description?: string
-  amount: number
-  category: string
-  isRecurring: boolean
-  createdAt: string
-}
-
-interface Salary {
-  id: string
-  monthly: number
-  effectiveFrom: string
-  effectiveTo?: string
-}
-
-
-const INCOME_CATEGORIES = [
-  { value: "FREELANCE", label: "Freelance" },
-  { value: "BONUS", label: "Bonus" },
-  { value: "GIFT", label: "Gift" },
-  { value: "INVESTMENT_RETURN", label: "Investment Return" },
-  { value: "REFUND", label: "Refund" },
-  { value: "RENTAL", label: "Rental Income" },
-  { value: "BUSINESS", label: "Business Income" },
-  { value: "OTHER", label: "Other" },
-]
+import type { Income, Salary } from "@/types"
+import { INCOME_CATEGORIES } from "@/constants"
 
 export default function IncomePage() {
   const [incomes, setIncomes] = useState<Income[]>([])

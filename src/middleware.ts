@@ -1,11 +1,12 @@
 import { withAuth } from "next-auth/middleware"
 import { NextResponse } from "next/server"
+import { Role } from "@/constants"
 
 export default withAuth(
   function middleware(req) {
     // Check if accessing admin routes
     if (req.nextUrl.pathname.startsWith("/admin")) {
-      if (!req.nextauth.token?.roles?.includes("SUPER_ADMIN")) {
+      if (!req.nextauth.token?.roles?.includes(Role.SUPER_ADMIN)) {
         return NextResponse.rewrite(new URL("/unauthorized", req.url))
       }
     }

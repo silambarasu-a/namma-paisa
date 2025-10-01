@@ -16,15 +16,17 @@ export const metadata: Metadata = {
 
 async function getSalary(userId: string, month: number, year: number) {
   // Get salary that was effective during the selected month/year
-  const targetDate = new Date(year, month - 1, 1)
+  // Use end of month to catch any salary starting within the month
+  const startOfMonth = new Date(year, month - 1, 1, 0, 0, 0, 0)
+  const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999)
 
   const salary = await prisma.salaryHistory.findFirst({
     where: {
       userId,
-      effectiveFrom: { lte: targetDate },
+      effectiveFrom: { lte: endOfMonth },
       OR: [
         { effectiveTo: null },
-        { effectiveTo: { gt: targetDate } }
+        { effectiveTo: { gte: startOfMonth } }
       ]
     },
     orderBy: { effectiveFrom: "desc" },

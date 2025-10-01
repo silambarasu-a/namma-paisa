@@ -9,33 +9,8 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { toast } from "sonner"
 import { TrendingUp, TrendingDown, PlusCircle, Trash2, Wallet, Target, ArrowUpRight, ArrowDownRight, PieChart } from "lucide-react"
-
-interface Holding {
-  id: string
-  bucket: string
-  symbol: string
-  name: string
-  qty: number
-  avgCost: number
-  currentPrice: number | null
-  currency: string
-}
-
-const BUCKET_LABELS: Record<string, string> = {
-  MUTUAL_FUND: "Mutual Funds",
-  IND_STOCK: "Indian Stocks",
-  US_STOCK: "US Stocks",
-  CRYPTO: "Cryptocurrency",
-  EMERGENCY_FUND: "Emergency Fund",
-}
-
-const BUCKET_COLORS: Record<string, string> = {
-  MUTUAL_FUND: "bg-blue-500",
-  IND_STOCK: "bg-green-500",
-  US_STOCK: "bg-purple-500",
-  CRYPTO: "bg-orange-500",
-  EMERGENCY_FUND: "bg-red-500",
-}
+import type { Holding } from "@/types"
+import { BUCKET_LABELS, BUCKET_COLORS } from "@/constants"
 
 export default function HoldingsPage() {
   const searchParams = useSearchParams()
@@ -155,6 +130,11 @@ export default function HoldingsPage() {
   const totalPL = calculateTotalPL()
   const bucketPL = calculateBucketPL()
 
+  const calculatePortfolioPerformance = () => {
+    return (((totalPL.totalValue - totalPL.totalCost) / totalPL.totalCost) * 100).toFixed(2)
+  }
+
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
@@ -217,7 +197,7 @@ export default function HoldingsPage() {
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         {totalPL.totalCost > 0 ? (
-                          <>Worth {((totalPL.totalValue / totalPL.totalCost) * 100).toFixed(1)}% of investment</>
+                          <>Worth {calculatePortfolioPerformance()}% of investment</>
                         ) : (
                           <>Current market value</>
                         )}
@@ -257,13 +237,13 @@ export default function HoldingsPage() {
                   <div className="mt-6">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Portfolio Performance</span>
-                      <span className="text-xs font-semibold">{((totalPL.totalValue / totalPL.totalCost) * 100).toFixed(1)}%</span>
+                      <span className="text-xs font-semibold">{calculatePortfolioPerformance()}%</span>
                     </div>
                     <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div
                         className={`h-full ${totalPL.pl >= 0 ? "bg-gradient-to-r from-green-500 to-green-600" : "bg-gradient-to-r from-red-500 to-red-600"}`}
                         style={{
-                          width: `${Math.min(Math.max((totalPL.totalValue / totalPL.totalCost) * 100, 0), 200)}%`,
+                          width: `${Math.min(Math.max(Number(calculatePortfolioPerformance()), 0), 200)}%`,
                         }}
                       />
                     </div>
@@ -385,7 +365,7 @@ export default function HoldingsPage() {
                           {holding.name}
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {holding.qty.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                          {holding.qty.toLocaleString(undefined, { maximumFractionDigits: 9 })}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="text-sm">

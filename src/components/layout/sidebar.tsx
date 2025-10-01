@@ -32,13 +32,8 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Logo } from "@/components/icons/logo"
-
-interface NavigationItem {
-  name: string
-  href: string
-  icon: LucideIcon
-  children?: NavigationItem[]
-}
+import type { NavigationItem } from "@/types"
+import { Role } from "@/constants"
 
 const navigation: NavigationItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -55,6 +50,7 @@ const navigation: NavigationItem[] = [
       { name: "Allocations", href: "/investments/allocations", icon: PieChart },
       { name: "Holdings", href: "/investments/holdings", icon: BarChart3 },
       { name: "SIPs", href: "/investments/sips", icon: Repeat },
+      { name: "One-Time Purchase", href: "/investments/one-time-purchase", icon: Plus },
     ],
   },
   {
@@ -95,7 +91,7 @@ export function Sidebar({ className }: SidebarProps) {
   const router = useRouter()
   const { data: session } = useSession()
 
-  const isSuperAdmin = session?.user?.roles?.includes("SUPER_ADMIN")
+  const isSuperAdmin = session?.user?.roles?.includes(Role.SUPER_ADMIN)
 
   // Determine view mode based on current route
   const isAdminRoute = pathname.startsWith("/admin")

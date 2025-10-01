@@ -1,6 +1,6 @@
-import { Role } from "@/generated/prisma"
 import { Session } from "next-auth"
 import { redirect } from "next/navigation"
+import { Role } from "@/constants"
 
 export function requireRole(session: Session | null, allowedRoles: Role[]) {
   if (!session || !session.user) {
@@ -20,14 +20,14 @@ export function requireAuth(session: Session | null) {
 }
 
 export function isSuperAdmin(session: Session | null): boolean {
-  return session?.user?.roles?.includes("SUPER_ADMIN") ?? false
+  return session?.user?.roles?.includes(Role.SUPER_ADMIN) ?? false
 }
 
 export function canAccessUserData(session: Session | null, userId: string): boolean {
   if (!session || !session.user) return false
 
   // Super admin can access all data
-  if (session.user.roles.includes("SUPER_ADMIN")) return true
+  if (session.user.roles.includes(Role.SUPER_ADMIN)) return true
 
   // Users can only access their own data
   return session.user.id === userId

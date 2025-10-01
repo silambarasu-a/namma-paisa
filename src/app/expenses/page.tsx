@@ -19,47 +19,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-
-interface AvailableAmount {
-  salary: number
-  taxAmount: number
-  totalLoans: number
-  totalSIPs: number
-  availableForExpenses: number
-  expectedBudget?: number
-  unexpectedBudget?: number
-  hasBudget?: boolean
-}
-
-interface Expense {
-  id: string
-  date: string
-  title: string
-  expenseType: "EXPECTED" | "UNEXPECTED"
-  category: "NEEDS" | "PARTIAL_NEEDS" | "AVOID"
-  amount: number
-  needsPortion?: number
-  avoidPortion?: number
-  paymentMethod: "CASH" | "CARD" | "UPI" | "NET_BANKING" | "OTHER"
-  paymentDueDate?: string
-  creditCard?: {
-    cardName: string
-    bank: string
-    lastFourDigits: string
-    billingCycle: number
-    dueDate: number
-  }
-  createdAt: string
-}
-
-interface ExpenseSummary {
-  totalExpenses: number
-  needsTotal: number
-  avoidTotal: number
-  expectedTotal: number
-  unexpectedTotal: number
-  count: number
-}
+import type { AvailableAmount, Expense, ExpenseSummary } from "@/types"
+import { MONTHS } from "@/constants"
 
 export default function ExpensesPage() {
   const router = useRouter()
@@ -122,13 +83,13 @@ export default function ExpensesPage() {
               if (budget.expectedPercent) {
                 expectedBudget = (availableSurplus * budget.expectedPercent) / 100
               } else if (budget.expectedAmount) {
-                expectedBudget = budget.expectedAmount
+                expectedBudget = Number(budget.expectedAmount)
               }
 
               if (budget.unexpectedPercent) {
                 unexpectedBudget = (availableSurplus * budget.unexpectedPercent) / 100
               } else if (budget.unexpectedAmount) {
-                unexpectedBudget = budget.unexpectedAmount
+                unexpectedBudget = Number(budget.unexpectedAmount)
               }
 
               availableForExpenses = expectedBudget + unexpectedBudget
@@ -222,21 +183,6 @@ export default function ExpensesPage() {
     )
   }
 
-  const months = [
-    { value: "1", label: "January" },
-    { value: "2", label: "February" },
-    { value: "3", label: "March" },
-    { value: "4", label: "April" },
-    { value: "5", label: "May" },
-    { value: "6", label: "June" },
-    { value: "7", label: "July" },
-    { value: "8", label: "August" },
-    { value: "9", label: "September" },
-    { value: "10", label: "October" },
-    { value: "11", label: "November" },
-    { value: "12", label: "December" },
-  ]
-
   const currentYear = new Date().getFullYear()
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
 
@@ -259,7 +205,7 @@ export default function ExpensesPage() {
               <SelectValue placeholder="Month" />
             </SelectTrigger>
             <SelectContent>
-              {months.map((month) => (
+              {MONTHS.map((month) => (
                 <SelectItem key={month.value} value={month.value}>
                   {month.label}
                 </SelectItem>

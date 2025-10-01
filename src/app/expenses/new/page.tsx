@@ -9,17 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { Receipt, AlertCircle, CreditCard as CardIcon, Wallet } from "lucide-react"
-
-interface CreditCard {
-  id: string
-  cardName: string
-  lastFourDigits: string
-  bank: string
-  billingCycle: number
-  dueDate: number
-  gracePeriod: number
-  isActive: boolean
-}
+import type { CreditCard } from "@/types"
 
 export default function AddExpense() {
   const router = useRouter()

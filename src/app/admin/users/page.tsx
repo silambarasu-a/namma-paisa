@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Edit, Trash2, Ban, CheckCircle, Shield, Mail, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { Role, ROLE_LABELS, getRoleBadgeColor } from "@/constants"
 import {
   Dialog,
   DialogContent,
@@ -35,7 +36,7 @@ interface User {
   name: string | null
   phoneNumber: string | null
   countryCode: string | null
-  roles: ("SUPER_ADMIN" | "CUSTOMER")[]
+  roles: Role[]
   isBlocked: boolean
   createdAt: string
   updatedAt: string
@@ -51,7 +52,7 @@ export default function UserManagementPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [roleFilter, setRoleFilter] = useState<"all" | "SUPER_ADMIN" | "CUSTOMER">("all")
+  const [roleFilter, setRoleFilter] = useState<"all" | Role>("all")
   const [sendingResetLink, setSendingResetLink] = useState<string | null>(null)
 
   // Filter users by role and search
@@ -75,7 +76,7 @@ export default function UserManagementPage() {
   const [name, setName] = useState("")
   const [phoneNumber, setPhoneNumber] = useState("")
   const [countryCode, setCountryCode] = useState("+91")
-  const [roles, setRoles] = useState<("SUPER_ADMIN" | "CUSTOMER")[]>(["CUSTOMER"])
+  const [roles, setRoles] = useState<Role[]>([Role.CUSTOMER])
 
   useEffect(() => {
     loadUsers()
@@ -122,7 +123,7 @@ export default function UserManagementPage() {
     setName("")
     setPhoneNumber("")
     setCountryCode("+91")
-    setRoles(["CUSTOMER"])
+    setRoles([Role.CUSTOMER])
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -269,14 +270,14 @@ export default function UserManagementPage() {
               <CardDescription>Manage all users in the system</CardDescription>
             </div>
             <div className="flex gap-2">
-              <Select value={roleFilter} onValueChange={(value: "all" | "SUPER_ADMIN" | "CUSTOMER") => setRoleFilter(value)}>
+              <Select value={roleFilter} onValueChange={(value: "all" | Role) => setRoleFilter(value)}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Filter by role" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="SUPER_ADMIN">Super Admins</SelectItem>
-                  <SelectItem value="CUSTOMER">Customers</SelectItem>
+                  <SelectItem value={Role.SUPER_ADMIN}>{ROLE_LABELS[Role.SUPER_ADMIN]}s</SelectItem>
+                  <SelectItem value={Role.CUSTOMER}>{ROLE_LABELS[Role.CUSTOMER]}s</SelectItem>
                 </SelectContent>
               </Select>
               <Input
@@ -316,10 +317,9 @@ export default function UserManagementPage() {
                             {user.roles.map((role) => (
                               <Badge
                                 key={role}
-                                variant={role === "SUPER_ADMIN" ? "default" : "secondary"}
-                                className={role === "SUPER_ADMIN" ? "bg-purple-600" : ""}
+                                className={getRoleBadgeColor(role)}
                               >
-                                {role === "SUPER_ADMIN" ? "Admin" : "Customer"}
+                                {ROLE_LABELS[role]}
                               </Badge>
                             ))}
                           </div>
@@ -484,32 +484,32 @@ export default function UserManagementPage() {
                   <label className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      checked={roles.includes("CUSTOMER")}
+                      checked={roles.includes(Role.CUSTOMER)}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setRoles([...roles, "CUSTOMER"])
+                          setRoles([...roles, Role.CUSTOMER])
                         } else {
-                          setRoles(roles.filter(r => r !== "CUSTOMER"))
+                          setRoles(roles.filter(r => r !== Role.CUSTOMER))
                         }
                       }}
                       className="h-4 w-4"
                     />
-                    <span>Customer</span>
+                    <span>{ROLE_LABELS[Role.CUSTOMER]}</span>
                   </label>
                   <label className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      checked={roles.includes("SUPER_ADMIN")}
+                      checked={roles.includes(Role.SUPER_ADMIN)}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setRoles([...roles, "SUPER_ADMIN"])
+                          setRoles([...roles, Role.SUPER_ADMIN])
                         } else {
-                          setRoles(roles.filter(r => r !== "SUPER_ADMIN"))
+                          setRoles(roles.filter(r => r !== Role.SUPER_ADMIN))
                         }
                       }}
                       className="h-4 w-4"
                     />
-                    <span>Super Admin</span>
+                    <span>{ROLE_LABELS[Role.SUPER_ADMIN]}</span>
                   </label>
                 </div>
               </div>
