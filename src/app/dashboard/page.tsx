@@ -10,6 +10,7 @@ import { SalaryFlowChart } from "@/components/dashboard/salary-flow-chart"
 import { InvestmentBreakdownChart } from "@/components/dashboard/investment-breakdown-chart"
 import { DashboardFilter } from "@/components/dashboard/dashboard-filter"
 import { cn } from "@/lib/utils"
+import { calculateFinancialSummary } from "@/lib/budget-utils"
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -128,6 +129,13 @@ async function getInvestmentAllocations(userId: string) {
   return allocations
 }
 
+async function getExpenseBudget(userId: string) {
+  const budget = await prisma.expenseBudget.findUnique({
+    where: { userId },
+  })
+  return budget
+}
+
 async function getActiveLoans(userId: string, month: number, year: number) {
   const startOfMonth = new Date(year, month - 1, 1)
   const endOfMonth = new Date(year, month, 1)
@@ -209,23 +217,35 @@ export default async function Dashboard({
   const selectedYear = params.year ? parseInt(params.year) : new Date().getFullYear()
 
   // Fetch all data in parallel
-  const [salary, additionalIncome, sipsData, loansData, expensesData, allocations] = await Promise.all([
+  const [salary, additionalIncome, sipsData, loansData, expensesData, allocations, budget] = await Promise.all([
     getSalary(userId, selectedMonth, selectedYear),
     getAdditionalIncome(userId, selectedMonth, selectedYear),
     getActiveSIPs(userId, selectedMonth, selectedYear),
     getActiveLoans(userId, selectedMonth, selectedYear),
     getRecentExpenses(userId, selectedMonth, selectedYear),
     getInvestmentAllocations(userId),
+    getExpenseBudget(userId),
   ])
 
   const totalIncome = salary + additionalIncome.totalIncome
   const { taxAmount, taxPercentage } = await getTaxCalculation(userId, totalIncome)
 
-  // Calculate salary flow
-  const afterTax = totalIncome - taxAmount
-  const afterLoans = afterTax - loansData.totalEMI
-  const afterSIPs = afterLoans - sipsData.totalAmount
-  const surplus = afterSIPs - expensesData.totalExpenses
+  // Use new budget/allocation logic
+  const financialSummary = calculateFinancialSummary(
+    totalIncome,
+    taxAmount,
+    loansData.totalEMI,
+    sipsData.totalAmount,
+    expensesData.totalExpenses,
+    budget,
+    allocations
+  )
+
+  // Keep old variables for backwards compatibility
+  const afterTax = financialSummary.afterTax
+  const afterLoans = financialSummary.afterLoans
+  const afterSIPs = financialSummary.afterSIPs
+  const surplus = financialSummary.surplus
 
   // Calculate investment allocation if there are allocations set
   const hasAllocations = allocations.length > 0
@@ -448,29 +468,81 @@ export default async function Dashboard({
               <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90" />
             </div>
 
+            {/* Available for Expenses & Investment */}
+            <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <h3 className="font-semibold text-lg">Available After Deductions</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  For expenses and investments
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                  ₹{financialSummary.availableSurplus.toLocaleString('en-IN')}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center">
+              <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90" />
+            </div>
+
+            {/* Budget for Expenses */}
+            <div className="flex items-center justify-between p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border-l-4 border-yellow-500">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <Receipt className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                  <h3 className="font-semibold text-lg">Available for Expenses</h3>
+                  {financialSummary.isUsingBudget && (
+                    <Badge variant="secondary" className="text-xs">Budgeted</Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {financialSummary.isUsingBudget
+                    ? `Expected: ₹${financialSummary.expectedBudget.toLocaleString('en-IN')} + Unexpected: ₹${financialSummary.unexpectedBudget.toLocaleString('en-IN')}`
+                    : 'No budget set - using available surplus'}
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
+                  ₹{financialSummary.availableForExpenses.toLocaleString('en-IN')}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center">
+              <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90" />
+            </div>
+
             {/* Investment Allocation */}
             {hasAllocations ? (
-              <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500">
+              <div className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border-l-4 border-purple-500">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <PieChart className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    <h3 className="font-semibold text-lg">Investment Buckets</h3>
+                    <PieChart className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                    <h3 className="font-semibold text-lg">Available for Investment</h3>
+                    <Badge variant="secondary" className="text-xs">Allocated</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
                     Allocated across {allocations.length} bucket{allocations.length !== 1 ? 's' : ''}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {allocations.map((alloc) => (
-                      <Badge key={alloc.bucket} variant="outline">
-                        {alloc.bucket.replace('_', ' ')}: {Number(alloc.percent).toFixed(0)}%
+                    {financialSummary.investmentAllocationBreakdown.map((alloc) => (
+                      <Badge key={alloc.bucket} variant="outline" className="text-xs">
+                        {alloc.bucket.replace(/_/g, ' ')}: ₹{alloc.amount.toLocaleString('en-IN')}
+                        <span className="ml-1 text-muted-foreground">
+                          ({alloc.type === 'PERCENTAGE' ? '%' : '₹'})
+                        </span>
                       </Badge>
                     ))}
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Available</p>
-                  <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                    ₹{afterSIPs.toLocaleString('en-IN')}
+                  <div className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                    ₹{financialSummary.availableForInvestment.toLocaleString('en-IN')}
                   </div>
                 </div>
               </div>
@@ -479,9 +551,11 @@ export default async function Dashboard({
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <AlertCircle className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <h3 className="font-semibold text-lg text-gray-600 dark:text-gray-400">Investment Buckets</h3>
+                    <h3 className="font-semibold text-lg text-gray-600 dark:text-gray-400">Available for Investment</h3>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">No allocations set yet</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    No allocation set - ₹{financialSummary.availableForInvestment.toLocaleString('en-IN')} available from surplus
+                  </p>
                 </div>
               </div>
             )}

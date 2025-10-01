@@ -13,7 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface AllocationData {
   id: string
   bucket: string
-  percent: number
+  allocationType: string
+  percent?: number | null
+  customAmount?: number | null
 }
 
 interface CalculateData {
@@ -28,6 +30,7 @@ interface CalculateData {
   totalLoanEMI: number
   afterLoans: number
   availableForInvestment: number
+  baseAvailableForInvestment?: number // Before allocation calculation
 }
 
 const BUCKET_LABELS: Record<string, string> = {
@@ -74,8 +77,9 @@ export default function InvestmentsPage() {
 
       // Fetch allocations
       const allocResponse = await fetch("/api/investments/allocations")
+      let allocData: AllocationData[] = []
       if (allocResponse.ok) {
-        const allocData = await allocResponse.json()
+        allocData = await allocResponse.json()
         setAllocations(allocData)
       }
 
@@ -89,7 +93,31 @@ export default function InvestmentsPage() {
 
         if (calcResponse.ok) {
           const calcData = await calcResponse.json()
-          setCalculateData(calcData)
+
+          // Calculate available for investment based on allocations
+          const baseAvailableForInvestment = calcData.availableForInvestment
+          let availableForInvestment = baseAvailableForInvestment
+          const hasAllocations = allocData && allocData.length > 0
+
+          if (hasAllocations) {
+            // If allocations are set, calculate total allocated amount and subtract from surplus
+            let totalAllocated = 0
+            allocData.forEach(allocation => {
+              if (allocation.allocationType === "PERCENTAGE" && allocation.percent) {
+                totalAllocated += (baseAvailableForInvestment * Number(allocation.percent)) / 100
+              } else if (allocation.allocationType === "AMOUNT" && allocation.customAmount) {
+                totalAllocated += Number(allocation.customAmount)
+              }
+            })
+            // Available = Surplus - Total Allocated
+            availableForInvestment = baseAvailableForInvestment - totalAllocated
+          }
+
+          setCalculateData({
+            ...calcData,
+            availableForInvestment,
+            baseAvailableForInvestment
+          })
         }
       }
     } catch (error) {
@@ -100,9 +128,16 @@ export default function InvestmentsPage() {
     }
   }
 
-  const calculateBucketAmount = (percent: number) => {
+  const calculateBucketAmount = (allocation: AllocationData) => {
     if (!calculateData) return 0
-    return (calculateData.availableForInvestment * percent) / 100
+    // Use base amount for percentage calculations
+    const baseAmount = calculateData.baseAvailableForInvestment || calculateData.availableForInvestment
+    if (allocation.allocationType === "PERCENTAGE" && allocation.percent) {
+      return (baseAmount * Number(allocation.percent)) / 100
+    } else if (allocation.allocationType === "AMOUNT" && allocation.customAmount) {
+      return Number(allocation.customAmount)
+    }
+    return 0
   }
 
   if (isLoading) {
@@ -116,7 +151,12 @@ export default function InvestmentsPage() {
     )
   }
 
-  const totalAllocated = allocations.reduce((sum, a) => sum + Number(a.percent), 0)
+  const totalPercentAllocated = allocations
+    .filter(a => a.allocationType === "PERCENTAGE")
+    .reduce((sum, a) => sum + Number(a.percent || 0), 0)
+  const totalAmountAllocated = allocations
+    .filter(a => a.allocationType === "AMOUNT")
+    .reduce((sum, a) => sum + Number(a.customAmount || 0), 0)
   const hasAllocations = allocations.length > 0
 
   const months = [
@@ -180,55 +220,152 @@ export default function InvestmentsPage() {
         </div>
       </div>
 
-      {/* Available Investment Amount */}
+      {/* Available Investment Amount - Similar to Expenses Page */}
       <Card className="border-l-4 border-l-blue-500">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <Wallet className="h-5 w-5" />
-            <span>Available for Investment</span>
+            <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <span>Investment Allocation Overview</span>
           </CardTitle>
           <CardDescription>
-            Monthly amount available after tax, loan EMIs, and SIPs
+            Track your investment allocations and available surplus
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-baseline space-x-2">
-              <span className="text-4xl font-bold text-blue-600 dark:text-blue-400">
-                {calculateData ? `₹${calculateData.availableForInvestment.toLocaleString()}` : "₹0"}
-              </span>
-              <span className="text-sm text-gray-600 dark:text-gray-400">/month</span>
-            </div>
-
+          <div className="space-y-6">
+            {/* Total Surplus vs Allocated */}
             {calculateData && (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Gross Income</p>
-                  <p className="text-lg font-semibold">₹{calculateData.grossIncome.toLocaleString()}</p>
+              <div className="p-4 bg-gradient-to-r from-blue-50 to-white dark:from-blue-900/20 dark:to-gray-900 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Surplus (After Tax, Loans, SIPs)</span>
+                    {!hasAllocations && (
+                      <Badge variant="secondary" className="ml-2 text-xs">No Allocations</Badge>
+                    )}
+                  </div>
+                  <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                    ₹{calculateData.baseAvailableForInvestment?.toLocaleString() || calculateData.availableForInvestment.toLocaleString()}
+                  </span>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Tax</p>
-                  <p className="text-lg font-semibold text-red-600 dark:text-red-400">
-                    -₹{calculateData.taxAmount.toLocaleString()}
-                  </p>
+
+                {hasAllocations && (
+                  <>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-medium">Total Allocated</span>
+                      <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                        -₹{((calculateData.baseAvailableForInvestment || 0) - calculateData.availableForInvestment).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-500"
+                        style={{
+                          width: `${Math.min((((calculateData.baseAvailableForInvestment || 0) - calculateData.availableForInvestment) / (calculateData.baseAvailableForInvestment || 1)) * 100, 100)}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs text-muted-foreground">
+                        {(calculateData.baseAvailableForInvestment || 0) > 0
+                          ? `${((((calculateData.baseAvailableForInvestment || 0) - calculateData.availableForInvestment) / (calculateData.baseAvailableForInvestment || 1)) * 100).toFixed(1)}% allocated`
+                          : ''}
+                      </span>
+                      <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                        Remaining: ₹{calculateData.availableForInvestment.toLocaleString()}
+                      </span>
+                    </div>
+                  </>
+                )}
+
+                {!hasAllocations && (
+                  <div className="mt-2">
+                    <span className="text-sm text-muted-foreground">
+                      Configure allocations to track your investment distribution
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Allocation Breakdown - Only show if allocations are set */}
+            {hasAllocations && calculateData && (
+              <div>
+                <h4 className="text-sm font-semibold mb-3">Allocation Breakdown</h4>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {allocations.map((allocation) => {
+                    const amount = calculateBucketAmount(allocation)
+                    return (
+                      <div
+                        key={allocation.id}
+                        className={`p-3 rounded-lg border ${BUCKET_COLORS[allocation.bucket]?.replace('text-', 'border-').replace('bg-', 'bg-').replace('100', '200').replace('dark:bg-', 'dark:border-').replace('900/30', '800')}`}
+                        style={{
+                          backgroundColor: BUCKET_COLORS[allocation.bucket]?.includes('blue') ? 'rgb(219 234 254 / 0.5)' :
+                            BUCKET_COLORS[allocation.bucket]?.includes('green') ? 'rgb(220 252 231 / 0.5)' :
+                            BUCKET_COLORS[allocation.bucket]?.includes('purple') ? 'rgb(243 232 255 / 0.5)' :
+                            BUCKET_COLORS[allocation.bucket]?.includes('orange') ? 'rgb(255 237 213 / 0.5)' :
+                            'rgb(254 226 226 / 0.5)'
+                        }}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">
+                            {BUCKET_LABELS[allocation.bucket]}
+                          </span>
+                          <Badge variant="secondary" className="text-xs">
+                            {allocation.allocationType === "PERCENTAGE"
+                              ? `${Number(allocation.percent || 0).toFixed(1)}%`
+                              : "Fixed"}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-lg font-bold">
+                            ₹{amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          </span>
+                          {allocation.allocationType === "PERCENTAGE" && calculateData.baseAvailableForInvestment && (
+                            <span className="text-xs text-muted-foreground">
+                              {((amount / calculateData.baseAvailableForInvestment) * 100).toFixed(1)}% of surplus
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Loan EMIs ({calculateData.loanCount})</p>
-                  <p className="text-lg font-semibold text-purple-600 dark:text-purple-400">
-                    -₹{calculateData.totalLoanEMI.toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">SIPs ({calculateData.sipCount})</p>
-                  <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">
-                    -₹{calculateData.totalSIPAmount.toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">After Deductions</p>
-                  <p className="text-lg font-semibold text-green-600 dark:text-green-400">
-                    ₹{calculateData.afterLoans.toLocaleString()}
-                  </p>
+              </div>
+            )}
+
+            {/* Income Breakdown */}
+            {calculateData && (
+              <div className="pt-4 border-t">
+                <h4 className="text-sm font-semibold mb-3">Income Breakdown</h4>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Gross Income</p>
+                    <p className="text-sm font-semibold">₹{calculateData.grossIncome.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Tax</p>
+                    <p className="text-sm font-semibold text-red-600 dark:text-red-400">
+                      -₹{calculateData.taxAmount.toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Loan EMIs ({calculateData.loanCount})</p>
+                    <p className="text-sm font-semibold text-purple-600 dark:text-purple-400">
+                      -₹{calculateData.totalLoanEMI.toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">SIPs ({calculateData.sipCount})</p>
+                    <p className="text-sm font-semibold text-orange-600 dark:text-orange-400">
+                      -₹{calculateData.totalSIPAmount.toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Surplus</p>
+                    <p className="text-sm font-semibold text-green-600 dark:text-green-400">
+                      ₹{(calculateData.baseAvailableForInvestment || calculateData.availableForInvestment).toLocaleString()}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -282,7 +419,7 @@ export default function InvestmentsPage() {
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {allocations.map((allocation) => {
-              const amount = calculateBucketAmount(Number(allocation.percent))
+              const amount = calculateBucketAmount(allocation)
               return (
                 <Card key={allocation.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
@@ -291,14 +428,19 @@ export default function InvestmentsPage() {
                         {BUCKET_LABELS[allocation.bucket] || allocation.bucket}
                       </CardTitle>
                       <Badge className={BUCKET_COLORS[allocation.bucket]}>
-                        {Number(allocation.percent).toFixed(1)}%
+                        {allocation.allocationType === "PERCENTAGE"
+                          ? `${Number(allocation.percent || 0).toFixed(1)}%`
+                          : `₹${Number(allocation.customAmount || 0).toLocaleString()}`
+                        }
                       </Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Monthly Allocation</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {allocation.allocationType === "PERCENTAGE" ? "Monthly Allocation" : "Fixed Amount"}
+                        </p>
                         <p className="text-2xl font-bold text-gray-900 dark:text-white">
                           ₹{amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                         </p>

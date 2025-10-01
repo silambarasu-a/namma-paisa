@@ -26,6 +26,9 @@ interface AvailableAmount {
   totalLoans: number
   totalSIPs: number
   availableForExpenses: number
+  expectedBudget?: number
+  unexpectedBudget?: number
+  hasBudget?: boolean
 }
 
 interface Expense {
@@ -99,7 +102,37 @@ export default function ExpensesPage() {
 
         if (calcRes.ok) {
           const calcData = await calcRes.json()
-          const availableForExpenses = monthlySalary - calcData.taxAmount - calcData.totalLoanEMI - calcData.totalSIPAmount
+          const availableSurplus = monthlySalary - calcData.taxAmount - calcData.totalLoanEMI - calcData.totalSIPAmount
+
+          // Get budget to calculate available for expenses
+          const budgetRes = await fetch("/api/expenses/budget")
+          let availableForExpenses = availableSurplus // Default to surplus
+          let expectedBudget = 0
+          let unexpectedBudget = 0
+          let hasBudget = false
+
+          if (budgetRes.ok) {
+            const budget = await budgetRes.json()
+
+            // Calculate based on budget if set
+            if (budget && (budget.expectedPercent || budget.expectedAmount || budget.unexpectedPercent || budget.unexpectedAmount)) {
+              hasBudget = true
+
+              if (budget.expectedPercent) {
+                expectedBudget = (availableSurplus * budget.expectedPercent) / 100
+              } else if (budget.expectedAmount) {
+                expectedBudget = budget.expectedAmount
+              }
+
+              if (budget.unexpectedPercent) {
+                unexpectedBudget = (availableSurplus * budget.unexpectedPercent) / 100
+              } else if (budget.unexpectedAmount) {
+                unexpectedBudget = budget.unexpectedAmount
+              }
+
+              availableForExpenses = expectedBudget + unexpectedBudget
+            }
+          }
 
           setAvailable({
             salary: monthlySalary,
@@ -107,6 +140,9 @@ export default function ExpensesPage() {
             totalLoans: calcData.totalLoanEMI,
             totalSIPs: calcData.totalSIPAmount,
             availableForExpenses,
+            expectedBudget,
+            unexpectedBudget,
+            hasBudget,
           })
         }
       }
@@ -245,66 +281,6 @@ export default function ExpensesPage() {
         </div>
       </div>
 
-      {/* Available Amount Card */}
-      {!isLoading && available && (
-        <Card className="border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50 to-white dark:from-blue-900/20 dark:to-gray-900">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              <span>Available for Expenses</span>
-            </CardTitle>
-            <CardDescription>
-              Amount available after tax, loans, and SIPs
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline space-x-2">
-              <span className="text-4xl font-bold text-blue-600 dark:text-blue-400">
-                ₹{available.availableForExpenses.toLocaleString()}
-              </span>
-              <span className="text-sm text-gray-600 dark:text-gray-400">/month</span>
-            </div>
-            <div className="flex gap-2 mt-4 flex-wrap">
-              <Badge variant="secondary" className="text-xs">
-                Salary: ₹{available.salary.toLocaleString()}
-              </Badge>
-              <Badge variant="secondary" className="text-xs">
-                Tax: -₹{available.taxAmount.toLocaleString()}
-              </Badge>
-              <Badge variant="secondary" className="text-xs">
-                Loans: -₹{available.totalLoans.toLocaleString()}
-              </Badge>
-              <Badge variant="secondary" className="text-xs">
-                SIPs: -₹{available.totalSIPs.toLocaleString()}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 md:grid-cols-3">
-            <Button onClick={() => router.push("/expenses/budget")} variant="outline" className="justify-start">
-              <Receipt className="h-4 w-4 mr-2" />
-              Budget Allocation
-            </Button>
-            <Button onClick={() => router.push("/expenses/new")} variant="outline" className="justify-start">
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Add New Expense
-            </Button>
-            <Button onClick={() => router.push("/expenses/reports")} variant="outline" className="justify-start">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              View Reports
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Expense Summary */}
       {summary && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -358,6 +334,190 @@ export default function ExpensesPage() {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Available vs Actual Comparison */}
+      {!isLoading && available && summary && (
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <span>Budget vs Actual Spending</span>
+            </CardTitle>
+            <CardDescription>
+              Track your spending against allocated budgets by category
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {/* Total Expenses vs Available */}
+              <div className="p-4 bg-gradient-to-r from-blue-50 to-white dark:from-blue-900/20 dark:to-gray-900 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Available for Expenses</span>
+                    {available.hasBudget && (
+                      <Badge variant="secondary" className="ml-2 text-xs">Budgeted</Badge>
+                    )}
+                  </div>
+                  <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                    ₹{available.availableForExpenses.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium">Total Spent</span>
+                  <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    ₹{summary.totalExpenses.toLocaleString()}
+                  </span>
+                </div>
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all ${
+                      summary.totalExpenses > available.availableForExpenses
+                        ? 'bg-red-500'
+                        : 'bg-green-500'
+                    }`}
+                    style={{
+                      width: `${Math.min((summary.totalExpenses / available.availableForExpenses) * 100, 100)}%`,
+                    }}
+                  />
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-xs text-muted-foreground">
+                    {available.availableForExpenses > 0
+                      ? `${((summary.totalExpenses / available.availableForExpenses) * 100).toFixed(1)}% used`
+                      : ''}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {summary.totalExpenses > available.availableForExpenses && (
+                      <Badge variant="destructive" className="text-xs">Over Budget</Badge>
+                    )}
+                    <span className={`text-sm font-semibold ${
+                      summary.totalExpenses > available.availableForExpenses
+                        ? 'text-red-600 dark:text-red-400'
+                        : 'text-green-600 dark:text-green-400'
+                    }`}>
+                      {summary.totalExpenses > available.availableForExpenses ? 'Overspent: ' : 'Remaining: '}
+                      ₹{Math.abs(available.availableForExpenses - summary.totalExpenses).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Category Breakdown - Only show if budget is set */}
+              {available.hasBudget && (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {/* Expected Expenses */}
+                  {available.expectedBudget! > 0 && (
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">Expected Budget</span>
+                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                          ₹{available.expectedBudget!.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm">Actual Spent</span>
+                        <span className="text-sm font-semibold">
+                          ₹{summary.expectedTotal.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${
+                            summary.expectedTotal > available.expectedBudget!
+                              ? 'bg-red-500'
+                              : 'bg-blue-500'
+                          }`}
+                          style={{
+                            width: `${Math.min((summary.expectedTotal / available.expectedBudget!) * 100, 100)}%`,
+                          }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-xs text-muted-foreground">
+                          {((summary.expectedTotal / available.expectedBudget!) * 100).toFixed(1)}% used
+                        </span>
+                        {summary.expectedTotal > available.expectedBudget! && (
+                          <Badge variant="destructive" className="text-xs">Over Budget</Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Unexpected Expenses */}
+                  {available.unexpectedBudget! > 0 && (
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">Unexpected Budget</span>
+                        <span className="text-sm font-bold text-orange-600 dark:text-orange-400">
+                          ₹{available.unexpectedBudget!.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm">Actual Spent</span>
+                        <span className="text-sm font-semibold">
+                          ₹{summary.unexpectedTotal.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${
+                            summary.unexpectedTotal > available.unexpectedBudget!
+                              ? 'bg-red-500'
+                              : 'bg-orange-500'
+                          }`}
+                          style={{
+                            width: `${Math.min((summary.unexpectedTotal / available.unexpectedBudget!) * 100, 100)}%`,
+                          }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-xs text-muted-foreground">
+                          {((summary.unexpectedTotal / available.unexpectedBudget!) * 100).toFixed(1)}% used
+                        </span>
+                        {summary.unexpectedTotal > available.unexpectedBudget! && (
+                          <Badge variant="destructive" className="text-xs">Over Budget</Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Category-wise spending (always show) */}
+              <div>
+                <h4 className="text-sm font-semibold mb-3">Category-wise Spending</h4>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {/* Needs */}
+                  <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-green-700 dark:text-green-400">Needs</span>
+                      <span className="text-sm font-bold text-green-700 dark:text-green-400">
+                        ₹{summary.needsTotal.toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {summary.totalExpenses > 0 ? ((summary.needsTotal / summary.totalExpenses) * 100).toFixed(1) : 0}% of total expenses
+                    </p>
+                  </div>
+
+                  {/* Avoid */}
+                  <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-red-700 dark:text-red-400">Avoid</span>
+                      <span className="text-sm font-bold text-red-700 dark:text-red-400">
+                        ₹{summary.avoidTotal.toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {summary.totalExpenses > 0 ? ((summary.avoidTotal / summary.totalExpenses) * 100).toFixed(1) : 0}% of total expenses
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Expense List */}

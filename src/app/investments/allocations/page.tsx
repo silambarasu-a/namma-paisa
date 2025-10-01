@@ -6,32 +6,42 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
-import { Settings, Save } from "lucide-react"
+import { Settings, Save, Percent, DollarSign, Info } from "lucide-react"
 
 const BUCKETS = [
-  { id: "MUTUAL_FUND", label: "Mutual Funds" },
-  { id: "IND_STOCK", label: "Indian Stocks" },
-  { id: "US_STOCK", label: "US Stocks" },
-  { id: "CRYPTO", label: "Cryptocurrency" },
-  { id: "EMERGENCY_FUND", label: "Emergency Fund" },
+  { id: "MUTUAL_FUND", label: "Mutual Funds", color: "bg-blue-500" },
+  { id: "IND_STOCK", label: "Indian Stocks", color: "bg-green-500" },
+  { id: "US_STOCK", label: "US Stocks", color: "bg-purple-500" },
+  { id: "CRYPTO", label: "Cryptocurrency", color: "bg-orange-500" },
+  { id: "EMERGENCY_FUND", label: "Emergency Fund", color: "bg-red-500" },
 ]
 
 interface Allocation {
   bucket: string
-  percent: number
+  allocationType: "PERCENTAGE" | "AMOUNT"
+  percent?: number | null
+  customAmount?: number | null
+}
+
+interface AllocationState {
+  type: "PERCENTAGE" | "AMOUNT"
+  value: number
+  enabled: boolean
 }
 
 export default function AllocationsPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [allocations, setAllocations] = useState<Record<string, number>>({
-    MUTUAL_FUND: 0,
-    IND_STOCK: 0,
-    US_STOCK: 0,
-    CRYPTO: 0,
-    EMERGENCY_FUND: 0,
+  const [allocations, setAllocations] = useState<Record<string, AllocationState>>({
+    MUTUAL_FUND: { type: "PERCENTAGE", value: 0, enabled: false },
+    IND_STOCK: { type: "PERCENTAGE", value: 0, enabled: false },
+    US_STOCK: { type: "PERCENTAGE", value: 0, enabled: false },
+    CRYPTO: { type: "PERCENTAGE", value: 0, enabled: false },
+    EMERGENCY_FUND: { type: "PERCENTAGE", value: 0, enabled: false },
   })
 
   useEffect(() => {
@@ -43,10 +53,18 @@ export default function AllocationsPage() {
       const response = await fetch("/api/investments/allocations")
       if (response.ok) {
         const data: Allocation[] = await response.json()
-        const allocMap: Record<string, number> = { ...allocations }
+        const allocMap: Record<string, AllocationState> = { ...allocations }
+
         data.forEach((alloc) => {
-          allocMap[alloc.bucket] = Number(alloc.percent)
+          allocMap[alloc.bucket] = {
+            type: alloc.allocationType,
+            value: alloc.allocationType === "PERCENTAGE"
+              ? Number(alloc.percent || 0)
+              : Number(alloc.customAmount || 0),
+            enabled: true,
+          }
         })
+
         setAllocations(allocMap)
       }
     } catch (error) {
@@ -56,27 +74,63 @@ export default function AllocationsPage() {
     }
   }
 
-  const handleChange = (bucket: string, value: string) => {
+  const handleTypeChange = (bucket: string, type: "PERCENTAGE" | "AMOUNT") => {
+    setAllocations((prev) => ({
+      ...prev,
+      [bucket]: { ...prev[bucket], type, value: 0 },
+    }))
+  }
+
+  const handleValueChange = (bucket: string, value: string) => {
     const numValue = parseFloat(value) || 0
-    setAllocations((prev) => ({ ...prev, [bucket]: numValue }))
+    setAllocations((prev) => ({
+      ...prev,
+      [bucket]: { ...prev[bucket], value: numValue },
+    }))
+  }
+
+  const handleToggle = (bucket: string, enabled: boolean) => {
+    setAllocations((prev) => ({
+      ...prev,
+      [bucket]: { ...prev[bucket], enabled },
+    }))
   }
 
   const getTotalPercent = () => {
-    return Object.values(allocations).reduce((sum, val) => sum + val, 0)
+    return Object.values(allocations)
+      .filter(a => a.enabled && a.type === "PERCENTAGE")
+      .reduce((sum, val) => sum + val.value, 0)
+  }
+
+  const getTotalAmount = () => {
+    return Object.values(allocations)
+      .filter(a => a.enabled && a.type === "AMOUNT")
+      .reduce((sum, val) => sum + val.value, 0)
   }
 
   const handleSave = async () => {
-    const total = getTotalPercent()
-    if (total > 100) {
-      toast.error("Total allocation cannot exceed 100%")
+    const totalPercent = getTotalPercent()
+    if (totalPercent > 100) {
+      toast.error("Total percentage allocation cannot exceed 100%")
+      return
+    }
+
+    const enabledAllocations = Object.entries(allocations)
+      .filter(([_, alloc]) => alloc.enabled && alloc.value > 0)
+
+    if (enabledAllocations.length === 0) {
+      toast.error("Please enable and set at least one allocation")
       return
     }
 
     setIsSaving(true)
     try {
-      const allocationData = Object.entries(allocations)
-        .filter(([_, percent]) => percent > 0)
-        .map(([bucket, percent]) => ({ bucket, percent }))
+      const allocationData = enabledAllocations.map(([bucket, alloc]) => ({
+        bucket,
+        allocationType: alloc.type,
+        percent: alloc.type === "PERCENTAGE" ? alloc.value : undefined,
+        customAmount: alloc.type === "AMOUNT" ? alloc.value : undefined,
+      }))
 
       const response = await fetch("/api/investments/allocations", {
         method: "POST",
@@ -89,7 +143,7 @@ export default function AllocationsPage() {
         router.push("/investments")
       } else {
         const data = await response.json()
-        toast.error(data.message || "Failed to save allocations")
+        toast.error(data.error || "Failed to save allocations")
       }
     } catch (error) {
       toast.error("An error occurred")
@@ -98,8 +152,9 @@ export default function AllocationsPage() {
     }
   }
 
-  const total = getTotalPercent()
-  const remaining = 100 - total
+  const totalPercent = getTotalPercent()
+  const totalAmount = getTotalAmount()
+  const remainingPercent = 100 - totalPercent
 
   if (isLoading) {
     return (
@@ -113,79 +168,199 @@ export default function AllocationsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
           Investment Allocations
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Configure how you want to allocate your investment budget across different buckets
+          Configure how you want to allocate your investment budget across different asset classes
         </p>
       </div>
 
-      <Card className="max-w-3xl">
+      {/* Info Card */}
+      <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+        <CardContent className="pt-6">
+          <div className="flex items-start space-x-3">
+            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+            <div className="text-sm text-gray-700 dark:text-gray-300">
+              <p className="font-semibold mb-1">How allocations work:</p>
+              <ul className="list-disc list-inside space-y-1 text-xs">
+                <li><strong>Percentage:</strong> Allocate a % of your available investment amount</li>
+                <li><strong>Custom Amount:</strong> Allocate a fixed amount regardless of available balance</li>
+                <li>You can mix both types for different buckets</li>
+                <li>Total percentage allocations cannot exceed 100%</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Allocations */}
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Settings className="h-5 w-5" />
-            <span>Allocation Percentages</span>
+            <span>Configure Allocations</span>
           </CardTitle>
           <CardDescription>
-            Specify what percentage of your available investment amount goes to each bucket.
-            Total must not exceed 100%.
+            Enable and configure each investment bucket individually
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {BUCKETS.map((bucket) => (
-            <div key={bucket.id} className="space-y-2">
-              <Label htmlFor={bucket.id}>{bucket.label}</Label>
-              <div className="flex items-center space-x-4">
-                <Input
-                  id={bucket.id}
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  value={allocations[bucket.id]}
-                  onChange={(e) => handleChange(bucket.id, e.target.value)}
-                  className="max-w-[150px]"
-                />
-                <span className="text-sm text-muted-foreground">%</span>
-                <div className="flex-1">
-                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-blue-500"
-                      style={{ width: `${allocations[bucket.id]}%` }}
+          {BUCKETS.map((bucket) => {
+            const alloc = allocations[bucket.id]
+            return (
+              <div
+                key={bucket.id}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  alloc.enabled
+                    ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/10'
+                    : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-3 h-3 rounded-full ${bucket.color}`} />
+                    <Label htmlFor={`enable-${bucket.id}`} className="text-base font-semibold cursor-pointer">
+                      {bucket.label}
+                    </Label>
+                    {alloc.enabled && (
+                      <Badge variant="secondary" className="text-xs">
+                        {alloc.type === "PERCENTAGE" ? "Percentage" : "Fixed Amount"}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={`enable-${bucket.id}`}
+                      checked={alloc.enabled}
+                      onChange={(e) => handleToggle(bucket.id, e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                   </div>
                 </div>
-              </div>
-            </div>
-          ))}
 
-          <div className="pt-4 border-t">
-            <div className="flex justify-between items-center mb-2">
-              <span className="font-semibold">Total Allocated:</span>
-              <span className={`text-xl font-bold ${total > 100 ? "text-red-600" : "text-green-600"}`}>
-                {total.toFixed(1)}%
-              </span>
+                {alloc.enabled && (
+                  <div className="space-y-4 pl-6">
+                    {/* Type Selector */}
+                    <RadioGroup
+                      value={alloc.type}
+                      onValueChange={(value) => handleTypeChange(bucket.id, value as "PERCENTAGE" | "AMOUNT")}
+                      className="flex space-x-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="PERCENTAGE" id={`${bucket.id}-percent`} />
+                        <Label htmlFor={`${bucket.id}-percent`} className="flex items-center space-x-1 cursor-pointer">
+                          <Percent className="h-4 w-4" />
+                          <span>Percentage</span>
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="AMOUNT" id={`${bucket.id}-amount`} />
+                        <Label htmlFor={`${bucket.id}-amount`} className="flex items-center space-x-1 cursor-pointer">
+                          <DollarSign className="h-4 w-4" />
+                          <span>Custom Amount</span>
+                        </Label>
+                      </div>
+                    </RadioGroup>
+
+                    {/* Value Input */}
+                    <div className="flex items-center space-x-4">
+                      <div className="flex-1 max-w-xs">
+                        <Input
+                          type="number"
+                          step={alloc.type === "PERCENTAGE" ? "0.1" : "100"}
+                          min="0"
+                          max={alloc.type === "PERCENTAGE" ? "100" : undefined}
+                          value={alloc.value}
+                          onChange={(e) => handleValueChange(bucket.id, e.target.value)}
+                          placeholder={alloc.type === "PERCENTAGE" ? "0.0" : "0"}
+                          className="text-lg"
+                        />
+                      </div>
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                        {alloc.type === "PERCENTAGE" ? "%" : "₹"}
+                      </span>
+
+                      {/* Progress bar for percentage */}
+                      {alloc.type === "PERCENTAGE" && (
+                        <div className="flex-1">
+                          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div
+                              className={bucket.color}
+                              style={{ width: `${Math.min(alloc.value, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          {/* Summary */}
+          <div className="pt-6 border-t space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Percentage Summary */}
+              {totalPercent > 0 && (
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium">Total Percentage Allocated:</span>
+                    <span className={`text-xl font-bold ${totalPercent > 100 ? "text-red-600" : "text-blue-600"}`}>
+                      {totalPercent.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Remaining:</span>
+                    <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                      {remainingPercent.toFixed(1)}%
+                    </span>
+                  </div>
+                  {totalPercent > 100 && (
+                    <p className="text-xs text-red-600 mt-2">
+                      ⚠️ Total exceeds 100%. Please adjust the percentages.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Amount Summary */}
+              {totalAmount > 0 && (
+                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Total Custom Amount:</span>
+                    <span className="text-xl font-bold text-green-600">
+                      ₹{totalAmount.toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    This will be deducted first from available investment amount
+                  </p>
+                </div>
+              )}
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Remaining:</span>
-              <span className="text-sm text-muted-foreground">{remaining.toFixed(1)}%</span>
-            </div>
-            {total > 100 && (
-              <p className="text-sm text-red-600 mt-2">
-                Total allocation exceeds 100%. Please adjust the percentages.
-              </p>
-            )}
           </div>
 
-          <div className="flex space-x-4">
-            <Button onClick={handleSave} disabled={isSaving || total > 100} className="flex-1">
+          {/* Action Buttons */}
+          <div className="flex space-x-4 pt-4">
+            <Button
+              onClick={handleSave}
+              disabled={isSaving || totalPercent > 100}
+              className="flex-1"
+              size="lg"
+            >
               <Save className="h-4 w-4 mr-2" />
               {isSaving ? "Saving..." : "Save Allocations"}
             </Button>
-            <Button variant="outline" onClick={() => router.push("/investments")}>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/investments")}
+              size="lg"
+            >
               Cancel
             </Button>
           </div>

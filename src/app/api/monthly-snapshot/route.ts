@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth"
 import { NextResponse } from "next/server"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { calculateFinancialSummary } from "@/lib/budget-utils"
 
 // Get current month snapshot or create if doesn't exist
 export async function GET(request: Request) {
@@ -252,12 +253,25 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
     }
   }
 
-  // Calculate available amount
-  const availableAmount = afterTax - totalLoans - totalSIPs
+  // Get budget and allocations
+  const budget = await prisma.expenseBudget.findUnique({
+    where: { userId },
+  })
 
-  // Calculate surplus
-  const spentAmount = totalExpenses
-  const surplusAmount = availableAmount - spentAmount
+  const allocations = await prisma.investmentAllocation.findMany({
+    where: { userId },
+  })
+
+  // Use financial summary calculation with budget/allocation logic
+  const financialSummary = calculateFinancialSummary(
+    salary,
+    taxAmount,
+    totalLoans,
+    totalSIPs,
+    totalExpenses,
+    budget,
+    allocations
+  )
 
   // Get previous month surplus
   const previousMonth = month === 1 ? 12 : month - 1
@@ -274,6 +288,11 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
   })
 
   const previousSurplus = previousSnapshot ? Number(previousSnapshot.surplusAmount) : 0
+
+  // Calculate available amount (base surplus after deductions)
+  const availableAmount = financialSummary.availableSurplus
+  const spentAmount = totalExpenses
+  const surplusAmount = availableAmount - spentAmount
 
   return {
     salary,

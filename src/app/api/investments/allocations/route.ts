@@ -6,16 +6,32 @@ import { prisma } from "@/lib/prisma"
 
 const allocationItemSchema = z.object({
   bucket: z.enum(["MUTUAL_FUND", "IND_STOCK", "US_STOCK", "CRYPTO", "EMERGENCY_FUND"]),
-  percent: z.number().min(0).max(100),
-})
+  allocationType: z.enum(["PERCENTAGE", "AMOUNT"]),
+  percent: z.number().min(0).max(100).optional(),
+  customAmount: z.number().min(0).optional(),
+}).refine(
+  (data) => {
+    if (data.allocationType === "PERCENTAGE" && (data.percent === undefined || data.percent === null)) {
+      return false
+    }
+    if (data.allocationType === "AMOUNT" && (data.customAmount === undefined || data.customAmount === null)) {
+      return false
+    }
+    return true
+  },
+  {
+    message: "Percent required for PERCENTAGE type, customAmount required for AMOUNT type",
+  }
+)
 
 const allocationsSchema = z.array(allocationItemSchema).refine(
   (allocations) => {
-    const total = allocations.reduce((sum, item) => sum + item.percent, 0)
+    const percentageAllocations = allocations.filter(a => a.allocationType === "PERCENTAGE")
+    const total = percentageAllocations.reduce((sum, item) => sum + (item.percent || 0), 0)
     return total <= 100.01
   },
   {
-    message: "Total allocation cannot exceed 100%",
+    message: "Total percentage allocation cannot exceed 100%",
   }
 )
 
@@ -67,7 +83,9 @@ export async function POST(request: Request) {
             data: {
               userId: session.user.id,
               bucket: allocation.bucket,
-              percent: allocation.percent,
+              allocationType: allocation.allocationType,
+              percent: allocation.percent || null,
+              customAmount: allocation.customAmount || null,
             },
           })
         )
