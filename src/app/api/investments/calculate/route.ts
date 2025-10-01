@@ -52,13 +52,29 @@ export async function POST(request: Request) {
 
     // Get active SIPs for the current month
     const now = new Date()
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+
+    // Get SIPs that are active in the current month (started on or before end of this month)
     const activeSIPs = await prisma.sIP.findMany({
       where: {
         userId: session.user.id,
         isActive: true,
         startDate: {
-          lte: now,
+          lte: currentMonthEnd,
         },
+        OR: [
+          { endDate: null },
+          { endDate: { gte: currentMonthStart } },
+        ],
+      },
+    })
+
+    // Get all active SIPs including upcoming ones for display purposes
+    const allActiveSIPs = await prisma.sIP.findMany({
+      where: {
+        userId: session.user.id,
+        isActive: true,
         OR: [
           { endDate: null },
           { endDate: { gte: now } },
@@ -67,33 +83,38 @@ export async function POST(request: Request) {
     })
 
     // Calculate total SIP amount for current month
+    // Only include SIPs that have started or will start this month
     let totalSIPAmount = 0
+    let currentMonthSIPCount = 0
+
     for (const sip of activeSIPs) {
+      const sipStartDate = new Date(sip.startDate)
       const sipAmount = Number(sip.amount)
 
-      switch (sip.frequency) {
-        case "MONTHLY":
-          totalSIPAmount += sipAmount
-          break
-        case "YEARLY":
-          // Check if this is the month when yearly SIP should be deducted
-          const startDate = new Date(sip.startDate)
-          if (startDate.getMonth() === now.getMonth()) {
-            totalSIPAmount += sipAmount / 12 // Distribute yearly amount across months
-          }
-          break
-        case "CUSTOM":
-          // Check if today matches the custom day
-          if (sip.customDay && now.getDate() === sip.customDay) {
+      // Only count if SIP starts in current month or earlier
+      if (sipStartDate <= currentMonthEnd) {
+        currentMonthSIPCount++
+
+        switch (sip.frequency) {
+          case "MONTHLY":
             totalSIPAmount += sipAmount
-          }
-          break
+            break
+          case "YEARLY":
+            // Check if this is the month when yearly SIP should be deducted
+            if (sipStartDate.getMonth() === now.getMonth()) {
+              totalSIPAmount += sipAmount / 12 // Distribute yearly amount across months
+            }
+            break
+          case "CUSTOM":
+            // For custom frequency, add monthly amount
+            totalSIPAmount += sipAmount
+            break
+        }
       }
     }
 
     // Get active loans for the current month
     // Include loans that start in the current or previous months
-    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
     const activeLoans = await prisma.loan.findMany({
       where: {
         userId: session.user.id,
@@ -121,9 +142,40 @@ export async function POST(request: Request) {
       }
     }
 
-    const afterSIPs = afterTax - totalSIPAmount
-    const afterLoans = afterSIPs - totalLoanEMI
+    // Calculate available for investment (After Tax & Loans, NOT subtracting SIPs)
+    // SIPs are part of the allocation, not deducted from available amount
+    const afterLoans = afterTax - totalLoanEMI
     const availableForInvestment = Math.max(0, afterLoans)
+
+    // Group SIPs by bucket (use allActiveSIPs to include upcoming SIPs)
+    const sipsByBucket: Record<string, { count: number; total: number; sips: any[] }> = {}
+    allActiveSIPs.forEach((sip) => {
+      const bucket = sip.bucket || "MUTUAL_FUND" // Default to MUTUAL_FUND for backward compatibility
+      if (!sipsByBucket[bucket]) {
+        sipsByBucket[bucket] = { count: 0, total: 0, sips: [] }
+      }
+
+      let sipMonthlyAmount = Number(sip.amount)
+      // Adjust for frequency
+      if (sip.frequency === "YEARLY") {
+        sipMonthlyAmount = sipMonthlyAmount / 12
+      } else if (sip.frequency === "CUSTOM") {
+        // Custom frequency SIPs are counted as monthly for simplicity
+        sipMonthlyAmount = sipMonthlyAmount
+      }
+
+      sipsByBucket[bucket].count += 1
+      sipsByBucket[bucket].total += sipMonthlyAmount
+      sipsByBucket[bucket].sips.push({
+        id: sip.id,
+        name: sip.name,
+        amount: Number(sip.amount),
+        frequency: sip.frequency,
+        symbol: sip.symbol,
+        startDate: sip.startDate,
+        isUpcoming: new Date(sip.startDate) > now,
+      })
+    })
 
     // Calculate breakdown
     const breakdown = {
@@ -131,9 +183,8 @@ export async function POST(request: Request) {
       taxAmount,
       taxPercentage: monthly > 0 ? (taxAmount / monthly) * 100 : 0,
       afterTax,
-      sipCount: activeSIPs.length,
+      sipCount: currentMonthSIPCount,
       totalSIPAmount,
-      afterSIPs,
       loanCount: activeLoans.filter(loan => {
         const startDate = new Date(loan.startDate)
         const loanStartMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1)
@@ -145,11 +196,15 @@ export async function POST(request: Request) {
       totalLoanEMI,
       afterLoans,
       availableForInvestment,
-      sips: activeSIPs.map((sip) => ({
+      sipsByBucket,
+      allSips: allActiveSIPs.map((sip) => ({
         id: sip.id,
         name: sip.name,
         amount: Number(sip.amount),
         frequency: sip.frequency,
+        bucket: sip.bucket,
+        startDate: sip.startDate,
+        isUpcoming: new Date(sip.startDate) > now,
       })),
     }
 

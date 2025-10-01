@@ -90,6 +90,12 @@ const sipFormSchema = z.object({
 
 type SIPFormData = z.infer<typeof sipFormSchema>
 
+interface BucketAllocation {
+  totalAllocation: number
+  existingSIPs: number
+  available: number
+}
+
 export default function NewSIPPage() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -99,6 +105,8 @@ export default function NewSIPPage() {
   const [showResults, setShowResults] = useState(false)
   const [holdings, setHoldings] = useState<Holding[]>([])
   const [isLoadingHoldings, setIsLoadingHoldings] = useState(true)
+  const [bucketAllocation, setBucketAllocation] = useState<BucketAllocation | null>(null)
+  const [isLoadingAllocation, setIsLoadingAllocation] = useState(false)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -121,6 +129,11 @@ export default function NewSIPPage() {
   const watchBucket = form.watch("bucket")
   const watchSymbol = form.watch("symbol")
   const watchName = form.watch("name")
+  const watchAmount = form.watch("amount")
+
+  // Check if amount exceeds allocation
+  const monthlyAmount = watchFrequency === "YEARLY" ? Number(watchAmount) / 12 : Number(watchAmount)
+  const exceedsAllocation = bucketAllocation && monthlyAmount > bucketAllocation.available
 
   // Load user's holdings
   useEffect(() => {
@@ -159,6 +172,34 @@ export default function NewSIPPage() {
   const filteredHoldings = watchBucket
     ? holdings.filter(h => h.bucket === watchBucket)
     : []
+
+  // Fetch bucket allocation when bucket changes
+  useEffect(() => {
+    if (!watchBucket) {
+      setBucketAllocation(null)
+      return
+    }
+
+    const fetchBucketAllocation = async () => {
+      try {
+        setIsLoadingAllocation(true)
+        const response = await fetch(`/api/investments/allocations/bucket/${watchBucket}`)
+        if (response.ok) {
+          const data = await response.json()
+          setBucketAllocation(data)
+        } else {
+          setBucketAllocation(null)
+        }
+      } catch (error) {
+        console.error("Error fetching bucket allocation:", error)
+        setBucketAllocation(null)
+      } finally {
+        setIsLoadingAllocation(false)
+      }
+    }
+
+    fetchBucketAllocation()
+  }, [watchBucket])
 
   // Search for investments
   useEffect(() => {
@@ -250,7 +291,7 @@ export default function NewSIPPage() {
       }
 
       toast.success("SIP created successfully")
-      router.push("/sips")
+      router.push("/investments/sips")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to create SIP")
       console.error(error)
@@ -339,6 +380,58 @@ export default function NewSIPPage() {
                   </FormItem>
                 )}
               />
+
+              {/* Bucket Allocation Info */}
+              {watchBucket && !isLoadingAllocation && bucketAllocation && (
+                <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+                  <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3">
+                    {BUCKETS.find(b => b.id === watchBucket)?.label} Allocation
+                  </h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Total Allocation</p>
+                      <p className="text-lg font-bold text-gray-900 dark:text-white">
+                        ₹{bucketAllocation.totalAllocation.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Existing SIPs</p>
+                      <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                        ₹{bucketAllocation.existingSIPs.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Available for SIP</p>
+                      <p className={`text-lg font-bold ${bucketAllocation.available > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                        ₹{bucketAllocation.available.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  {bucketAllocation.available <= 0 && (
+                    <div className="mt-3 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs text-red-600 dark:text-red-400">
+                      ⚠️ No allocation available. Existing SIPs have used up all allocated amount.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {watchBucket && !isLoadingAllocation && !bucketAllocation && (
+                <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border-2 border-orange-200 dark:border-orange-800">
+                  <p className="text-sm text-orange-800 dark:text-orange-200">
+                    ⚠️ No allocation configured for {BUCKETS.find(b => b.id === watchBucket)?.label}.
+                    Please go to <span className="font-semibold">Investments → Allocations</span> to set it up first.
+                  </p>
+                </div>
+              )}
+
+              {watchBucket && isLoadingAllocation && (
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm text-muted-foreground">Loading allocation info...</span>
+                  </div>
+                </div>
+              )}
 
               {/* Investment Search */}
               {watchBucket && (
@@ -490,29 +583,46 @@ export default function NewSIPPage() {
               <FormField
                 control={form.control}
                 name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>SIP Amount *</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                          ₹
-                        </span>
-                        <Input
-                          type="number"
-                          placeholder="5000"
-                          className="pl-8"
-                          step="0.01"
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormDescription>
-                      The investment amount per installment
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const amount = Number(field.value) || 0
+                  const frequency = form.watch("frequency")
+                  const monthlyAmount = frequency === "YEARLY" ? amount / 12 : amount
+                  const exceedsLimit = bucketAllocation && monthlyAmount > bucketAllocation.available
+
+                  return (
+                    <FormItem>
+                      <FormLabel>SIP Amount *</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                            ₹
+                          </span>
+                          <Input
+                            type="number"
+                            placeholder="5000"
+                            className={`pl-8 ${exceedsLimit ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                            step="0.01"
+                            {...field}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormDescription>
+                        The investment amount per installment
+                        {frequency === "YEARLY" && amount > 0 && (
+                          <span className="block mt-1 text-blue-600 dark:text-blue-400">
+                            Monthly equivalent: ₹{monthlyAmount.toLocaleString()}
+                          </span>
+                        )}
+                      </FormDescription>
+                      {exceedsLimit && (
+                        <p className="text-sm font-medium text-red-600 dark:text-red-400">
+                          ⚠️ Amount exceeds available allocation of ₹{bucketAllocation.available.toLocaleString()}
+                        </p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
               />
 
               {/* Frequency */}
@@ -646,18 +756,26 @@ export default function NewSIPPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => router.push("/sips")}
+                  onClick={() => router.push("/investments/sips")}
                   disabled={isSubmitting}
                   className="flex-1"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting} className="flex-1">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || exceedsAllocation || (watchBucket && !bucketAllocation)}
+                  className="flex-1"
+                >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Creating...
                     </>
+                  ) : exceedsAllocation ? (
+                    "Amount Exceeds Allocation"
+                  ) : (watchBucket && !bucketAllocation) ? (
+                    "No Allocation Set"
                   ) : (
                     "Create SIP"
                   )}

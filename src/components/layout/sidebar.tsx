@@ -55,7 +55,7 @@ const navigation: NavigationItem[] = [
       { name: "Overview", href: "/investments/overview", icon: FolderKanban },
       { name: "Allocations", href: "/investments/allocations", icon: PieChart },
       { name: "Holdings", href: "/investments/holdings", icon: BarChart3 },
-      { name: "SIPs", href: "/sips", icon: Repeat },
+      { name: "SIPs", href: "/investments/sips", icon: Repeat },
     ],
   },
   {

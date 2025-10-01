@@ -193,7 +193,7 @@ export default function SIPsPage() {
             </p>
           </div>
           <Button
-            onClick={() => router.push("/sips/new")}
+            onClick={() => router.push("/investments/sips/new")}
             className="bg-white text-blue-600 hover:bg-blue-50"
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -270,7 +270,7 @@ export default function SIPsPage() {
               <p className="text-muted-foreground mt-2">
                 Get started by creating your first systematic investment plan.
               </p>
-              <Button onClick={() => router.push("/sips/new")} className="mt-4">
+              <Button onClick={() => router.push("/investments/sips/new")} className="mt-4">
                 <Plus className="mr-2 h-4 w-4" />
                 Add New SIP
               </Button>
@@ -333,7 +333,7 @@ export default function SIPsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => router.push(`/sips/${sip.id}/edit`)}
+                            onClick={() => router.push(`/investments/sips/${sip.id}/edit`)}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
