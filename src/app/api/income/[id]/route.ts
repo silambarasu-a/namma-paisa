@@ -16,7 +16,7 @@ const incomeUpdateSchema = z.object({
 // Update income
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -24,19 +24,27 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const { id } = await params
     const body = await request.json()
     const validatedData = incomeUpdateSchema.parse(body)
 
     // Check if income belongs to user
     const income = await prisma.income.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!income || income.userId !== session.user.id) {
       return NextResponse.json({ error: "Income not found" }, { status: 404 })
     }
 
-    const updateData: any = {}
+    const updateData: {
+      date?: Date
+      title?: string
+      description?: string | null
+      amount?: number
+      category?: string
+      isRecurring?: boolean
+    } = {}
     if (validatedData.date) updateData.date = new Date(validatedData.date)
     if (validatedData.title) updateData.title = validatedData.title
     if (validatedData.description !== undefined) updateData.description = validatedData.description
@@ -45,7 +53,7 @@ export async function PATCH(
     if (validatedData.isRecurring !== undefined) updateData.isRecurring = validatedData.isRecurring
 
     const updatedIncome = await prisma.income.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
     })
 
@@ -53,7 +61,7 @@ export async function PATCH(
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Validation failed", details: error.errors },
+        { error: "Validation failed", details: error.issues },
         { status: 400 }
       )
     }
@@ -68,7 +76,7 @@ export async function PATCH(
 // Delete income
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -76,9 +84,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const { id } = await params
+
     // Check if income belongs to user
     const income = await prisma.income.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!income || income.userId !== session.user.id) {
@@ -86,7 +96,7 @@ export async function DELETE(
     }
 
     await prisma.income.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     return NextResponse.json({ success: true })

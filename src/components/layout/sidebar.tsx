@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
@@ -18,7 +18,6 @@ import {
   PiggyBank,
   CreditCard,
   BarChart3,
-  ShieldCheck,
   Wallet,
   Repeat,
   FolderKanban,

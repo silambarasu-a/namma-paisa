@@ -11,9 +11,9 @@ export async function GET() {
     }
 
     return NextResponse.json({ valid: true })
-  } catch (error: any) {
+  } catch (error: unknown) {
     // If error is BLOCKED_USER, return 403
-    if (error?.message === "BLOCKED_USER") {
+    if (error instanceof Error && error.message === "BLOCKED_USER") {
       return NextResponse.json({ error: "User blocked" }, { status: 403 })
     }
 

@@ -36,7 +36,7 @@ export default function ForgotPassword() {
       } else {
         toast.error(data.error || "Failed to send OTP")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)

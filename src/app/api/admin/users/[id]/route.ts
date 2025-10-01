@@ -35,11 +35,17 @@ export async function PUT(
       )
     }
 
-    const updateData: any = {}
+    const updateData: {
+      name?: string
+      phoneNumber?: string
+      countryCode?: string
+      roles?: ("SUPER_ADMIN" | "CUSTOMER")[]
+      isBlocked?: boolean
+    } = {}
     if (name !== undefined) updateData.name = name
     if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber
     if (countryCode !== undefined) updateData.countryCode = countryCode
-    if (roles !== undefined) updateData.roles = roles
+    if (roles !== undefined) updateData.roles = roles as ("SUPER_ADMIN" | "CUSTOMER")[]
     if (isBlocked !== undefined) updateData.isBlocked = isBlocked
 
     const user = await prisma.user.update({

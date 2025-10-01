@@ -49,10 +49,6 @@ interface Salary {
   effectiveTo?: string
 }
 
-interface SalaryHistory {
-  salaries: Salary[]
-  currentSalary: Salary | null
-}
 
 const INCOME_CATEGORIES = [
   { value: "FREELANCE", label: "Freelance" },
@@ -98,6 +94,7 @@ export default function IncomePage() {
 
   useEffect(() => {
     loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear, selectedMonth])
 
   const loadData = async () => {
@@ -187,7 +184,7 @@ export default function IncomePage() {
         const data = await response.json()
         toast.error(data.error || "Failed to save income")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     }
   }
@@ -206,7 +203,7 @@ export default function IncomePage() {
       } else {
         toast.error("Failed to delete income")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     } finally {
       setDeleteIncomeDialogOpen(false)
@@ -244,7 +241,7 @@ export default function IncomePage() {
         const data = await response.json()
         toast.error(data.error || "Failed to update salary")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     }
   }
@@ -267,7 +264,7 @@ export default function IncomePage() {
       } else {
         toast.error("Failed to delete salary entry")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     } finally {
       setDeleteSalaryDialogOpen(false)

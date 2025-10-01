@@ -31,7 +31,7 @@ export default function ExpenseBudgetPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [budget, setBudget] = useState<BudgetData>({})
+  const [, setBudget] = useState<BudgetData>({})
   const [available, setAvailable] = useState<AvailableAmount | null>(null)
 
   // Mode selection
@@ -172,7 +172,7 @@ export default function ExpenseBudgetPage() {
         const data = await response.json()
         toast.error(data.error || "Failed to save budget")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     } finally {
       setIsSaving(false)

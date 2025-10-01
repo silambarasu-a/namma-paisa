@@ -28,13 +28,16 @@ export async function GET(request: Request) {
     const coins = data?.coins || []
 
     // Transform the response
-    const results = coins.slice(0, 20).map((coin: any) => ({
-      id: coin.id,
-      symbol: coin.symbol?.toUpperCase(),
-      name: coin.name,
-      category: determineCategory(coin),
-      marketCapRank: coin.market_cap_rank || null
-    }))
+    const results = coins.slice(0, 20).map((coin: { id: string; symbol?: string; name: string; market_cap_rank?: number; item_id?: string }) => {
+      const categoryData = coin as { id: string; symbol?: string; name: string; market_cap_rank?: number; item_id?: string }
+      return {
+        id: coin.id,
+        symbol: coin.symbol?.toUpperCase(),
+        name: coin.name,
+        category: determineCategory(categoryData),
+        marketCapRank: coin.market_cap_rank || null
+      }
+    })
 
     return NextResponse.json(results)
   } catch (error) {
@@ -76,7 +79,7 @@ export async function GET(request: Request) {
   }
 }
 
-function determineCategory(coin: any): string {
+function determineCategory(coin: { name: string; symbol?: string; item_id?: string; market_cap_rank?: number }): string {
   const name = coin.name?.toLowerCase() || ''
   const symbol = coin.symbol?.toLowerCase() || ''
 

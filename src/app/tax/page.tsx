@@ -79,6 +79,7 @@ export default function TaxConfiguration() {
   useEffect(() => {
     fetchTaxSettings()
     fetchCurrentSalary()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchTaxSettings = async () => {

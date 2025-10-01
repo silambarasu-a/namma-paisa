@@ -23,7 +23,7 @@ const taxSettingSchema = z.object({
   message: "Required fields missing for selected tax mode",
 })
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {

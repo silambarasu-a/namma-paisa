@@ -7,7 +7,7 @@ import { formatDate } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Calendar, Lock, Unlock, TrendingUp, TrendingDown, DollarSign, ArrowRight, CheckCircle, AlertCircle } from "lucide-react"
+import { Calendar, Lock, Unlock, TrendingUp, TrendingDown, ArrowRight, CheckCircle, AlertCircle } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,6 +64,7 @@ export default function MonthlySnapshotPage() {
 
   useEffect(() => {
     loadSnapshot()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMonth, selectedYear])
 
   const loadSnapshot = async () => {
@@ -142,7 +143,7 @@ export default function MonthlySnapshotPage() {
         const data = await response.json()
         toast.error(data.error || "Failed to generate snapshot")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     } finally {
       setIsClosing(false)
@@ -566,7 +567,7 @@ export default function MonthlySnapshotPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Close {MONTHS[selectedMonth - 1]} {selectedYear}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently lock the month's data.{" "}
+              This will permanently lock the month&apos;s data.{" "}
               {snapshot.surplusAmount !== 0 && (
                 <>
                   The surplus amount of{" "}

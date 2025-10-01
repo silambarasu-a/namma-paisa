@@ -46,6 +46,7 @@ export default function HoldingsPage() {
 
   useEffect(() => {
     loadHoldings()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bucketFilter])
 
   const loadHoldings = async () => {
@@ -62,7 +63,7 @@ export default function HoldingsPage() {
       } else {
         toast.error("Failed to load holdings")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     } finally {
       setIsLoading(false)
@@ -83,7 +84,7 @@ export default function HoldingsPage() {
       } else {
         toast.error("Failed to delete holding")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     }
   }

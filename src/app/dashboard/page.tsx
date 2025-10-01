@@ -5,9 +5,7 @@ import { requireAuth } from "@/lib/authz"
 import { prisma } from "@/lib/prisma"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { IndianRupee, TrendingUp, Receipt, Calculator, Wallet, Repeat, ArrowRight, PieChart, AlertCircle } from "lucide-react"
-import { SalaryFlowChart } from "@/components/dashboard/salary-flow-chart"
-import { InvestmentBreakdownChart } from "@/components/dashboard/investment-breakdown-chart"
+import { IndianRupee, Receipt, Calculator, Wallet, Repeat, ArrowRight, PieChart, AlertCircle, TrendingUp } from "lucide-react"
 import { DashboardFilter } from "@/components/dashboard/dashboard-filter"
 import { cn } from "@/lib/utils"
 import { calculateFinancialSummary } from "@/lib/budget-utils"
@@ -125,17 +123,31 @@ async function getActiveSIPs(userId: string, month: number, year: number) {
 }
 
 async function getInvestmentAllocations(userId: string) {
-  const allocations = await prisma.investmentAllocation.findMany({
+  const allocationData = await prisma.investmentAllocation.findMany({
     where: { userId },
   })
-  return allocations
+
+  return allocationData.map(a => ({
+    bucket: a.bucket,
+    allocationType: a.allocationType as "PERCENTAGE" | "AMOUNT",
+    percent: a.percent ? Number(a.percent) : null,
+    customAmount: a.customAmount ? Number(a.customAmount) : null,
+  }))
 }
 
 async function getExpenseBudget(userId: string) {
-  const budget = await prisma.expenseBudget.findUnique({
+  const budgetData = await prisma.expenseBudget.findUnique({
     where: { userId },
   })
-  return budget
+
+  if (!budgetData) return null
+
+  return {
+    expectedPercent: budgetData.expectedPercent ? Number(budgetData.expectedPercent) : null,
+    expectedAmount: budgetData.expectedAmount ? Number(budgetData.expectedAmount) : null,
+    unexpectedPercent: budgetData.unexpectedPercent ? Number(budgetData.unexpectedPercent) : null,
+    unexpectedAmount: budgetData.unexpectedAmount ? Number(budgetData.unexpectedAmount) : null,
+  }
 }
 
 async function getActiveLoans(userId: string, month: number, year: number) {
@@ -535,9 +547,6 @@ export default async function Dashboard({
                     {financialSummary.investmentAllocationBreakdown.map((alloc) => (
                       <Badge key={alloc.bucket} variant="outline" className="text-xs">
                         {alloc.bucket.replace(/_/g, ' ')}: ₹{alloc.amount.toLocaleString('en-IN')}
-                        <span className="ml-1 text-muted-foreground">
-                          ({alloc.type === 'PERCENTAGE' ? '%' : '₹'})
-                        </span>
                       </Badge>
                     ))}
                   </div>

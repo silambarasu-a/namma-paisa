@@ -102,7 +102,7 @@ async function getMutualFundPrice(schemeCode: string): Promise<number | null> {
     }
 
     return null
-  } catch (error) {
+  } catch {
     return null
   }
 }
@@ -125,7 +125,7 @@ async function getStockPrice(symbol: string, market: string): Promise<number | n
     const quote = data?.chart?.result?.[0]?.meta?.regularMarketPrice
 
     return quote ? parseFloat(quote) : null
-  } catch (error) {
+  } catch {
     return null
   }
 }
@@ -145,7 +145,7 @@ async function getCryptoPrice(cryptoId: string): Promise<number | null> {
     const price = data?.[coinId]?.inr
 
     return price ? parseFloat(price) : null
-  } catch (error) {
+  } catch {
     return null
   }
 }
@@ -164,7 +164,7 @@ export async function GET(request: Request) {
 
     // Call POST internally
     return POST(request)
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to update prices" }, { status: 500 })
   }
 }

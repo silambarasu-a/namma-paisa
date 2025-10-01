@@ -98,6 +98,7 @@ export default function NewHoldingPage() {
     }
 
     fetchPriceForCurrency()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currency]) // Only trigger when currency changes
 
   // Search for investments
@@ -217,7 +218,7 @@ export default function NewHoldingPage() {
         const data = await response.json()
         toast.error(data.error || "Failed to add holding")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     } finally {
       setIsLoading(false)

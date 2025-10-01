@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Receipt, PlusCircle, BarChart3, List, Wallet, Calendar, Filter, TrendingUp, TrendingDown, DollarSign, Trash2 } from "lucide-react"
+import { Receipt, PlusCircle, Wallet, Calendar, TrendingUp, TrendingDown, DollarSign, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -77,6 +77,7 @@ export default function ExpensesPage() {
   useEffect(() => {
     loadAvailableAmount()
     fetchExpenses()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMonth, selectedYear, filter, sortBy])
 
   const loadAvailableAmount = async () => {

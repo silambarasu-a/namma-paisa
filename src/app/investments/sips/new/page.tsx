@@ -104,7 +104,7 @@ export default function NewSIPPage() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [showResults, setShowResults] = useState(false)
   const [holdings, setHoldings] = useState<Holding[]>([])
-  const [isLoadingHoldings, setIsLoadingHoldings] = useState(true)
+  const [, setIsLoadingHoldings] = useState(true)
   const [bucketAllocation, setBucketAllocation] = useState<BucketAllocation | null>(null)
   const [isLoadingAllocation, setIsLoadingAllocation] = useState(false)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -254,7 +254,7 @@ export default function NewSIPPage() {
     }
   }, [searchQuery, watchBucket])
 
-  const handleSelectResult = (result: SearchResult | Holding, isFromHolding = false) => {
+  const handleSelectResult = (result: SearchResult | Holding) => {
     const selectedSymbol = result.symbol || (result as SearchResult).id || ""
     form.setValue("symbol", selectedSymbol)
     form.setValue("name", result.name)
@@ -471,7 +471,7 @@ export default function NewSIPPage() {
                             {filteredHoldings.map((holding) => (
                               <div
                                 key={holding.id}
-                                onClick={() => handleSelectResult(holding, true)}
+                                onClick={() => handleSelectResult(holding)}
                                 className="px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-0"
                               >
                                 <div className="flex items-start justify-between">
@@ -764,7 +764,7 @@ export default function NewSIPPage() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isSubmitting || exceedsAllocation || (watchBucket && !bucketAllocation)}
+                  disabled={isSubmitting || exceedsAllocation || (!!watchBucket && !bucketAllocation)}
                   className="flex-1"
                 >
                   {isSubmitting ? (

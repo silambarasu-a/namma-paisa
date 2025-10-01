@@ -157,7 +157,7 @@ export default function AddExpense() {
         const data = await response.json()
         toast.error(data.message || "Failed to add expense")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)

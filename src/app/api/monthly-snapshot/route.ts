@@ -254,13 +254,27 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
   }
 
   // Get budget and allocations
-  const budget = await prisma.expenseBudget.findUnique({
+  const budgetData = await prisma.expenseBudget.findUnique({
     where: { userId },
   })
 
-  const allocations = await prisma.investmentAllocation.findMany({
+  const budget = budgetData ? {
+    expectedPercent: budgetData.expectedPercent ? Number(budgetData.expectedPercent) : null,
+    expectedAmount: budgetData.expectedAmount ? Number(budgetData.expectedAmount) : null,
+    unexpectedPercent: budgetData.unexpectedPercent ? Number(budgetData.unexpectedPercent) : null,
+    unexpectedAmount: budgetData.unexpectedAmount ? Number(budgetData.unexpectedAmount) : null,
+  } : null
+
+  const allocationData = await prisma.investmentAllocation.findMany({
     where: { userId },
   })
+
+  const allocations = allocationData.map(a => ({
+    bucket: a.bucket,
+    allocationType: a.allocationType as "PERCENTAGE" | "AMOUNT",
+    percent: a.percent ? Number(a.percent) : null,
+    customAmount: a.customAmount ? Number(a.customAmount) : null,
+  }))
 
   // Use financial summary calculation with budget/allocation logic
   const financialSummary = calculateFinancialSummary(

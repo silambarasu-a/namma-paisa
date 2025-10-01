@@ -34,12 +34,12 @@ export async function GET(request: Request) {
     })
 
     // Transform the response to our format
-    const results = (Array.isArray(data) ? data : []).slice(0, 15).map((fund: any) => ({
+    const results = (Array.isArray(data) ? data : []).slice(0, 15).map((fund: { schemeCode?: number; schemeName?: string }) => ({
       id: fund.schemeCode?.toString() || '',
       symbol: fund.schemeCode?.toString() || '',
       name: fund.schemeName || '',
-      category: extractCategory(fund.schemeName),
-      amc: extractAMC(fund.schemeName)
+      category: extractCategory(fund.schemeName || ''),
+      amc: extractAMC(fund.schemeName || '')
     }))
 
     console.log('Transformed results:', results.length, 'funds')

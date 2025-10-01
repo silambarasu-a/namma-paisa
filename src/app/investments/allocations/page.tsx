@@ -46,6 +46,7 @@ export default function AllocationsPage() {
 
   useEffect(() => {
     loadAllocations()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadAllocations = async () => {
@@ -67,7 +68,7 @@ export default function AllocationsPage() {
 
         setAllocations(allocMap)
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to load allocations")
     } finally {
       setIsLoading(false)
@@ -116,7 +117,7 @@ export default function AllocationsPage() {
     }
 
     const enabledAllocations = Object.entries(allocations)
-      .filter(([_, alloc]) => alloc.enabled && alloc.value > 0)
+      .filter(([, alloc]) => alloc.enabled && alloc.value > 0)
 
     if (enabledAllocations.length === 0) {
       toast.error("Please enable and set at least one allocation")
@@ -145,7 +146,7 @@ export default function AllocationsPage() {
         const data = await response.json()
         toast.error(data.error || "Failed to save allocations")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     } finally {
       setIsSaving(false)

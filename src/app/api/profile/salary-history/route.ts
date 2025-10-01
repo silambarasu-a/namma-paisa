@@ -11,7 +11,7 @@ const salarySchema = z.object({
   }),
 })
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Validation failed", details: error.errors },
+        { error: "Validation failed", details: error.issues },
         { status: 400 }
       )
     }

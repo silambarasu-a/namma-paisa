@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { LogOut, User, Settings, Mail } from "lucide-react"
+import { LogOut, User, Mail } from "lucide-react"
 import Link from "next/link"
 
 export function Header() {

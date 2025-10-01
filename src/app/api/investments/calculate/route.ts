@@ -148,7 +148,7 @@ export async function POST(request: Request) {
     const availableForInvestment = Math.max(0, afterLoans)
 
     // Group SIPs by bucket (use allActiveSIPs to include upcoming SIPs)
-    const sipsByBucket: Record<string, { count: number; total: number; sips: any[] }> = {}
+    const sipsByBucket: Record<string, { count: number; total: number; sips: Array<{ id: string; name: string; amount: number; frequency: string; bucket: string; symbol: string | null; startDate?: Date | null; isUpcoming: boolean }> }> = {}
     allActiveSIPs.forEach((sip) => {
       const bucket = sip.bucket || "MUTUAL_FUND" // Default to MUTUAL_FUND for backward compatibility
       if (!sipsByBucket[bucket]) {
@@ -171,6 +171,7 @@ export async function POST(request: Request) {
         name: sip.name,
         amount: Number(sip.amount),
         frequency: sip.frequency,
+        bucket: sip.bucket || "MUTUAL_FUND",
         symbol: sip.symbol,
         startDate: sip.startDate,
         isUpcoming: new Date(sip.startDate) > now,

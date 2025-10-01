@@ -11,7 +11,16 @@ export async function GET(request: Request) {
       return NextResponse.json([])
     }
 
-    let quotes: any[] = []
+    let quotes: Array<{
+      symbol: string
+      shortname?: string
+      longname?: string
+      quoteType?: string
+      exchange?: string
+      exchDisp?: string
+      sector?: string
+      industry?: string
+    }> = []
 
     // For Indian market, try multiple search strategies in parallel
     if (market === "IN") {
@@ -64,7 +73,7 @@ export async function GET(request: Request) {
 
       // Remove duplicates based on symbol
       const seen = new Set()
-      quotes = quotes.filter((quote: any) => {
+      quotes = quotes.filter((quote) => {
         if (seen.has(quote.symbol)) return false
         seen.add(quote.symbol)
         return true
@@ -90,18 +99,18 @@ export async function GET(request: Request) {
 
     // Filter and transform results
     const results = quotes
-      .filter((quote: any) => {
+      .filter((quote) => {
         if (market === "IN") {
           // For Indian market, only include NSE/BSE stocks
           return quote.symbol?.includes('.NS') || quote.symbol?.includes('.BO') ||
                  quote.exchange === 'NSI' || quote.exchange === 'BSE'
         } else {
           // For US market, include major exchanges
-          return ['NASDAQ', 'NYSE', 'AMEX', 'NYQ', 'NMS'].includes(quote.exchange)
+          return quote.exchange ? ['NASDAQ', 'NYSE', 'AMEX', 'NYQ', 'NMS'].includes(quote.exchange) : false
         }
       })
       .slice(0, 15)
-      .map((quote: any) => ({
+      .map((quote) => ({
         symbol: quote.symbol,
         name: quote.longname || quote.shortname || quote.symbol,
         exchange: quote.exchDisp || quote.exchange,

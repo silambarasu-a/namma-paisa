@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { toast } from "sonner"
-import { BarChart, PieChart, TrendingUp, Calendar } from "lucide-react"
+import { BarChart, Calendar } from "lucide-react"
 
 interface ExpenseSummary {
   totalExpenses: number
@@ -39,6 +39,7 @@ export default function ExpenseReportsPage() {
 
   useEffect(() => {
     loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMonth, selectedYear])
 
   const loadData = async () => {
@@ -88,7 +89,7 @@ export default function ExpenseReportsPage() {
       } else {
         toast.error("Failed to load expense data")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     } finally {
       setIsLoading(false)

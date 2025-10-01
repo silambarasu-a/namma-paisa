@@ -50,7 +50,7 @@ export default function SignUp() {
       })
 
       if (res.ok) {
-        const data = await res.json()
+        await res.json()
         toast.success("Account created successfully!", {
           description: "Please check your email to verify your account before signing in.",
           duration: 6000,
@@ -60,7 +60,7 @@ export default function SignUp() {
         const data = await res.json()
         toast.error(data.message || "An error occurred")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)

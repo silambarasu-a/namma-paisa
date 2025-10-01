@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { TrendingUp, Wallet, Settings, PlusCircle, Eye, AlertCircle, Calendar } from "lucide-react"
+import { TrendingUp, Wallet, Settings, PlusCircle, Eye, AlertCircle, Calendar, BarChart3 } from "lucide-react"
 import { toast } from "sonner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -29,7 +29,7 @@ interface CalculateData {
   totalLoanEMI: number
   afterLoans: number
   availableForInvestment: number
-  sipsByBucket?: Record<string, { count: number; total: number; sips: any[] }>
+  sipsByBucket?: Record<string, { count: number; total: number; sips: Array<{ id: string; name: string; amount: number; frequency: string; bucket: string; startDate?: string | null }> }>
   allSips?: Array<{
     id: string
     name: string
@@ -167,12 +167,6 @@ export default function InvestmentsPage() {
     )
   }
 
-  const totalPercentAllocated = allocations
-    .filter(a => a.allocationType === "PERCENTAGE")
-    .reduce((sum, a) => sum + Number(a.percent || 0), 0)
-  const totalAmountAllocated = allocations
-    .filter(a => a.allocationType === "AMOUNT")
-    .reduce((sum, a) => sum + Number(a.customAmount || 0), 0)
   const hasAllocations = allocations.length > 0
 
   const months = [

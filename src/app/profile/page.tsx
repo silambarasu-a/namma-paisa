@@ -49,7 +49,7 @@ export default function Profile() {
         const data = await response.json()
         toast.error(data.message || "Failed to update profile")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)
@@ -92,7 +92,7 @@ export default function Profile() {
         const data = await response.json()
         toast.error(data.message || "Failed to change password")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)

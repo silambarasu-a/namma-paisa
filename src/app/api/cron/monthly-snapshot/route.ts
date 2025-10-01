@@ -52,7 +52,7 @@ export async function POST(request: Request) {
         const data = await calculateMonthlyData(user.id, previousYear, previousMonth)
 
         // Create or update snapshot
-        const snapshot = await prisma.monthlySnapshot.upsert({
+        await prisma.monthlySnapshot.upsert({
           where: {
             userId_year_month: {
               userId: user.id,
@@ -125,7 +125,7 @@ export async function GET(request: Request) {
 
     // Call POST internally
     return POST(request)
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to trigger snapshot" }, { status: 500 })
   }
 }

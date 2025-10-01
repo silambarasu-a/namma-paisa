@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Users, Plus, Edit, Trash2, Ban, CheckCircle, Shield, Mail, Loader2 } from "lucide-react"
+import { Plus, Edit, Trash2, Ban, CheckCircle, Shield, Mail, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -91,7 +91,7 @@ export default function UserManagementPage() {
       } else {
         toast.error("Failed to load users")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred while loading users")
     } finally {
       setIsLoading(false)
@@ -163,7 +163,7 @@ export default function UserManagementPage() {
           toast.error(data.error || "Failed to create user")
         }
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     }
   }
@@ -183,7 +183,7 @@ export default function UserManagementPage() {
         const data = await response.json()
         toast.error(data.error || "Failed to update user")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     }
   }
@@ -203,7 +203,7 @@ export default function UserManagementPage() {
         const data = await response.json()
         toast.error(data.error || "Failed to delete user")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     } finally {
       setDeleteDialogOpen(false)
@@ -230,7 +230,7 @@ export default function UserManagementPage() {
       } else {
         toast.error(data.error || "Failed to send reset link")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     } finally {
       setSendingResetLink(null)
@@ -269,7 +269,7 @@ export default function UserManagementPage() {
               <CardDescription>Manage all users in the system</CardDescription>
             </div>
             <div className="flex gap-2">
-              <Select value={roleFilter} onValueChange={(value: any) => setRoleFilter(value)}>
+              <Select value={roleFilter} onValueChange={(value: "all" | "SUPER_ADMIN" | "CUSTOMER") => setRoleFilter(value)}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Filter by role" />
                 </SelectTrigger>

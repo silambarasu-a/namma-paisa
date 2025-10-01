@@ -5,7 +5,7 @@ import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 
 export function BlockedUserDetector() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const pathname = usePathname()
   const [showBlockedPopup, setShowBlockedPopup] = useState(false)
 
@@ -22,7 +22,7 @@ export function BlockedUserDetector() {
             }, 3000)
           }
         }
-      } catch (error) {
+      } catch {
         // Network error, ignore
       }
     }
@@ -31,12 +31,14 @@ export function BlockedUserDetector() {
   useEffect(() => {
     // Check on mount and on page navigation
     checkIfBlocked()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, pathname])
 
   useEffect(() => {
     // Also poll every 10 seconds as backup
     const interval = setInterval(checkIfBlocked, 10000)
     return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, showBlockedPopup])
 
   if (!showBlockedPopup) return null

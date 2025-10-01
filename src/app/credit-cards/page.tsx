@@ -135,7 +135,7 @@ export default function CreditCardsPage() {
         const data = await response.json()
         toast.error(data.error || "Failed to save card")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     }
   }
@@ -154,7 +154,7 @@ export default function CreditCardsPage() {
       } else {
         toast.error("Failed to delete card")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     }
   }

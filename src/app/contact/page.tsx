@@ -84,7 +84,7 @@ export default function ContactPage() {
       } else {
         toast.error(data.message || "Failed to send message")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)
@@ -117,7 +117,7 @@ export default function ContactPage() {
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Get in Touch</h1>
             <p className="text-xl text-gray-600 dark:text-gray-300">
-              Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+              Have questions? We&apos;d love to hear from you. Send us a message and we&apos;ll respond as soon as possible.
             </p>
           </div>
 
@@ -128,7 +128,7 @@ export default function ContactPage() {
                 <CardHeader>
                   <CardTitle>Send us a message</CardTitle>
                   <CardDescription>
-                    Fill out the form below and we'll get back to you shortly
+                    Fill out the form below and we&apos;ll get back to you shortly
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

@@ -48,7 +48,7 @@ export default function VerifyOTP() {
       } else {
         toast.error(data.error || "Invalid OTP")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)
@@ -69,7 +69,7 @@ export default function VerifyOTP() {
       } else {
         toast.error("Failed to resend OTP")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)

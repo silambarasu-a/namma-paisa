@@ -85,7 +85,7 @@ export default function SuperAdminsPage() {
       } else {
         toast.error("Failed to load users")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred while loading users")
     } finally {
       setIsLoading(false)
@@ -157,7 +157,7 @@ export default function SuperAdminsPage() {
           toast.error(data.error || "Failed to create user")
         }
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     }
   }
@@ -177,7 +177,7 @@ export default function SuperAdminsPage() {
         const data = await response.json()
         toast.error(data.error || "Failed to update user")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     }
   }
@@ -197,7 +197,7 @@ export default function SuperAdminsPage() {
         const data = await response.json()
         toast.error(data.error || "Failed to delete user")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred")
     } finally {
       setDeleteDialogOpen(false)

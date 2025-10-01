@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma"
 // Delete expense
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -14,9 +14,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const { id } = await params
+
     // Check if expense belongs to user
     const expense = await prisma.expense.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!expense || expense.userId !== session.user.id) {
@@ -24,7 +26,7 @@ export async function DELETE(
     }
 
     await prisma.expense.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     return NextResponse.json({ success: true })

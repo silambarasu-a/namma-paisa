@@ -39,7 +39,7 @@ export async function PATCH(request: NextRequest) {
         id: true,
         name: true,
         email: true,
-        role: true,
+        roles: true,
       },
     })
 

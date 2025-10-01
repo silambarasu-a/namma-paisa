@@ -80,7 +80,7 @@ export default function ResetPassword() {
       } else {
         toast.error(data.error || "Failed to reset password")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)

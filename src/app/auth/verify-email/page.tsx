@@ -1,13 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { CheckCircle, XCircle, Loader2 } from "lucide-react"
 
-export default function VerifyEmail() {
+function VerifyEmailContent() {
   const [status, setStatus] = useState<"loading" | "success" | "error" | "already-verified">("loading")
   const [message, setMessage] = useState("")
   const router = useRouter()
@@ -39,7 +39,7 @@ export default function VerifyEmail() {
           setStatus("error")
           setMessage(data.error || "Verification failed")
         }
-      } catch (error) {
+      } catch {
         setStatus("error")
         setMessage("An error occurred during verification")
       }
@@ -106,5 +106,29 @@ export default function VerifyEmail() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function VerifyEmail() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-2xl text-center">Email Verification</CardTitle>
+            <CardDescription className="text-center">
+              Loading...
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col items-center space-y-4">
+              <Loader2 className="h-16 w-16 text-primary animate-spin" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <VerifyEmailContent />
+    </Suspense>
   )
 }

@@ -58,7 +58,7 @@ export default function SignIn() {
         router.push("/dashboard")
         router.refresh()
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)
@@ -96,7 +96,7 @@ export default function SignIn() {
       } else {
         toast.error(data.message || "Failed to resend verification email")
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred. Please try again.")
     } finally {
       setIsResending(false)

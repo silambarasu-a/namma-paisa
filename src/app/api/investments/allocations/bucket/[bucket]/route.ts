@@ -20,7 +20,7 @@ export async function GET(
     const allocation = await prisma.investmentAllocation.findFirst({
       where: {
         userId: session.user.id,
-        bucket: bucket as any,
+        bucket: bucket as "MUTUAL_FUND" | "IND_STOCK" | "US_STOCK" | "CRYPTO" | "EMERGENCY_FUND",
       },
     })
 
@@ -104,7 +104,7 @@ export async function GET(
     const existingSIPs = await prisma.sIP.findMany({
       where: {
         userId: session.user.id,
-        bucket: bucket as any,
+        bucket: bucket as "MUTUAL_FUND" | "IND_STOCK" | "US_STOCK" | "CRYPTO" | "EMERGENCY_FUND",
         isActive: true,
       },
     })

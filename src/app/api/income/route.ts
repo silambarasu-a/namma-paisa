@@ -27,7 +27,13 @@ export async function GET(request: Request) {
     const year = searchParams.get("year")
     const month = searchParams.get("month")
 
-    let where: any = { userId: session.user.id }
+    const where: {
+      userId: string
+      date?: {
+        gte: Date
+        lte: Date
+      }
+    } = { userId: session.user.id }
 
     // Filter by year and month if provided
     if (year && month) {
@@ -84,7 +90,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Validation failed", details: error.errors },
+        { error: "Validation failed", details: error.issues },
         { status: 400 }
       )
     }
