@@ -11,26 +11,82 @@ export async function GET(request: Request) {
       return NextResponse.json([])
     }
 
-    // Use Yahoo Finance query API
-    const suffix = market === "US" ? "" : ".NS" // .NS for NSE India
-    const searchQuery = market === "IN" ? `${query} india stock` : query
+    let quotes: any[] = []
 
-    const apiUrl = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(searchQuery)}&quotesCount=15&newsCount=0`
+    // For Indian market, try multiple search strategies in parallel
+    if (market === "IN") {
+      const searchPromises = [
+        // Strategy 1: Try with .NS suffix (NSE)
+        fetch(
+          `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query.toUpperCase() + '.NS')}&quotesCount=15&newsCount=0`,
+          {
+            headers: {
+              'User-Agent': 'Mozilla/5.0',
+              'Accept': 'application/json',
+            },
+            signal: AbortSignal.timeout(3000) // 3 second timeout
+          }
+        ).then(r => r.ok ? r.json() : null).catch(() => null),
 
-    const response = await fetch(apiUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0',
-        'Accept': 'application/json',
-      },
-      next: { revalidate: 300 } // Cache for 5 minutes
-    })
+        // Strategy 2: Try with .BO suffix (BSE)
+        fetch(
+          `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query.toUpperCase() + '.BO')}&quotesCount=15&newsCount=0`,
+          {
+            headers: {
+              'User-Agent': 'Mozilla/5.0',
+              'Accept': 'application/json',
+            },
+            signal: AbortSignal.timeout(3000)
+          }
+        ).then(r => r.ok ? r.json() : null).catch(() => null),
 
-    if (!response.ok) {
-      throw new Error(`API responded with status: ${response.status}`)
+        // Strategy 3: Try plain query for partial matches
+        fetch(
+          `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=15&newsCount=0`,
+          {
+            headers: {
+              'User-Agent': 'Mozilla/5.0',
+              'Accept': 'application/json',
+            },
+            signal: AbortSignal.timeout(3000)
+          }
+        ).then(r => r.ok ? r.json() : null).catch(() => null)
+      ]
+
+      const results = await Promise.all(searchPromises)
+
+      // Combine results, prioritizing exact matches
+      for (const data of results) {
+        if (data && data.quotes && data.quotes.length > 0) {
+          quotes = [...quotes, ...data.quotes]
+        }
+      }
+
+      // Remove duplicates based on symbol
+      const seen = new Set()
+      quotes = quotes.filter((quote: any) => {
+        if (seen.has(quote.symbol)) return false
+        seen.add(quote.symbol)
+        return true
+      })
+    } else {
+      // For US market, use simple search
+      const apiUrl = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=15&newsCount=0`
+      const response = await fetch(apiUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0',
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(3000)
+      })
+
+      if (!response.ok) {
+        throw new Error(`API responded with status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      quotes = data?.quotes || []
     }
-
-    const data = await response.json()
-    const quotes = data?.quotes || []
 
     // Filter and transform results
     const results = quotes
