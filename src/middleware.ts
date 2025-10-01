@@ -16,8 +16,8 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Allow access to auth pages without authentication
-        if (req.nextUrl.pathname.startsWith("/auth")) {
+        // Allow access to landing page and auth pages without authentication
+        if (req.nextUrl.pathname === "/" || req.nextUrl.pathname.startsWith("/auth")) {
           return true
         }
 

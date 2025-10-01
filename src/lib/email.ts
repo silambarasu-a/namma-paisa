@@ -79,3 +79,28 @@ export function generateOTP(): string {
 export function generateVerificationToken(): string {
   return crypto.randomBytes(32).toString("hex")
 }
+
+interface SendEmailOptions {
+  to: string
+  subject: string
+  html: string
+  text?: string
+}
+
+export async function sendEmail({ to, subject, html, text }: SendEmailOptions) {
+  try {
+    const info = await transporter.sendMail({
+      from: `"Namma Paisa" <${process.env.EMAIL_USER}>`,
+      to,
+      subject,
+      html,
+      text,
+    })
+
+    console.log("Email sent successfully:", info.messageId)
+    return { success: true, data: info }
+  } catch (error) {
+    console.error("Email sending error:", error)
+    return { success: false, error }
+  }
+}

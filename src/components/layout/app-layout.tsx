@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react"
 import { usePathname } from "next/navigation"
 import { Sidebar } from "./sidebar"
 import { Header } from "./header"
+import { Footer } from "./footer"
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -13,8 +14,8 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { data: session, status } = useSession()
   const pathname = usePathname()
 
-  // Don't show layout for auth pages
-  if (pathname.startsWith("/auth") || pathname === "/unauthorized") {
+  // Don't show layout for auth pages and landing page
+  if (pathname.startsWith("/auth") || pathname === "/unauthorized" || pathname === "/" || pathname === "/contact") {
     return <>{children}</>
   }
 

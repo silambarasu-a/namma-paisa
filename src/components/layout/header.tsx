@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { LogOut, User, Settings } from "lucide-react"
+import { LogOut, User, Settings, Mail } from "lucide-react"
 import Link from "next/link"
 
 export function Header() {
@@ -70,6 +70,12 @@ export function Header() {
                 <Link href="/profile" className="flex items-center">
                   <User className="mr-2 h-4 w-4" />
                   Profile
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/contact" className="flex items-center">
+                  <Mail className="mr-2 h-4 w-4" />
+                  Contact Us
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
