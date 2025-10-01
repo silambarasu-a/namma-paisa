@@ -8,8 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner"
 import { BarChart, PieChart, TrendingUp, Calendar } from "lucide-react"
 
-type Period = "daily" | "weekly" | "monthly" | "yearly"
-
 interface ExpenseSummary {
   totalExpenses: number
   totalAmount: number
@@ -17,9 +15,6 @@ interface ExpenseSummary {
   expectedAmount: number
   unexpectedCount: number
   unexpectedAmount: number
-  needsAmount: number
-  partialNeedsAmount: number
-  avoidAmount: number
   totalNeedsAmount: number
   totalAvoidAmount: number
 }
@@ -36,24 +31,25 @@ interface Expense {
 }
 
 export default function ExpenseReportsPage() {
-  const [period, setPeriod] = useState<Period>("monthly")
+  const [selectedMonth, setSelectedMonth] = useState<string>(String(new Date().getMonth() + 1))
+  const [selectedYear, setSelectedYear] = useState<string>(String(new Date().getFullYear()))
   const [isLoading, setIsLoading] = useState(true)
   const [summary, setSummary] = useState<ExpenseSummary | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
 
   useEffect(() => {
     loadData()
-  }, [period])
+  }, [selectedMonth, selectedYear])
 
   const loadData = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch(`/api/expenses?period=${period}`)
+      const response = await fetch(`/api/expenses?month=${selectedMonth}&year=${selectedYear}`)
       if (response.ok) {
         const data = await response.json()
         setExpenses(data.expenses || [])
 
-        // Calculate summary from expenses
+        // Calculate summary from expenses - matching API logic
         const summary: ExpenseSummary = {
           totalExpenses: data.expenses?.length || 0,
           totalAmount: 0,
@@ -61,9 +57,6 @@ export default function ExpenseReportsPage() {
           expectedAmount: 0,
           unexpectedCount: 0,
           unexpectedAmount: 0,
-          needsAmount: 0,
-          partialNeedsAmount: 0,
-          avoidAmount: 0,
           totalNeedsAmount: 0,
           totalAvoidAmount: 0,
         }
@@ -80,17 +73,13 @@ export default function ExpenseReportsPage() {
             summary.unexpectedAmount += amount
           }
 
+          // Match API logic exactly - split partial-needs into needs/avoid portions
           if (expense.category === "NEEDS") {
-            summary.needsAmount += amount
             summary.totalNeedsAmount += amount
           } else if (expense.category === "PARTIAL_NEEDS") {
-            const needs = Number(expense.needsPortion || 0)
-            const avoid = Number(expense.avoidPortion || 0)
-            summary.partialNeedsAmount += amount
-            summary.totalNeedsAmount += needs
-            summary.totalAvoidAmount += avoid
-          } else {
-            summary.avoidAmount += amount
+            summary.totalNeedsAmount += Number(expense.needsPortion || 0)
+            summary.totalAvoidAmount += Number(expense.avoidPortion || 0)
+          } else if (expense.category === "AVOID") {
             summary.totalAvoidAmount += amount
           }
         })
@@ -106,14 +95,9 @@ export default function ExpenseReportsPage() {
     }
   }
 
-  const getPeriodLabel = () => {
-    const labels = {
-      daily: "Today",
-      weekly: "This Week",
-      monthly: "This Month",
-      yearly: "This Year",
-    }
-    return labels[period]
+  const getMonthLabel = () => {
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    return `${monthNames[parseInt(selectedMonth) - 1]} ${selectedYear}`
   }
 
   if (isLoading) {
@@ -127,28 +111,61 @@ export default function ExpenseReportsPage() {
     )
   }
 
+  const months = [
+    { value: "1", label: "January" },
+    { value: "2", label: "February" },
+    { value: "3", label: "March" },
+    { value: "4", label: "April" },
+    { value: "5", label: "May" },
+    { value: "6", label: "June" },
+    { value: "7", label: "July" },
+    { value: "8", label: "August" },
+    { value: "9", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" },
+  ]
+
+  const currentYear = new Date().getFullYear()
+  const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Expense Reports
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Analyze your spending patterns across different time periods
+            Analyze your spending patterns and expense breakdown
           </p>
         </div>
 
-        <div className="w-[200px]">
-          <Select value={period} onValueChange={(value) => setPeriod(value as Period)}>
-            <SelectTrigger>
-              <SelectValue />
+        <div className="flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-gray-500" />
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Month" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="daily">Daily</SelectItem>
-              <SelectItem value="weekly">Weekly</SelectItem>
-              <SelectItem value="monthly">Monthly</SelectItem>
-              <SelectItem value="yearly">Yearly</SelectItem>
+              {months.map((month) => (
+                <SelectItem key={month.value} value={month.value}>
+                  {month.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedYear} onValueChange={setSelectedYear}>
+            <SelectTrigger className="w-[100px]">
+              <SelectValue placeholder="Year" />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map((year) => (
+                <SelectItem key={year} value={String(year)}>
+                  {year}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -164,7 +181,7 @@ export default function ExpenseReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{summary.totalExpenses}</div>
-                <p className="text-xs text-muted-foreground">{getPeriodLabel()}</p>
+                <p className="text-xs text-muted-foreground">{getMonthLabel()}</p>
               </CardContent>
             </Card>
 
@@ -176,7 +193,7 @@ export default function ExpenseReportsPage() {
                 <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                   ₹{summary.totalAmount.toLocaleString()}
                 </div>
-                <p className="text-xs text-muted-foreground">{getPeriodLabel()}</p>
+                <p className="text-xs text-muted-foreground">{getMonthLabel()}</p>
               </CardContent>
             </Card>
 
@@ -209,131 +226,73 @@ export default function ExpenseReportsPage() {
             </Card>
           </div>
 
-          {/* Category Breakdown */}
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <PieChart className="h-5 w-5" />
-                  <span>Category Breakdown</span>
-                </CardTitle>
-                <CardDescription>Expenses by category</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Needs</span>
-                    <span className="text-sm font-bold text-green-600 dark:text-green-400">
-                      ₹{summary.needsAmount.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-green-500"
-                      style={{
-                        width: `${summary.totalAmount > 0 ? (summary.needsAmount / summary.totalAmount) * 100 : 0}%`,
-                      }}
-                    />
-                  </div>
+          {/* Needs vs Avoid Analysis */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <BarChart className="h-5 w-5" />
+                <span>Needs vs Avoid Analysis</span>
+              </CardTitle>
+              <CardDescription>Expense breakdown by needs and avoid categories (partial-needs are split)</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Total Needs</span>
+                  <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                    ₹{summary.totalNeedsAmount.toLocaleString()}
+                  </span>
                 </div>
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-green-500"
+                    style={{
+                      width: `${summary.totalAmount > 0 ? (summary.totalNeedsAmount / summary.totalAmount) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {summary.totalAmount > 0
+                    ? ((summary.totalNeedsAmount / summary.totalAmount) * 100).toFixed(1)
+                    : 0}% of total expenses
+                </p>
+              </div>
 
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Partial-Needs</span>
-                    <span className="text-sm font-bold text-yellow-600 dark:text-yellow-400">
-                      ₹{summary.partialNeedsAmount.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-yellow-500"
-                      style={{
-                        width: `${summary.totalAmount > 0 ? (summary.partialNeedsAmount / summary.totalAmount) * 100 : 0}%`,
-                      }}
-                    />
-                  </div>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Total Avoid</span>
+                  <span className="text-sm font-bold text-red-600 dark:text-red-400">
+                    ₹{summary.totalAvoidAmount.toLocaleString()}
+                  </span>
                 </div>
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-red-500"
+                    style={{
+                      width: `${summary.totalAmount > 0 ? (summary.totalAvoidAmount / summary.totalAmount) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {summary.totalAmount > 0
+                    ? ((summary.totalAvoidAmount / summary.totalAmount) * 100).toFixed(1)
+                    : 0}% of total expenses
+                </p>
+              </div>
 
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Avoid</span>
-                    <span className="text-sm font-bold text-red-600 dark:text-red-400">
-                      ₹{summary.avoidAmount.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-red-500"
-                      style={{
-                        width: `${summary.totalAmount > 0 ? (summary.avoidAmount / summary.totalAmount) * 100 : 0}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <BarChart className="h-5 w-5" />
-                  <span>Needs vs Avoid Analysis</span>
-                </CardTitle>
-                <CardDescription>Total breakdown including partial-needs split</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Total Needs (including partial)</span>
-                    <span className="text-sm font-bold text-green-600 dark:text-green-400">
-                      ₹{summary.totalNeedsAmount.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-green-500"
-                      style={{
-                        width: `${summary.totalAmount > 0 ? (summary.totalNeedsAmount / summary.totalAmount) * 100 : 0}%`,
-                      }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {summary.totalAmount > 0
-                      ? ((summary.totalNeedsAmount / summary.totalAmount) * 100).toFixed(1)
-                      : 0}% of total
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Total Avoid (including partial)</span>
-                    <span className="text-sm font-bold text-red-600 dark:text-red-400">
-                      ₹{summary.totalAvoidAmount.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-red-500"
-                      style={{
-                        width: `${summary.totalAmount > 0 ? (summary.totalAvoidAmount / summary.totalAmount) * 100 : 0}%`,
-                      }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {summary.totalAmount > 0
-                      ? ((summary.totalAvoidAmount / summary.totalAmount) * 100).toFixed(1)
-                      : 0}% of total
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              <div className="pt-4 border-t">
+                <p className="text-xs text-muted-foreground">
+                  Note: Partial-needs expenses are split proportionally between needs and avoid categories based on the allocation you specified when creating the expense.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Expense List */}
           <Card>
             <CardHeader>
               <CardTitle>Expense Details</CardTitle>
-              <CardDescription>All expenses for {getPeriodLabel()}</CardDescription>
+              <CardDescription>All expenses for {getMonthLabel()}</CardDescription>
             </CardHeader>
             <CardContent>
               {expenses.length > 0 ? (

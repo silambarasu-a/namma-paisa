@@ -129,13 +129,17 @@ export async function POST(request: Request) {
 async function calculateMonthlyData(userId: string, year: number, month: number) {
   // Get date range for the month
   const startDate = new Date(year, month - 1, 1)
-  const endDate = new Date(year, month, 0, 23, 59, 59)
+  const endDate = new Date(year, month, 1) // First day of next month (exclusive)
 
-  // Get salary
+  // Get salary that was effective during the selected month
   const latestSalary = await prisma.salaryHistory.findFirst({
     where: {
       userId,
-      effectiveFrom: { lte: endDate }
+      effectiveFrom: { lte: startDate },
+      OR: [
+        { effectiveTo: null },
+        { effectiveTo: { gt: startDate } }
+      ]
     },
     orderBy: { effectiveFrom: "desc" },
   })
@@ -170,28 +174,23 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
   const loans = await prisma.loan.findMany({
     where: {
       userId,
-      startDate: { lte: endDate },
+      isActive: true,
+      startDate: { lt: endDate },
+      OR: [
+        { endDate: null },
+        { endDate: { gte: startDate } }
+      ]
     },
   })
 
-  let totalLoans = 0
-  for (const loan of loans) {
-    const loanStartMonth = new Date(loan.startDate.getFullYear(), loan.startDate.getMonth(), 1)
-    const currentMonth = new Date(year, month - 1, 1)
-    const monthsSinceStart = (currentMonth.getFullYear() - loanStartMonth.getFullYear()) * 12 +
-                             (currentMonth.getMonth() - loanStartMonth.getMonth())
-
-    if (monthsSinceStart >= 0 && monthsSinceStart < loan.tenure) {
-      totalLoans += Number(loan.emiAmount)
-    }
-  }
+  const totalLoans = loans.reduce((sum, loan) => sum + Number(loan.emiAmount), 0)
 
   // Get SIPs for this month
   const sips = await prisma.sIP.findMany({
     where: {
       userId,
       isActive: true,
-      startDate: { lte: endDate },
+      startDate: { lte: startDate },
       OR: [
         { endDate: null },
         { endDate: { gte: startDate } },
@@ -200,20 +199,21 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
   })
 
   let totalSIPs = 0
-  for (const sip of sips) {
+  sips.forEach((sip) => {
     const sipAmount = Number(sip.amount)
     if (sip.frequency === "MONTHLY") {
       totalSIPs += sipAmount
     } else if (sip.frequency === "YEARLY") {
-      const startMonth = new Date(sip.startDate).getMonth()
-      if (startMonth === month - 1) {
+      const sipStartDate = new Date(sip.startDate)
+      if (sipStartDate.getMonth() === month - 1) {
         totalSIPs += sipAmount / 12
       }
     } else if (sip.frequency === "CUSTOM" && sip.customDay) {
-      // For custom, assume it happened if the day exists in the month
-      totalSIPs += sipAmount
+      if (startDate.getDate() === sip.customDay) {
+        totalSIPs += sipAmount
+      }
     }
-  }
+  })
 
   // Get expenses for this month
   const expenses = await prisma.expense.findMany({
@@ -221,7 +221,7 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
       userId,
       date: {
         gte: startDate,
-        lte: endDate,
+        lt: endDate,
       },
     },
   })

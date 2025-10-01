@@ -164,6 +164,7 @@ async function getRecentExpenses(userId: string, month: number, year: number) {
   const startDate = new Date(year, month - 1, 1)
   const endDate = new Date(year, month, 1)
 
+  // Get recent expenses for display
   const expenses = await prisma.expense.findMany({
     where: {
       userId,
@@ -176,7 +177,21 @@ async function getRecentExpenses(userId: string, month: number, year: number) {
     take: 5,
   })
 
-  const totalExpenses = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0)
+  // Get all expenses to calculate total
+  const allExpenses = await prisma.expense.findMany({
+    where: {
+      userId,
+      date: {
+        gte: startDate,
+        lt: endDate,
+      },
+    },
+    select: {
+      amount: true,
+    },
+  })
+
+  const totalExpenses = allExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0)
   return { expenses, totalExpenses }
 }
 
