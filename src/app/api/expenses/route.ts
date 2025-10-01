@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
+import { calculatePaymentDueDate } from "@/lib/credit-card-utils"
 
 const expenseSchema = z.object({
   date: z.string().refine((date) => !isNaN(Date.parse(date)), {
@@ -122,6 +123,17 @@ export async function GET(request: NextRequest) {
         amount: true,
         needsPortion: true,
         avoidPortion: true,
+        paymentMethod: true,
+        paymentDueDate: true,
+        creditCard: {
+          select: {
+            cardName: true,
+            bank: true,
+            lastFourDigits: true,
+            billingCycle: true,
+            dueDate: true,
+          }
+        },
         createdAt: true,
       },
     })
@@ -191,6 +203,25 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = expenseSchema.parse(body)
 
+    // Calculate payment due date for credit card expenses
+    let paymentDueDate: Date | null = null
+    if (validatedData.paymentMethod === "CARD" && validatedData.creditCardId) {
+      const creditCard = await prisma.creditCard.findUnique({
+        where: { id: validatedData.creditCardId },
+        select: { billingCycle: true, dueDate: true }
+      })
+
+      if (creditCard) {
+        paymentDueDate = calculatePaymentDueDate(
+          new Date(validatedData.date),
+          {
+            billingCycle: creditCard.billingCycle,
+            dueDate: creditCard.dueDate
+          }
+        )
+      }
+    }
+
     const expense = await prisma.expense.create({
       data: {
         userId: session.user.id,
@@ -203,6 +234,7 @@ export async function POST(request: NextRequest) {
         avoidPortion: validatedData.avoidPortion || null,
         paymentMethod: validatedData.paymentMethod,
         creditCardId: validatedData.creditCardId || null,
+        paymentDueDate: paymentDueDate,
       },
     })
 

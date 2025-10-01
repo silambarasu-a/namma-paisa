@@ -24,6 +24,8 @@ interface CreditCard {
   lastFourDigits: string
   bank: string
   billingCycle: number
+  dueDate: number
+  gracePeriod: number
   cardNetwork?: string
   cardLimit?: number
   isActive: boolean
@@ -41,6 +43,8 @@ export default function CreditCardsPage() {
   const [lastFourDigits, setLastFourDigits] = useState("")
   const [bank, setBank] = useState("")
   const [billingCycle, setBillingCycle] = useState("1")
+  const [dueDate, setDueDate] = useState("15")
+  const [gracePeriod, setGracePeriod] = useState("3")
   const [cardNetwork, setCardNetwork] = useState("")
   const [cardLimit, setCardLimit] = useState("")
   const [isActive, setIsActive] = useState(true)
@@ -69,6 +73,8 @@ export default function CreditCardsPage() {
     setLastFourDigits("")
     setBank("")
     setBillingCycle("1")
+    setDueDate("15")
+    setGracePeriod("3")
     setCardNetwork("")
     setCardLimit("")
     setIsActive(true)
@@ -82,6 +88,8 @@ export default function CreditCardsPage() {
       setLastFourDigits(card.lastFourDigits)
       setBank(card.bank)
       setBillingCycle(card.billingCycle.toString())
+      setDueDate(card.dueDate.toString())
+      setGracePeriod(card.gracePeriod.toString())
       setCardNetwork(card.cardNetwork || "")
       setCardLimit(card.cardLimit?.toString() || "")
       setIsActive(card.isActive)
@@ -102,6 +110,8 @@ export default function CreditCardsPage() {
         lastFourDigits,
         bank,
         billingCycle: parseInt(billingCycle),
+        dueDate: parseInt(dueDate),
+        gracePeriod: parseInt(gracePeriod),
         cardNetwork: cardNetwork || undefined,
         cardLimit: cardLimit ? parseFloat(cardLimit) : undefined,
         isActive,
@@ -221,6 +231,21 @@ export default function CreditCardsPage() {
                       of month
                     </span>
                   </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Payment Due</span>
+                    <span className="flex items-center">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      {card.dueDate}
+                      {card.dueDate === 1 || card.dueDate === 21 || card.dueDate === 31
+                        ? "st"
+                        : card.dueDate === 2 || card.dueDate === 22
+                        ? "nd"
+                        : card.dueDate === 3 || card.dueDate === 23
+                        ? "rd"
+                        : "th"}{" "}
+                      of month
+                    </span>
+                  </div>
                   {card.cardLimit && (
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Limit</span>
@@ -299,9 +324,9 @@ export default function CreditCardsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="billingCycle">Billing Cycle Day *</Label>
+                <Label htmlFor="billingCycle">Billing Day *</Label>
                 <Select value={billingCycle} onValueChange={setBillingCycle}>
                   <SelectTrigger>
                     <SelectValue />
@@ -314,8 +339,45 @@ export default function CreditCardsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">Cycle closes</p>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="dueDate">Due Day *</Label>
+                <Select value={dueDate} onValueChange={setDueDate}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                      <SelectItem key={day} value={day.toString()}>
+                        {day}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Payment due</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="gracePeriod">Grace Days *</Label>
+                <Select value={gracePeriod} onValueChange={setGracePeriod}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 11 }, (_, i) => i).map((day) => (
+                      <SelectItem key={day} value={day.toString()}>
+                        {day}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">After due</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="cardNetwork">Network</Label>
                 <Select value={cardNetwork} onValueChange={setCardNetwork}>
@@ -331,17 +393,17 @@ export default function CreditCardsPage() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="cardLimit">Card Limit (₹)</Label>
-              <Input
-                id="cardLimit"
-                type="number"
-                value={cardLimit}
-                onChange={(e) => setCardLimit(e.target.value)}
-                placeholder="100000"
-              />
+              <div className="space-y-2">
+                <Label htmlFor="cardLimit">Card Limit (₹)</Label>
+                <Input
+                  id="cardLimit"
+                  type="number"
+                  value={cardLimit}
+                  onChange={(e) => setCardLimit(e.target.value)}
+                  placeholder="100000"
+                />
+              </div>
             </div>
 
             <div className="flex items-center space-x-2">

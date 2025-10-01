@@ -16,6 +16,9 @@ interface CreditCard {
   lastFourDigits: string
   bank: string
   billingCycle: number
+  dueDate: number
+  gracePeriod: number
+  isActive: boolean
 }
 
 export default function AddExpense() {
@@ -107,24 +110,9 @@ export default function AddExpense() {
         return
       }
 
-      // Calculate expense date based on billing cycle for credit cards
-      let expenseDate = date
-      if (paymentMethod === "CARD" && creditCardId) {
-        const selectedCard = creditCards.find(c => c.id === creditCardId)
-        if (selectedCard) {
-          const transactionDate = new Date(date)
-          const transactionDay = transactionDate.getDate()
-
-          // If transaction date > billing cycle, move to next month
-          if (transactionDay > selectedCard.billingCycle) {
-            const nextMonth = new Date(transactionDate)
-            nextMonth.setMonth(nextMonth.getMonth() + 1)
-            expenseDate = nextMonth.toISOString().split('T')[0]
-
-            toast.info(`Credit card expense will be recorded for next month (billing cycle: ${selectedCard.billingCycle})`)
-          }
-        }
-      }
+      // No need to change expense date for credit cards
+      // The expense date remains the transaction date
+      // Payment due date will be calculated server-side
 
       const body: {
         date: string;
@@ -137,7 +125,7 @@ export default function AddExpense() {
         paymentMethod: string;
         creditCardId?: string;
       } = {
-        date: expenseDate,
+        date,
         title,
         expenseType,
         category,
@@ -408,7 +396,8 @@ export default function AddExpense() {
                   </Select>
                   {creditCardId && creditCards.find(c => c.id === creditCardId) && (
                     <p className="text-xs text-muted-foreground">
-                      Billing cycle: {creditCards.find(c => c.id === creditCardId)?.billingCycle}th of month
+                      Billing cycle: {creditCards.find(c => c.id === creditCardId)?.billingCycle}th |
+                      Payment due: {creditCards.find(c => c.id === creditCardId)?.dueDate}th
                     </p>
                   )}
                 </div>

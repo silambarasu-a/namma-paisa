@@ -37,6 +37,15 @@ interface Expense {
   amount: number
   needsPortion?: number
   avoidPortion?: number
+  paymentMethod: "CASH" | "CARD" | "UPI" | "NET_BANKING" | "OTHER"
+  paymentDueDate?: string
+  creditCard?: {
+    cardName: string
+    bank: string
+    lastFourDigits: string
+    billingCycle: number
+    dueDate: number
+  }
   createdAt: string
 }
 
@@ -407,6 +416,7 @@ export default function ExpensesPage() {
                     <TableHead>Title</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Category</TableHead>
+                    <TableHead>Payment Info</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -427,6 +437,32 @@ export default function ExpensesPage() {
                               <div>Needs: ₹{expense.needsPortion.toLocaleString()}</div>
                               <div>Avoid: ₹{expense.avoidPortion.toLocaleString()}</div>
                             </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          {expense.paymentMethod === "CARD" && expense.creditCard ? (
+                            <div>
+                              <div className="flex items-center space-x-1 text-sm">
+                                <Wallet className="h-3 w-3" />
+                                <span className="font-medium">{expense.creditCard.bank}</span>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                ••••{expense.creditCard.lastFourDigits}
+                              </div>
+                              {expense.paymentDueDate && (
+                                <div className="text-xs">
+                                  <Badge variant="outline" className="text-xs">
+                                    Due: {new Date(expense.paymentDueDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                                  </Badge>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs">
+                              {expense.paymentMethod}
+                            </Badge>
                           )}
                         </div>
                       </TableCell>
