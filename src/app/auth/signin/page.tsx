@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -14,11 +14,24 @@ export default function SignIn() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [showResendVerification, setShowResendVerification] = useState(false)
+  const [isResending, setIsResending] = useState(false)
+  const [cooldownSeconds, setCooldownSeconds] = useState(0)
   const router = useRouter()
+
+  useEffect(() => {
+    if (cooldownSeconds > 0) {
+      const timer = setTimeout(() => {
+        setCooldownSeconds(cooldownSeconds - 1)
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [cooldownSeconds])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setShowResendVerification(false)
 
     try {
       const result = await signIn("credentials", {
@@ -34,6 +47,7 @@ export default function SignIn() {
             duration: 5000,
           })
         } else if (result.error.includes("EMAIL_NOT_VERIFIED")) {
+          setShowResendVerification(true)
           toast.error("Please verify your email before signing in. Check your inbox for the verification link.", {
             duration: 6000,
           })
@@ -48,6 +62,44 @@ export default function SignIn() {
       toast.error("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      toast.error("Please enter your email address")
+      return
+    }
+
+    if (cooldownSeconds > 0) {
+      toast.error(`Please wait ${cooldownSeconds} seconds before resending`)
+      return
+    }
+
+    setIsResending(true)
+    try {
+      const response = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setCooldownSeconds(60)
+        toast.success("Verification email sent! Please check your inbox.", {
+          duration: 5000,
+        })
+      } else {
+        toast.error(data.message || "Failed to resend verification email")
+      }
+    } catch (error) {
+      toast.error("An error occurred. Please try again.")
+    } finally {
+      setIsResending(false)
     }
   }
 
@@ -95,6 +147,28 @@ export default function SignIn() {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
+
+            {showResendVerification && (
+              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-3">
+                  Your email is not verified. Click below to resend the verification email.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleResendVerification}
+                  disabled={isResending || cooldownSeconds > 0}
+                >
+                  {isResending
+                    ? "Sending..."
+                    : cooldownSeconds > 0
+                    ? `Resend in ${cooldownSeconds}s`
+                    : "Resend Verification Email"}
+                </Button>
+              </div>
+            )}
+
             <div className="text-center text-sm">
               Don&apos;t have an account?{" "}
               <Link href="/auth/signup" className="text-primary hover:underline">

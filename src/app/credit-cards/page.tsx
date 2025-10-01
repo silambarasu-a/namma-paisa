@@ -1,10 +1,3 @@
-import { Metadata } from "next"
-
-export const metadata: Metadata = {
-  title: "Credit Cards",
-}
-
-
 "use client"
 
 import { useState, useEffect } from "react"

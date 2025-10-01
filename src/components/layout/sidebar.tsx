@@ -142,12 +142,12 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-200 ease-in-out md:translate-x-0",
+          "fixed md:sticky md:top-0 md:h-screen inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-200 ease-in-out md:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full",
           className
         )}
       >
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full md:h-screen">
           <div className="flex items-center justify-center gap-3 h-16 px-4 border-b border-gray-200 dark:border-gray-800">
             <Logo className="h-10 w-10" />
             <div className="flex flex-col leading-tight">

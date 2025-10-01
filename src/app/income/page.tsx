@@ -1,9 +1,3 @@
-import { Metadata } from "next"
-
-export const metadata: Metadata = {
-  title: "Income",
-}
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -298,24 +292,25 @@ export default function IncomePage() {
       </div>
 
       <Tabs defaultValue="additional" className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="additional" className="flex items-center space-x-2">
-            <TrendingUp className="h-4 w-4" />
-            <span>Additional Income</span>
-          </TabsTrigger>
-          <TabsTrigger value="salary" className="flex items-center space-x-2">
-            <Briefcase className="h-4 w-4" />
-            <span>Monthly Salary</span>
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between">
+          <TabsList className="grid max-w-md grid-cols-2">
+            <TabsTrigger value="additional" className="flex items-center space-x-2">
+              <TrendingUp className="h-4 w-4" />
+              <span>Additional Income</span>
+            </TabsTrigger>
+            <TabsTrigger value="salary" className="flex items-center space-x-2">
+              <Briefcase className="h-4 w-4" />
+              <span>Monthly Salary</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <Button onClick={() => handleOpenDialog()}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Income
+          </Button>
+        </div>
 
         <TabsContent value="additional" className="space-y-6">
-          <div className="flex items-center justify-end">
-            <Button onClick={() => handleOpenDialog()}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Income
-            </Button>
-          </div>
 
       {/* Filter */}
       <Card>

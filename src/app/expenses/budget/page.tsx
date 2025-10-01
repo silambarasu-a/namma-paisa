@@ -207,7 +207,7 @@ export default function ExpenseBudgetPage() {
               Setup Required
             </CardTitle>
             <CardDescription className="text-yellow-700 dark:text-yellow-300">
-              Please set your net salary in the Profile section before configuring expense budget.
+              Please set your monthly salary in the Income section before configuring expense budget.
             </CardDescription>
           </CardHeader>
         </Card>

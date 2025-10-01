@@ -1,9 +1,3 @@
-import { Metadata } from "next"
-
-export const metadata: Metadata = {
-  title: "Expenses",
-}
-
 "use client"
 
 import { useRouter } from "next/navigation"

@@ -29,7 +29,7 @@ export function Header() {
     .toUpperCase() || session.user.email?.[0]?.toUpperCase() || "U"
 
   return (
-    <header className="fixed top-0 right-0 z-20 left-0 md:left-64 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+    <header className="sticky top-0 z-20 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
       <div className="flex items-center justify-between h-16 px-6 md:px-8">
         <div className="flex items-center space-x-4">
           <div className="ml-12 md:ml-0">

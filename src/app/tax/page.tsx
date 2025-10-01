@@ -1,9 +1,3 @@
-import { Metadata } from "next"
-
-export const metadata: Metadata = {
-  title: "Tax",
-}
-
 "use client"
 
 import { useState, useEffect } from "react"
