@@ -109,6 +109,7 @@ export default function NewSIPPage() {
   const [isLoadingAllocation, setIsLoadingAllocation] = useState(false)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const amountInputRef = useRef<HTMLInputElement>(null)
 
   const form = useForm<SIPFormData>({
     resolver: zodResolver(sipFormSchema),
@@ -203,6 +204,12 @@ export default function NewSIPPage() {
 
   // Search for investments
   useEffect(() => {
+    // Don't search if an item is already selected
+    if (watchSymbol && watchName) {
+      setSearchResults([])
+      return
+    }
+
     if (!watchBucket || searchQuery.length < 2) {
       setSearchResults([])
       return
@@ -252,15 +259,23 @@ export default function NewSIPPage() {
         clearTimeout(searchTimeoutRef.current)
       }
     }
-  }, [searchQuery, watchBucket])
+  }, [searchQuery, watchBucket, watchSymbol, watchName])
 
-  const handleSelectResult = (result: SearchResult | Holding) => {
+  const handleSelectResult = (result: SearchResult | Holding, event?: React.MouseEvent) => {
+    event?.preventDefault()
+    event?.stopPropagation()
+
     const selectedSymbol = result.symbol || (result as SearchResult).id || ""
     form.setValue("symbol", selectedSymbol)
     form.setValue("name", result.name)
     setSearchQuery(result.name)
     setShowResults(false)
     setSearchResults([])
+
+    // Auto-focus to amount input after selection
+    setTimeout(() => {
+      amountInputRef.current?.focus()
+    }, 100)
   }
 
   const onSubmit = async (data: SIPFormData) => {
@@ -471,7 +486,7 @@ export default function NewSIPPage() {
                             {filteredHoldings.map((holding) => (
                               <div
                                 key={holding.id}
-                                onClick={() => handleSelectResult(holding)}
+                                onMouseDown={(e) => handleSelectResult(holding, e)}
                                 className="px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-0"
                               >
                                 <div className="flex items-start justify-between">
@@ -503,7 +518,7 @@ export default function NewSIPPage() {
                             {searchResults.map((result, idx) => (
                               <div
                                 key={idx}
-                                onClick={() => handleSelectResult(result)}
+                                onMouseDown={(e) => handleSelectResult(result, e)}
                                 className="px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-0"
                               >
                                 <div className="flex items-start justify-between">
@@ -603,6 +618,7 @@ export default function NewSIPPage() {
                             className={`pl-8 ${exceedsLimit ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                             step="0.01"
                             {...field}
+                            ref={amountInputRef}
                           />
                         </div>
                       </FormControl>

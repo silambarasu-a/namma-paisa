@@ -10,6 +10,7 @@ const expenseSchema = z.object({
     message: "Invalid date format",
   }),
   title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
   expenseType: z.enum(["EXPECTED", "UNEXPECTED"]),
   category: z.enum(["NEEDS", "PARTIAL_NEEDS", "AVOID"]),
   amount: z.number().positive("Amount must be positive"),
@@ -53,19 +54,17 @@ export async function GET(request: NextRequest) {
     const month = searchParams.get("month") ? parseInt(searchParams.get("month")!) : null
     const year = searchParams.get("year") ? parseInt(searchParams.get("year")!) : null
 
-    // Build where clause based on filter
-    const where: {
+    // Build base where clause for date filtering only (for summary)
+    const baseWhere: {
       userId: string
       date?: { gte: Date; lt?: Date }
-      category?: "NEEDS" | "PARTIAL_NEEDS" | "AVOID"
-      expenseType?: "EXPECTED" | "UNEXPECTED"
     } = { userId: session.user.id }
 
     // Add month/year filter (takes precedence over period)
     if (month && year) {
       const startDate = new Date(year, month - 1, 1)
       const endDate = new Date(year, month, 1)
-      where.date = { gte: startDate, lt: endDate }
+      baseWhere.date = { gte: startDate, lt: endDate }
     } else if (period) {
       // Add period filter
       const now = new Date()
@@ -89,8 +88,16 @@ export async function GET(request: NextRequest) {
           startDate = new Date(0)
       }
 
-      where.date = { gte: startDate }
+      baseWhere.date = { gte: startDate }
     }
+
+    // Build where clause with filter for expenses list
+    const where: {
+      userId: string
+      date?: { gte: Date; lt?: Date }
+      category?: "NEEDS" | "PARTIAL_NEEDS" | "AVOID"
+      expenseType?: "EXPECTED" | "UNEXPECTED"
+    } = { ...baseWhere }
 
     if (filter !== "all") {
       if (["NEEDS", "PARTIAL_NEEDS", "AVOID"].includes(filter)) {
@@ -100,14 +107,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Build orderBy clause
-    let orderBy: { date?: "desc" | "asc"; amount?: "desc" | "asc"; title?: "asc"; category?: "asc" } = { date: "desc" }
+    // Build orderBy clause - default is date DESC, then title ASC
+    let orderBy: Array<{ date?: "desc" | "asc"; amount?: "desc" | "asc"; title?: "asc"; category?: "asc" }> = [{ date: "desc" }, { title: "asc" }]
     if (sortBy === "amount") {
-      orderBy = { amount: "desc" }
+      orderBy = [{ amount: "desc" }]
     } else if (sortBy === "title") {
-      orderBy = { title: "asc" }
+      orderBy = [{ title: "asc" }]
     } else if (sortBy === "category") {
-      orderBy = { category: "asc" }
+      orderBy = [{ category: "asc" }]
     }
 
     const expenses = await prisma.expense.findMany({
@@ -118,6 +125,7 @@ export async function GET(request: NextRequest) {
         id: true,
         date: true,
         title: true,
+        description: true,
         expenseType: true,
         category: true,
         amount: true,
@@ -125,6 +133,7 @@ export async function GET(request: NextRequest) {
         avoidPortion: true,
         paymentMethod: true,
         paymentDueDate: true,
+        creditCardId: true,
         creditCard: {
           select: {
             cardName: true,
@@ -138,9 +147,9 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    // Calculate summary with the same filter
+    // Calculate summary with only date filter (not category/type filter)
     const allExpenses = await prisma.expense.findMany({
-      where,
+      where: baseWhere,
       select: {
         amount: true,
         expenseType: true,
@@ -227,6 +236,7 @@ export async function POST(request: NextRequest) {
         userId: session.user.id,
         date: new Date(validatedData.date),
         title: validatedData.title,
+        description: validatedData.description || null,
         expenseType: validatedData.expenseType,
         category: validatedData.category,
         amount: validatedData.amount,

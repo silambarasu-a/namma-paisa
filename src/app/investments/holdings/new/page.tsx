@@ -46,6 +46,7 @@ export default function NewHoldingPage() {
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const initialCurrencySet = useRef(false)
+  const qtyInputRef = useRef<HTMLInputElement>(null)
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -103,6 +104,12 @@ export default function NewHoldingPage() {
 
   // Search for investments
   useEffect(() => {
+    // Don't search if an item is already selected
+    if (symbol && name) {
+      setSearchResults([])
+      return
+    }
+
     if (!bucket || searchQuery.length < 2) {
       setSearchResults([])
       return
@@ -152,9 +159,12 @@ export default function NewHoldingPage() {
         clearTimeout(searchTimeoutRef.current)
       }
     }
-  }, [searchQuery, bucket])
+  }, [searchQuery, bucket, symbol, name])
 
-  const handleSelectResult = async (result: SearchResult) => {
+  const handleSelectResult = async (result: SearchResult, event?: React.MouseEvent) => {
+    event?.preventDefault()
+    event?.stopPropagation()
+
     // For crypto, use 'id' for symbol (coingecko ID), otherwise use symbol
     const selectedSymbol = bucket === "CRYPTO" ? (result.id || result.symbol || "") : (result.symbol || result.id || "")
     setSymbol(selectedSymbol)
@@ -162,6 +172,11 @@ export default function NewHoldingPage() {
     setSearchQuery(result.name)
     setShowResults(false)
     setSearchResults([])
+
+    // Auto-focus to qty input after selection
+    setTimeout(() => {
+      qtyInputRef.current?.focus()
+    }, 100)
 
     // Auto-fetch current price
     if (bucket && bucket !== "EMERGENCY_FUND") {
@@ -326,7 +341,7 @@ export default function NewHoldingPage() {
                       {searchResults.map((result, idx) => (
                         <div
                           key={idx}
-                          onClick={() => handleSelectResult(result)}
+                          onMouseDown={(e) => handleSelectResult(result, e)}
                           className="px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-0"
                         >
                           <div className="flex items-start justify-between">
@@ -437,6 +452,7 @@ export default function NewHoldingPage() {
                   onChange={(e) => setQty(e.target.value)}
                   placeholder="0.00"
                   required
+                  ref={qtyInputRef}
                 />
               </div>
 

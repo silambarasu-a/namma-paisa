@@ -58,7 +58,7 @@ const navigation: NavigationItem[] = [
     href: "/expenses",
     icon: Receipt,
     children: [
-      { name: "Add Expense", href: "/expenses/new", icon: Plus },
+      { name: "Add Expense", href: "/expenses?add=true", icon: Plus },
       { name: "Budget", href: "/expenses/budget", icon: PieChart },
       { name: "Reports", href: "/expenses/reports", icon: FileText },
     ],

@@ -11,6 +11,7 @@ export interface Expense {
   id: string
   date: string
   title: string
+  description?: string | null
   expenseType: "EXPECTED" | "UNEXPECTED"
   category: "NEEDS" | "PARTIAL_NEEDS" | "AVOID"
   amount: number
@@ -18,6 +19,7 @@ export interface Expense {
   avoidPortion?: number
   paymentMethod: "CASH" | "CARD" | "UPI" | "NET_BANKING" | "OTHER"
   paymentDueDate?: string
+  creditCardId?: string | null
   creditCard?: CreditCardReference
   createdAt: string
 }
