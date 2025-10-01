@@ -743,6 +743,14 @@ export default function InvestmentsPage() {
               <Settings className="h-4 w-4 mr-2" />
               Configure Allocations
             </Button>
+            <Button
+              onClick={() => router.push("/investments/one-time")}
+              variant="outline"
+              className="justify-start text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+            >
+              <Wallet className="h-4 w-4 mr-2" />
+              One-Time Purchase
+            </Button>
           </div>
         </CardContent>
       </Card>

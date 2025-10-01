@@ -12,13 +12,15 @@ interface CreditCard {
  * Calculates the payment due date for a credit card expense
  *
  * Logic:
- * 1. If transaction date is on or before billing cycle day, payment is due in the same month
- * 2. If transaction date is after billing cycle day, payment is due in the next month
+ * 1. If transaction date is on or before billing cycle day, it belongs to current billing cycle
+ *    and payment is due on the due date of next month
+ * 2. If transaction date is after billing cycle day, it belongs to next billing cycle
+ *    and payment is due on the due date of month after next
  *
  * Example:
- * - Card billing cycle: 5th of month, due date: 20th
- * - Transaction on Jan 3rd → Due on Jan 20th
- * - Transaction on Jan 7th → Due on Feb 20th
+ * - Card billing cycle: 12th of month, due date: 25th
+ * - Transaction on Jan 1st → Due on Feb 25th (current cycle closes Jan 12, payment due next month)
+ * - Transaction on Jan 15th → Due on Mar 25th (next cycle closes Feb 12, payment due month after next)
  *
  * @param transactionDate - Date when the expense was made
  * @param creditCard - Credit card details with billingCycle and dueDate
@@ -34,14 +36,20 @@ export function calculatePaymentDueDate(
   const txnYear = txnDate.getFullYear()
 
   // Determine which billing cycle this transaction falls into
-  let dueMonth = txnMonth
+  let dueMonth = txnMonth + 1 // Payment is always due at least next month
   let dueYear = txnYear
 
-  // If transaction is after billing cycle day, it belongs to next month's cycle
+  // If transaction is after billing cycle day, payment is due the month after next
   if (txnDay > creditCard.billingCycle) {
     dueMonth++
+  }
+
+  // Handle year rollover
+  if (dueMonth > 11) {
+    dueMonth = dueMonth % 12
+    dueYear++
     if (dueMonth > 11) {
-      dueMonth = 0
+      dueMonth = dueMonth % 12
       dueYear++
     }
   }

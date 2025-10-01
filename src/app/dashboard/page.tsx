@@ -89,15 +89,17 @@ async function getTaxCalculation(userId: string, salary: number) {
 }
 
 async function getActiveSIPs(userId: string, month: number, year: number) {
-  const targetDate = new Date(year, month - 1, 1)
+  const startOfMonth = new Date(year, month - 1, 1)
+  const endOfMonth = new Date(year, month, 1)
+
   const sips = await prisma.sIP.findMany({
     where: {
       userId,
       isActive: true,
-      startDate: { lte: targetDate },
+      startDate: { lt: endOfMonth }, // Started before end of month
       OR: [
         { endDate: null },
-        { endDate: { gte: targetDate } },
+        { endDate: { gte: startOfMonth } }, // Ends on or after start of month
       ],
     },
   })
@@ -109,13 +111,13 @@ async function getActiveSIPs(userId: string, month: number, year: number) {
       totalSIPAmount += sipAmount
     } else if (sip.frequency === "YEARLY") {
       const startDate = new Date(sip.startDate)
-      if (startDate.getMonth() === targetDate.getMonth()) {
-        totalSIPAmount += sipAmount / 12
-      }
-    } else if (sip.frequency === "CUSTOM" && sip.customDay) {
-      if (targetDate.getDate() === sip.customDay) {
+      if (startDate.getMonth() === startOfMonth.getMonth()) {
         totalSIPAmount += sipAmount
       }
+    } else if (sip.frequency === "CUSTOM" && sip.customDay) {
+      // For custom frequency, just add the amount regardless of the day
+      // since it occurs within this month
+      totalSIPAmount += sipAmount
     }
   })
 
@@ -296,10 +298,10 @@ export default async function Dashboard({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-              {loansData.count}
+              ₹{loansData.totalEMI.toLocaleString('en-IN')}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Total EMI: ₹{loansData.totalEMI.toLocaleString('en-IN')}
+              {loansData.count} active loan{loansData.count !== 1 ? 's' : ''}
             </p>
           </CardContent>
         </Card>
@@ -313,10 +315,10 @@ export default async function Dashboard({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              {sipsData.count}
+              ₹{sipsData.totalAmount.toLocaleString('en-IN')}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Monthly: ₹{sipsData.totalAmount.toLocaleString('en-IN')}
+              {sipsData.count} active SIP{sipsData.count !== 1 ? 's' : ''}
             </p>
           </CardContent>
         </Card>

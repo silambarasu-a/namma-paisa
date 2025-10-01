@@ -186,7 +186,7 @@ export default function EditSIPPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => router.push("/sips")}
+            onClick={() => router.push("/investments/sips")}
             className="text-white hover:bg-white/20"
           >
             <ArrowLeft className="h-5 w-5" />

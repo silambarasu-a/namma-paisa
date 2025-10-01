@@ -9,6 +9,8 @@ const creditCardUpdateSchema = z.object({
   lastFourDigits: z.string().length(4).optional(),
   bank: z.string().min(1).optional(),
   billingCycle: z.number().int().min(1).max(31).optional(),
+  dueDate: z.number().int().min(1).max(31).optional(),
+  gracePeriod: z.number().int().min(0).max(10).optional(),
   cardNetwork: z.string().optional(),
   cardLimit: z.number().positive().optional(),
   isActive: z.boolean().optional(),
