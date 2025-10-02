@@ -12,6 +12,8 @@ const holdingSchema = z.object({
   avgCost: z.number().positive("Average cost must be positive"),
   currentPrice: z.number().positive("Current price must be positive").optional(),
   currency: z.string().optional().default("INR"),
+  isManual: z.boolean().optional().default(false),
+  purchaseDate: z.string().optional(),
 })
 
 export async function GET() {
@@ -155,6 +157,7 @@ export async function POST(request: Request) {
           qty: totalQty,
           avgCost: weightedAvgCost,
           currentPrice: data.currentPrice || existingHolding.currentPrice,
+          isManual: data.isManual,
           updatedAt: new Date(),
         },
       })
@@ -173,10 +176,29 @@ export async function POST(request: Request) {
           avgCost: data.avgCost,
           currentPrice: data.currentPrice || null,
           currency: data.currency || "INR",
+          isManual: data.isManual,
         },
       })
 
       console.log(`Holding created successfully`)
+    }
+
+    // Track transaction if not manual entry
+    if (!data.isManual) {
+      await prisma.transaction.create({
+        data: {
+          userId: session.user.id,
+          holdingId: holding.id,
+          bucket: data.bucket,
+          symbol: normalizedSymbol,
+          name: data.name,
+          qty: data.qty,
+          price: data.avgCost,
+          amount: data.qty * data.avgCost,
+          transactionType: "MANUAL_ENTRY",
+          purchaseDate: data.purchaseDate ? new Date(data.purchaseDate) : new Date(),
+        },
+      })
     }
 
     return NextResponse.json(holding, { status: 201 })

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import { Search, Loader2 } from "lucide-react"
 
@@ -48,6 +49,8 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
   const [avgCost, setAvgCost] = useState("")
   const [currentPrice, setCurrentPrice] = useState("")
   const [currency, setCurrency] = useState("INR")
+  const [isManual, setIsManual] = useState(false)
+  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0])
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const initialCurrencySet = useRef(false)
@@ -68,6 +71,8 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
       setAvgCost("")
       setCurrentPrice("")
       setCurrency("INR")
+      setIsManual(false)
+      setPurchaseDate(new Date().toISOString().split('T')[0])
       initialCurrencySet.current = false
     }
   }, [open])
@@ -259,6 +264,8 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
         avgCost: parseFloat(avgCost),
         currentPrice: currentPrice ? parseFloat(currentPrice) : null,
         currency,
+        isManual,
+        purchaseDate: isManual ? undefined : purchaseDate,
       }
 
       const response = await fetch("/api/investments/holdings", {
@@ -355,6 +362,41 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
               </Select>
             </div>
           </div>
+
+          {/* Manual Entry Toggle */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="space-y-0.5">
+              <Label htmlFor="isManual" className="text-base cursor-pointer">
+                Manual Entry (No Transaction Tracking)
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Enable this to add existing holdings without creating a transaction record
+              </p>
+            </div>
+            <Switch
+              id="isManual"
+              checked={isManual}
+              onCheckedChange={setIsManual}
+            />
+          </div>
+
+          {/* Purchase Date - Only show if not manual */}
+          {!isManual && (
+            <div className="space-y-2">
+              <Label htmlFor="purchaseDate">Purchase Date *</Label>
+              <Input
+                id="purchaseDate"
+                type="date"
+                value={purchaseDate}
+                onChange={(e) => setPurchaseDate(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                This will be used to track your investment transactions
+              </p>
+            </div>
+          )}
 
           {bucket && bucket !== "EMERGENCY_FUND" && (
             <div className="space-y-2" ref={dropdownRef}>

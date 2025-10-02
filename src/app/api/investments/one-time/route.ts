@@ -231,9 +231,27 @@ export async function POST(request: Request) {
           avgCost: data.buyPrice,
           currentPrice: currentPrice,
           currency: data.currency || "INR",
+          isManual: false,
         },
       })
     }
+
+    // Track transaction for one-time purchase
+    await prisma.transaction.create({
+      data: {
+        userId: session.user.id,
+        holdingId: holding.id,
+        bucket: data.bucket,
+        symbol: normalizedSymbol,
+        name: data.name,
+        qty: data.qty,
+        price: data.buyPrice,
+        amount: amount,
+        transactionType: "ONE_TIME_PURCHASE",
+        purchaseDate: new Date(data.date),
+        description: data.description,
+      },
+    })
 
     return NextResponse.json(holding, { status: 201 })
   } catch (error) {

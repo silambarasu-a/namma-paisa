@@ -7,7 +7,7 @@ import { formatDate } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Calendar, Lock, Unlock, TrendingUp, TrendingDown, CheckCircle, AlertCircle } from "lucide-react"
+import { Calendar, Lock, Unlock, TrendingUp, TrendingDown, CheckCircle, AlertCircle, Receipt } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -378,6 +378,104 @@ export default function MonthlySnapshotPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Investment Details - Only show if investments were made */}
+      {(snapshot.investmentsMade ?? 0) > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Receipt className="h-5 w-5" />
+                  Investment Activity
+                </CardTitle>
+                <CardDescription>
+                  Breakdown of all investments made this month
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.href = `/investments/transactions?month=${selectedMonth}&year=${selectedYear}`}
+              >
+                View Full History
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg border-2 border-indigo-200 dark:border-indigo-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Total Investments Made</p>
+                    <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
+                      ₹{(snapshot.investmentsMade ?? 0).toLocaleString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      One-time purchases and SIP executions combined
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground mb-1">SIP Deductions</p>
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                      ₹{snapshot.totalSIPs.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Recurring investments
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="p-3 border rounded-lg bg-white dark:bg-gray-900">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-muted-foreground">One-Time Purchases</span>
+                    <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                      Manual
+                    </Badge>
+                  </div>
+                  <p className="text-xl font-bold mt-2 text-green-600 dark:text-green-400">
+                    ₹{((snapshot.investmentsMade ?? 0) - (snapshot.totalSIPs ?? 0)).toLocaleString()}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    From current month salary
+                  </p>
+                </div>
+
+                <div className="p-3 border rounded-lg bg-white dark:bg-gray-900">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-muted-foreground">Automated SIPs</span>
+                    <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
+                      Auto
+                    </Badge>
+                  </div>
+                  <p className="text-xl font-bold mt-2 text-orange-600 dark:text-orange-400">
+                    ₹{snapshot.totalSIPs.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Scheduled recurring investments
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-blue-900 dark:text-blue-100">
+                  💡 <strong>Tip:</strong> View detailed transaction history including holdings updated,
+                  quantities purchased, and execution dates in the{" "}
+                  <a
+                    href={`/investments/transactions?month=${selectedMonth}&year=${selectedYear}`}
+                    className="underline font-medium hover:text-blue-700"
+                  >
+                    Transaction History
+                  </a>{" "}
+                  page.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Actions */}
       {!snapshot.isClosed && (

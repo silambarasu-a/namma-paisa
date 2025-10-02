@@ -47,6 +47,8 @@ const navigation: NavigationItem[] = [
       { name: "Allocations", href: "/investments/allocations", icon: PieChart },
       { name: "Holdings", href: "/investments/holdings", icon: BarChart3 },
       { name: "SIPs", href: "/investments/sips", icon: Repeat },
+      { name: "Transactions", href: "/investments/transactions", icon: Receipt },
+      { name: "SIP Executions", href: "/investments/sip-executions", icon: TrendingUp },
     ],
   },
   {

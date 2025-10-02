@@ -5,13 +5,14 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
 const holdingSchema = z.object({
-  bucket: z.enum(["MUTUAL_FUND", "IND_STOCK", "US_STOCK", "CRYPTO", "EMERGENCY_FUND"]),
-  symbol: z.string().min(1, "Symbol is required"),
-  name: z.string().min(1, "Name is required"),
-  qty: z.number().positive("Quantity must be positive"),
-  avgCost: z.number().positive("Average cost must be positive"),
+  bucket: z.enum(["MUTUAL_FUND", "IND_STOCK", "US_STOCK", "CRYPTO", "EMERGENCY_FUND"]).optional(),
+  symbol: z.string().min(1, "Symbol is required").optional(),
+  name: z.string().min(1, "Name is required").optional(),
+  qty: z.number().positive("Quantity must be positive").optional(),
+  avgCost: z.number().positive("Average cost must be positive").optional(),
   currentPrice: z.number().positive("Current price must be positive").optional(),
-  currency: z.string().optional().default("INR"),
+  currency: z.string().optional(),
+  isManual: z.boolean().optional(),
 })
 
 export async function GET(
@@ -75,18 +76,43 @@ export async function PATCH(
       return NextResponse.json({ error: "Holding not found" }, { status: 404 })
     }
 
+    // Build update data object with only provided fields
+    const updateData: Record<string, unknown> = {}
+    if (data.bucket !== undefined) updateData.bucket = data.bucket
+    if (data.symbol !== undefined) updateData.symbol = data.symbol
+    if (data.name !== undefined) updateData.name = data.name
+    if (data.qty !== undefined) updateData.qty = data.qty
+    if (data.avgCost !== undefined) updateData.avgCost = data.avgCost
+    if (data.currentPrice !== undefined) updateData.currentPrice = data.currentPrice
+    if (data.currency !== undefined) updateData.currency = data.currency
+    if (data.isManual !== undefined) updateData.isManual = data.isManual
+
     const updatedHolding = await prisma.holding.update({
       where: { id },
-      data: {
-        bucket: data.bucket,
-        symbol: data.symbol,
-        name: data.name,
-        qty: data.qty,
-        avgCost: data.avgCost,
-        currentPrice: data.currentPrice || null,
-        currency: data.currency || "INR",
-      },
+      data: updateData,
     })
+
+    // Track edit as transaction if qty or avgCost changed
+    if ((data.qty !== undefined || data.avgCost !== undefined) && !existingHolding.isManual) {
+      const newQty = data.qty ?? Number(existingHolding.qty)
+      const newAvgCost = data.avgCost ?? Number(existingHolding.avgCost)
+
+      await prisma.transaction.create({
+        data: {
+          userId: session.user.id,
+          holdingId: id,
+          bucket: updatedHolding.bucket,
+          symbol: updatedHolding.symbol,
+          name: updatedHolding.name,
+          qty: newQty,
+          price: newAvgCost,
+          amount: newQty * newAvgCost,
+          transactionType: "MANUAL_EDIT",
+          purchaseDate: new Date(),
+          description: "Holding manually edited",
+        },
+      })
+    }
 
     return NextResponse.json(updatedHolding)
   } catch (error) {
