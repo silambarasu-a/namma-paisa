@@ -116,18 +116,68 @@ export async function POST(request: Request) {
     const body = await request.json()
     const data = holdingSchema.parse(body)
 
-    const holding = await prisma.holding.create({
-      data: {
+    // Normalize symbol for consistent matching (trim and uppercase)
+    const normalizedSymbol = data.symbol.trim().toUpperCase()
+
+    // Check if holding already exists for this user + bucket + symbol
+    const existingHolding = await prisma.holding.findFirst({
+      where: {
         userId: session.user.id,
         bucket: data.bucket,
-        symbol: data.symbol,
-        name: data.name,
-        qty: data.qty,
-        avgCost: data.avgCost,
-        currentPrice: data.currentPrice || null,
-        currency: data.currency || "INR",
+        symbol: {
+          equals: normalizedSymbol,
+          mode: 'insensitive',
+        },
       },
     })
+
+    console.log(`Checking for existing holding: bucket=${data.bucket}, symbol=${normalizedSymbol}`)
+    console.log(`Found existing holding:`, existingHolding ? `Yes (id: ${existingHolding.id})` : 'No')
+
+    let holding
+    if (existingHolding) {
+      // Calculate weighted average cost
+      const oldQty = Number(existingHolding.qty)
+      const oldAvgCost = Number(existingHolding.avgCost)
+      const newQty = data.qty
+      const newAvgCost = data.avgCost
+
+      const totalQty = oldQty + newQty
+      const weightedAvgCost = (oldQty * oldAvgCost + newQty * newAvgCost) / totalQty
+
+      console.log(`Updating holding: oldQty=${oldQty}, oldAvgCost=${oldAvgCost}, newQty=${newQty}, newAvgCost=${newAvgCost}`)
+      console.log(`New values: totalQty=${totalQty}, weightedAvgCost=${weightedAvgCost}`)
+
+      // Update existing holding with weighted average
+      holding = await prisma.holding.update({
+        where: { id: existingHolding.id },
+        data: {
+          qty: totalQty,
+          avgCost: weightedAvgCost,
+          currentPrice: data.currentPrice || existingHolding.currentPrice,
+          updatedAt: new Date(),
+        },
+      })
+
+      console.log(`Holding updated successfully`)
+    } else {
+      console.log(`Creating new holding for symbol: ${normalizedSymbol}`)
+      // Create new holding
+      holding = await prisma.holding.create({
+        data: {
+          userId: session.user.id,
+          bucket: data.bucket,
+          symbol: normalizedSymbol,
+          name: data.name,
+          qty: data.qty,
+          avgCost: data.avgCost,
+          currentPrice: data.currentPrice || null,
+          currency: data.currency || "INR",
+        },
+      })
+
+      console.log(`Holding created successfully`)
+    }
 
     return NextResponse.json(holding, { status: 201 })
   } catch (error) {

@@ -20,14 +20,12 @@ import {
   BarChart3,
   Wallet,
   Repeat,
-  FolderKanban,
   PieChart,
   Plus,
   FileText,
   Calendar,
   Users,
   Shield,
-  type LucideIcon,
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
@@ -46,11 +44,9 @@ const navigation: NavigationItem[] = [
     href: "/investments",
     icon: PiggyBank,
     children: [
-      { name: "Overview", href: "/investments/overview", icon: FolderKanban },
       { name: "Allocations", href: "/investments/allocations", icon: PieChart },
       { name: "Holdings", href: "/investments/holdings", icon: BarChart3 },
       { name: "SIPs", href: "/investments/sips", icon: Repeat },
-      { name: "One-Time Purchase", href: "/investments/one-time-purchase", icon: Plus },
     ],
   },
   {

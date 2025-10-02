@@ -337,7 +337,7 @@ export default function ExpensesPage() {
         return
       }
 
-      const body: any = {
+      const body: Record<string, string | number | undefined> = {
         date,
         title,
         description: description || undefined,

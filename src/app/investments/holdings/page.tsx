@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
-import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +10,7 @@ import { toast } from "sonner"
 import { TrendingUp, TrendingDown, PlusCircle, Trash2, Wallet, Target, ArrowUpRight, ArrowDownRight, PieChart } from "lucide-react"
 import type { Holding } from "@/types"
 import { BUCKET_LABELS, BUCKET_COLORS } from "@/constants"
+import { AddHoldingDialog } from "@/components/AddHoldingDialog"
 
 export default function HoldingsPage() {
   const searchParams = useSearchParams()
@@ -18,6 +18,7 @@ export default function HoldingsPage() {
 
   const [holdings, setHoldings] = useState<Holding[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   useEffect(() => {
     loadHoldings()
@@ -33,7 +34,26 @@ export default function HoldingsPage() {
       if (response.ok) {
         const data = await response.json()
         // Convert grouped holdings object to flat array
-        const allHoldings = Object.values(data.holdings).flat() as Holding[]
+        let allHoldings = Object.values(data.holdings).flat() as Holding[]
+
+        // Fetch current prices for the current month
+        try {
+          const pricesResponse = await fetch("/api/investments/holdings/current-prices")
+          if (pricesResponse.ok) {
+            const pricesData = await pricesResponse.json()
+            const currentPrices = pricesData.prices as Record<string, number>
+
+            // Update holdings with current prices
+            allHoldings = allHoldings.map(holding => ({
+              ...holding,
+              currentPrice: currentPrices[holding.id] ?? holding.currentPrice
+            }))
+          }
+        } catch (error) {
+          console.error("Failed to fetch current prices:", error)
+          // Continue with DB prices if current prices fetch fails
+        }
+
         setHoldings(allHoldings)
       } else {
         toast.error("Failed to load holdings")
@@ -148,12 +168,10 @@ export default function HoldingsPage() {
               : "Track your portfolio performance with detailed P&L analysis"}
           </p>
         </div>
-        <Link href="/investments/holdings/new">
-          <Button>
-            <PlusCircle className="h-4 w-4 mr-2" />
-            Add Holding
-          </Button>
-        </Link>
+        <Button onClick={() => setIsDialogOpen(true)}>
+          <PlusCircle className="h-4 w-4 mr-2" />
+          Add Holding
+        </Button>
       </div>
 
       {holdings.length > 0 && (
@@ -452,17 +470,21 @@ export default function HoldingsPage() {
                     Start building your investment portfolio by adding your first holding
                   </p>
                 </div>
-                <Link href="/investments/holdings/new">
-                  <Button size="lg">
-                    <PlusCircle className="h-5 w-5 mr-2" />
-                    Add Your First Holding
-                  </Button>
-                </Link>
+                <Button size="lg" onClick={() => setIsDialogOpen(true)}>
+                  <PlusCircle className="h-5 w-5 mr-2" />
+                  Add Your First Holding
+                </Button>
               </div>
             </div>
           )}
         </CardContent>
       </Card>
+
+      <AddHoldingDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onSuccess={loadHoldings}
+      />
     </div>
   )
 }

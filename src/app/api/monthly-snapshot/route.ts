@@ -316,18 +316,8 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
 
   const previousSurplus = previousSnapshot ? Number(previousSnapshot.surplusAmount) : 0
 
-  // Get one-time purchases (investments) for this month
-  const oneTimePurchases = await prisma.oneTimePurchase.findMany({
-    where: {
-      userId,
-      date: {
-        gte: startDate,
-        lt: endDate,
-      },
-    },
-  })
-
-  const investmentsMade = oneTimePurchases.reduce((sum, purchase) => sum + Number(purchase.amount), 0)
+  // One-time purchases are now tracked through holdings, not separately
+  const investmentsMade = 0
 
   // Calculate available amount (base surplus after deductions)
   const availableAmount = financialSummary.availableSurplus
