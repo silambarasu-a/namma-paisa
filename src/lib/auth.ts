@@ -124,6 +124,17 @@ export const authOptions: NextAuthOptions = {
       }
       return session
     },
+    async redirect({ url, baseUrl }) {
+      // If the URL is a callback URL after sign in
+      if (url.startsWith(baseUrl)) {
+        return url
+      }
+
+      // Default redirect after sign in
+      // Super admins without customer role should go to admin
+      // Everyone else goes to dashboard
+      return `${baseUrl}/dashboard`
+    },
   },
   pages: {
     signIn: "/auth/signin",

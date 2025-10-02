@@ -1,7 +1,7 @@
 import { Metadata } from "next"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { requireAuth } from "@/lib/authz"
+import { requireCustomerAccess } from "@/lib/authz"
 import { prisma } from "@/lib/prisma"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -225,7 +225,7 @@ export default async function Dashboard({
   searchParams: Promise<{ month?: string; year?: string }>
 }) {
   const session = await getServerSession(authOptions)
-  requireAuth(session)
+  requireCustomerAccess(session)
 
   const userId = session!.user.id
   const params = await searchParams

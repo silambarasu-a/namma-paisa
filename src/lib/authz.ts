@@ -19,6 +19,22 @@ export function requireAuth(session: Session | null) {
   }
 }
 
+export function requireCustomerAccess(session: Session | null) {
+  requireAuth(session)
+
+  // If super_admin without customer role, redirect to admin dashboard
+  if (session?.user?.roles?.includes(Role.SUPER_ADMIN) &&
+      !session?.user?.roles?.includes(Role.CUSTOMER)) {
+    redirect("/admin")
+  }
+
+  // For non-super admins, require customer role
+  if (!session?.user?.roles?.includes(Role.SUPER_ADMIN) &&
+      !session?.user?.roles?.includes(Role.CUSTOMER)) {
+    redirect("/auth/signin")
+  }
+}
+
 export function isSuperAdmin(session: Session | null): boolean {
   return session?.user?.roles?.includes(Role.SUPER_ADMIN) ?? false
 }

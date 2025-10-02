@@ -2,6 +2,7 @@ import Link from "next/link"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { isSuperAdmin } from "@/lib/authz"
+import { Role } from "@/constants"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Logo } from "@/components/icons/logo"
@@ -34,7 +35,11 @@ export default async function Home() {
               <Button variant="ghost">Contact Us</Button>
             </Link>
             {session ? (
-              <Link href={isSuperAdmin(session) ? "/admin" : "/dashboard"}>
+              <Link href={
+                isSuperAdmin(session) && !session.user.roles.includes(Role.CUSTOMER)
+                  ? "/admin"
+                  : "/dashboard"
+              }>
                 <Button>Go to Dashboard</Button>
               </Link>
             ) : (

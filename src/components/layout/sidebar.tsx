@@ -90,6 +90,7 @@ export function Sidebar({ className }: SidebarProps) {
   const { data: session } = useSession()
 
   const isSuperAdmin = session?.user?.roles?.includes(Role.SUPER_ADMIN)
+  const hasCustomerRole = session?.user?.roles?.includes(Role.CUSTOMER)
 
   // Determine view mode based on current route
   const isAdminRoute = pathname.startsWith("/admin")
@@ -150,8 +151,8 @@ export function Sidebar({ className }: SidebarProps) {
             </div>
           </div>
 
-          {/* Role Switcher for Super Admins */}
-          {isSuperAdmin && (
+          {/* Role Switcher for Super Admins with Customer Role */}
+          {isSuperAdmin && hasCustomerRole && (
             <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-800">
               <div className="flex items-center justify-between space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <div className="flex items-center space-x-2">
