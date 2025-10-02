@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "normalize-symbols": "tsx scripts/normalize-holding-symbols.ts"
+    "normalize-symbols": "tsx scripts/normalize-holding-symbols.ts",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",
