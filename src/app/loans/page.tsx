@@ -8,27 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { Plus, Edit, Trash2, Calendar, Building2, IndianRupee, Loader2 } from "lucide-react"
 import { format } from "date-fns"
-
-interface EMI {
-  id: string
-  emiAmount: number
-  dueDate: string
-  isPaid: boolean
-}
-
-interface Loan {
-  id: string
-  loanType: string
-  institution: string
-  principalAmount: number
-  emiAmount: number
-  currentOutstanding: number
-  isActive: boolean
-  startDate: string
-  tenure: number
-  interestRate: number
-  emis: EMI[]
-}
+import type { Loan, EMI } from "@/types"
 
 export default function LoansPage() {
   const router = useRouter()

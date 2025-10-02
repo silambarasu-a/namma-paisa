@@ -17,19 +17,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-
-interface CreditCard {
-  id: string
-  cardName: string
-  lastFourDigits: string
-  bank: string
-  billingCycle: number
-  dueDate: number
-  gracePeriod: number
-  cardNetwork?: string
-  cardLimit?: number
-  isActive: boolean
-}
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import type { CreditCard } from "@/types"
 
 export default function CreditCardsPage() {
   const [cards, setCards] = useState<CreditCard[]>([])
@@ -37,6 +35,8 @@ export default function CreditCardsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [currentCard, setCurrentCard] = useState<CreditCard | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [cardToDelete, setCardToDelete] = useState<string | null>(null)
 
   // Form state
   const [cardName, setCardName] = useState("")
@@ -140,11 +140,16 @@ export default function CreditCardsPage() {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this card?")) return
+  const openDeleteDialog = (id: string) => {
+    setCardToDelete(id)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDelete = async () => {
+    if (!cardToDelete) return
 
     try {
-      const response = await fetch(`/api/credit-cards/${id}`, {
+      const response = await fetch(`/api/credit-cards/${cardToDelete}`, {
         method: "DELETE",
       })
 
@@ -156,6 +161,9 @@ export default function CreditCardsPage() {
       }
     } catch {
       toast.error("An error occurred")
+    } finally {
+      setDeleteDialogOpen(false)
+      setCardToDelete(null)
     }
   }
 
@@ -246,7 +254,7 @@ export default function CreditCardsPage() {
                       of month
                     </span>
                   </div>
-                  {card.cardLimit && (
+                  {card.cardLimit != null && card.cardLimit > 0 && (
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Limit</span>
                       <span>₹{card.cardLimit.toLocaleString()}</span>
@@ -267,7 +275,7 @@ export default function CreditCardsPage() {
                     variant="outline"
                     size="sm"
                     className="flex-1 text-red-600 hover:text-red-700"
-                    onClick={() => handleDelete(card.id)}
+                    onClick={() => openDeleteDialog(card.id)}
                   >
                     <Trash2 className="h-3 w-3 mr-1" />
                     Delete
@@ -432,6 +440,24 @@ export default function CreditCardsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Credit Card</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this credit card? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

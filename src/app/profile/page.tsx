@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
+import { Role, ROLE_LABELS, getRoleBadgeColor } from "@/constants"
 
 export default function Profile() {
   const { data: session, update } = useSession()
@@ -130,8 +131,8 @@ export default function Profile() {
           <p className="text-gray-600 dark:text-gray-400">{session.user.email}</p>
           <div className="flex gap-1 mt-1">
             {session.user.roles.map((role) => (
-              <Badge key={role} variant={role === "SUPER_ADMIN" ? "destructive" : "default"}>
-                {role === "SUPER_ADMIN" ? "Super Admin" : "Customer"}
+              <Badge key={role} className={getRoleBadgeColor(role as Role)}>
+                {ROLE_LABELS[role as Role]}
               </Badge>
             ))}
           </div>

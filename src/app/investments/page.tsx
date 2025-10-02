@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { TrendingUp, Wallet, Settings, PlusCircle, Eye, AlertCircle, Calendar, BarChart3 } from "lucide-react"
+import { TrendingUp, Wallet, Settings, PlusCircle, Eye, AlertCircle, Calendar, BarChart3, Receipt } from "lucide-react"
 import { toast } from "sonner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -704,7 +704,7 @@ export default function InvestmentsPage() {
           <CardDescription>Manage your investment portfolio</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             <Button
               onClick={() => router.push("/investments/holdings")}
               variant="outline"
@@ -744,6 +744,14 @@ export default function InvestmentsPage() {
             >
               <Wallet className="h-4 w-4 mr-2" />
               One-Time Purchase
+            </Button>
+            <Button
+              onClick={() => router.push("/investments/transactions")}
+              variant="outline"
+              className="justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+            >
+              <Receipt className="h-4 w-4 mr-2" />
+              Transaction History
             </Button>
           </div>
         </CardContent>

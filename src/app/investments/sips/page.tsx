@@ -26,20 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Switch } from "@/components/ui/switch"
-
-interface SIP {
-  id: string
-  name: string
-  amount: number
-  frequency: "MONTHLY" | "YEARLY" | "CUSTOM"
-  customDay?: number | null
-  startDate: string
-  endDate?: string | null
-  isActive: boolean
-  description?: string | null
-  createdAt: string
-  updatedAt: string
-}
+import type { SIP } from "@/types"
 
 export default function SIPsPage() {
   const router = useRouter()

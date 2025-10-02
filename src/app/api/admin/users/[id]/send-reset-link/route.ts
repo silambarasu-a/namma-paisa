@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { generateOTP, sendPasswordResetLink } from "@/lib/email"
+import { Role } from "@/constants"
 
 export async function POST(
   request: NextRequest,
@@ -17,7 +18,7 @@ export async function POST(
     }
 
     // Check if user is super admin
-    if (!session.user.roles?.includes("SUPER_ADMIN")) {
+    if (!session.user.roles?.includes(Role.SUPER_ADMIN)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 

@@ -44,6 +44,19 @@ enum SIPFrequency {
   CUSTOM
 }
 
+enum TransactionType {
+  ONE_TIME_PURCHASE
+  SIP_EXECUTION
+  MANUAL_ENTRY
+  MANUAL_EDIT
+}
+
+enum ExecutionStatus {
+  SUCCESS
+  FAILED
+  PENDING
+}
+
 enum LoanType {
   HOME_LOAN
   CAR_LOAN
@@ -96,7 +109,8 @@ model User {
   expenseBudget     ExpenseBudget?
   monthlySnapshots  MonthlySnapshot[]
   creditCards       CreditCard[]
-  oneTimePurchases  OneTimePurchase[]
+  transactions      Transaction[]
+  sipExecutions     SIPExecution[]
 
   @@map("users")
 }
@@ -267,7 +281,8 @@ model SIP {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  executions SIPExecution[]
 
   @@map("sips")
 }
@@ -292,36 +307,67 @@ enum AllocationType {
 }
 
 model Holding {
-  id        String       @id @default(cuid())
-  userId    String
-  bucket    InvestBucket
-  symbol    String
-  name      String
-  qty       Decimal      @db.Decimal(18, 6)
-  avgCost   Decimal      @db.Decimal(12, 2)
-  currentPrice Decimal?  @db.Decimal(12, 2)
-  currency  String       @default("INR")
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id           String       @id @default(cuid())
+  userId       String
+  bucket       InvestBucket
+  symbol       String
+  name         String
+  qty          Decimal      @db.Decimal(18, 6)
+  avgCost      Decimal      @db.Decimal(12, 2)
+  currentPrice Decimal?     @db.Decimal(12, 2)
+  currency     String       @default("INR")
+  isManual     Boolean      @default(false) // True if manually added without transaction tracking
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  sipExecutions SIPExecution[]
 
   @@map("holdings")
 }
 
-model OneTimePurchase {
-  id          String       @id @default(cuid())
-  userId      String
-  bucket      InvestBucket
-  amount      Decimal      @db.Decimal(12, 2)
-  date        DateTime
-  description String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+model Transaction {
+  id              String          @id @default(cuid())
+  userId          String
+  holdingId       String?
+  bucket          InvestBucket
+  symbol          String
+  name            String
+  qty             Decimal         @db.Decimal(18, 6)
+  price           Decimal         @db.Decimal(12, 2)
+  amount          Decimal         @db.Decimal(12, 2) // qty * price
+  transactionType TransactionType
+  purchaseDate    DateTime
+  description     String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  holding Holding? @relation(fields: [holdingId], references: [id], onDelete: SetNull)
 
-  @@map("one_time_purchases")
+  @@map("transactions")
+}
+
+model SIPExecution {
+  id            String          @id @default(cuid())
+  sipId         String
+  userId        String
+  holdingId     String?
+  executionDate DateTime
+  amount        Decimal         @db.Decimal(12, 2)
+  qty           Decimal?        @db.Decimal(18, 6)
+  price         Decimal?        @db.Decimal(12, 2)
+  status        ExecutionStatus @default(PENDING)
+  errorMessage  String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  sip     SIP      @relation(fields: [sipId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  holding Holding? @relation(fields: [holdingId], references: [id], onDelete: SetNull)
+
+  @@map("sip_executions")
 }
 
 model ExpenseBudget {

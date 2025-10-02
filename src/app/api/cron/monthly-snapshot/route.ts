@@ -278,6 +278,22 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
 
   const previousSurplus = previousSnapshot ? Number(previousSnapshot.surplusAmount) : 0
 
+  // Get all transactions for this month (one-time purchases and SIP executions)
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      userId,
+      purchaseDate: {
+        gte: startDate,
+        lte: endDate,
+      },
+      transactionType: {
+        in: ["ONE_TIME_PURCHASE", "SIP_EXECUTION"],
+      },
+    },
+  })
+
+  const investmentsMade = transactions.reduce((sum, txn) => sum + Number(txn.amount), 0)
+
   return {
     salary,
     taxAmount,
@@ -293,6 +309,6 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
     spentAmount,
     surplusAmount,
     previousSurplus,
-    investmentsMade: null,
+    investmentsMade,
   }
 }

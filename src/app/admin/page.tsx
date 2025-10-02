@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Users, TrendingUp, Receipt, IndianRupee, Shield, ArrowRight } from "lucide-react"
 import Link from "next/link"
+import { Role, ROLE_LABELS, getRoleBadgeColor } from "@/constants"
 
 export const metadata: Metadata = {
   title: "Admin Dashboard",
@@ -43,7 +44,7 @@ async function getRecentUsers() {
 
 export default async function AdminPage() {
   const session = await getServerSession(authOptions)
-  requireRole(session, ["SUPER_ADMIN"])
+  requireRole(session, [Role.SUPER_ADMIN])
 
   const [stats, users] = await Promise.all([
     getStats(),
@@ -165,8 +166,8 @@ export default async function AdminPage() {
                       <TableCell>
                         <div className="flex gap-1">
                           {user.roles.map((role) => (
-                            <Badge key={role} variant={role === "SUPER_ADMIN" ? "destructive" : "secondary"}>
-                              {role}
+                            <Badge key={role} className={getRoleBadgeColor(role)}>
+                              {ROLE_LABELS[role]}
                             </Badge>
                           ))}
                         </div>

@@ -14,6 +14,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LogOut, User, Mail } from "lucide-react"
 import Link from "next/link"
+import { Role, ROLE_LABELS } from "@/constants"
 
 export function Header() {
   const { data: session } = useSession()
@@ -37,7 +38,7 @@ export function Header() {
               Welcome back, {session.user.name?.split(" ")[0] || "User"}
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              {session.user.roles.includes("SUPER_ADMIN") ? "Super Admin" : "Customer"}
+              {session.user.roles.includes(Role.SUPER_ADMIN) ? ROLE_LABELS[Role.SUPER_ADMIN] : ROLE_LABELS[Role.CUSTOMER]}
             </p>
           </div>
         </div>

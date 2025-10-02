@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { calculateFinancialSummary } from "@/lib/budget-utils"
 
-// Get current month snapshot or create if doesn't exist
+// Get current month snapshot - returns saved snapshot or calculates preview
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -20,8 +20,8 @@ export async function GET(request: Request) {
     const month = monthParam ? parseInt(monthParam) : now.getMonth() + 1
     const year = yearParam ? parseInt(yearParam) : now.getFullYear()
 
-    // Get or create snapshot for current month
-    let snapshot = await prisma.monthlySnapshot.findUnique({
+    // Check if snapshot exists
+    const snapshot = await prisma.monthlySnapshot.findUnique({
       where: {
         userId_year_month: {
           userId: session.user.id,
@@ -31,20 +31,21 @@ export async function GET(request: Request) {
       },
     })
 
-    if (!snapshot) {
-      // Create new snapshot
-      const data = await calculateMonthlyData(session.user.id, year, month)
-      snapshot = await prisma.monthlySnapshot.create({
-        data: {
-          userId: session.user.id,
-          month,
-          year,
-          ...data,
-        },
-      })
+    if (snapshot) {
+      // Return saved snapshot
+      return NextResponse.json(snapshot)
     }
 
-    return NextResponse.json(snapshot)
+    // Calculate preview data (not saved)
+    const data = await calculateMonthlyData(session.user.id, year, month)
+
+    return NextResponse.json({
+      month,
+      year,
+      ...data,
+      isClosed: false,
+      closedAt: null,
+    })
   } catch (error) {
     console.error("Error fetching monthly snapshot:", error)
     return NextResponse.json(
@@ -136,15 +137,29 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
   const latestSalary = await prisma.salaryHistory.findFirst({
     where: {
       userId,
-      effectiveFrom: { lte: startDate },
+      effectiveFrom: { lte: endDate },
       OR: [
         { effectiveTo: null },
-        { effectiveTo: { gt: startDate } }
+        { effectiveTo: { gte: startDate } }
       ]
     },
     orderBy: { effectiveFrom: "desc" },
   })
-  const salary = latestSalary ? Number(latestSalary.monthly) : 0
+  const monthlySalary = latestSalary ? Number(latestSalary.monthly) : 0
+
+  // Get additional income for this month
+  const additionalIncomes = await prisma.income.findMany({
+    where: {
+      userId,
+      date: {
+        gte: startDate,
+        lt: endDate,
+      },
+    },
+  })
+
+  const additionalIncome = additionalIncomes.reduce((sum, income) => sum + Number(income.amount), 0)
+  const salary = monthlySalary + additionalIncome
 
   // Get tax
   const taxSetting = await prisma.taxSetting.findFirst({
@@ -191,7 +206,7 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
     where: {
       userId,
       isActive: true,
-      startDate: { lte: startDate },
+      startDate: { lt: endDate },
       OR: [
         { endDate: null },
         { endDate: { gte: startDate } },
@@ -207,12 +222,10 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
     } else if (sip.frequency === "YEARLY") {
       const sipStartDate = new Date(sip.startDate)
       if (sipStartDate.getMonth() === month - 1) {
-        totalSIPs += sipAmount / 12
-      }
-    } else if (sip.frequency === "CUSTOM" && sip.customDay) {
-      if (startDate.getDate() === sip.customDay) {
         totalSIPs += sipAmount
       }
+    } else if (sip.frequency === "CUSTOM" && sip.customDay) {
+      totalSIPs += sipAmount
     }
   })
 
@@ -303,9 +316,12 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
 
   const previousSurplus = previousSnapshot ? Number(previousSnapshot.surplusAmount) : 0
 
+  // One-time purchases are now tracked through holdings, not separately
+  const investmentsMade = 0
+
   // Calculate available amount (base surplus after deductions)
   const availableAmount = financialSummary.availableSurplus
-  const spentAmount = totalExpenses
+  const spentAmount = totalExpenses + investmentsMade
   const surplusAmount = availableAmount - spentAmount
 
   return {
@@ -323,6 +339,6 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
     spentAmount,
     surplusAmount,
     previousSurplus,
-    investmentsMade: null,
+    investmentsMade,
   }
 }

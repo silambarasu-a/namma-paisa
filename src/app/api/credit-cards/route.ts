@@ -9,6 +9,8 @@ const creditCardSchema = z.object({
   lastFourDigits: z.string().length(4, "Must be exactly 4 digits"),
   bank: z.string().min(1, "Bank name is required"),
   billingCycle: z.number().int().min(1).max(31, "Billing cycle must be between 1-31"),
+  dueDate: z.number().int().min(1).max(31, "Due date must be between 1-31"),
+  gracePeriod: z.number().int().min(0).max(10, "Grace period must be between 0-10"),
   cardNetwork: z.string().optional(),
   cardLimit: z.number().positive().optional(),
   isActive: z.boolean().optional(),

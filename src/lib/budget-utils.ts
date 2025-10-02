@@ -3,19 +3,7 @@
  * Calculates available amounts for expenses and investments based on budget/allocation settings
  */
 
-interface ExpenseBudget {
-  expectedPercent?: number | null
-  expectedAmount?: number | null
-  unexpectedPercent?: number | null
-  unexpectedAmount?: number | null
-}
-
-interface InvestmentAllocation {
-  bucket: string
-  allocationType: "PERCENTAGE" | "AMOUNT"
-  percent?: number | null
-  customAmount?: number | null
-}
+import type { ExpenseBudget, InvestmentAllocation } from "@/types"
 
 /**
  * Calculate available amount for expenses based on budget settings

@@ -20,25 +20,18 @@ import {
   BarChart3,
   Wallet,
   Repeat,
-  FolderKanban,
   PieChart,
   Plus,
   FileText,
   Calendar,
   Users,
   Shield,
-  type LucideIcon,
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Logo } from "@/components/icons/logo"
-
-interface NavigationItem {
-  name: string
-  href: string
-  icon: LucideIcon
-  children?: NavigationItem[]
-}
+import type { NavigationItem } from "@/types"
+import { Role } from "@/constants"
 
 const navigation: NavigationItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -51,10 +44,11 @@ const navigation: NavigationItem[] = [
     href: "/investments",
     icon: PiggyBank,
     children: [
-      { name: "Overview", href: "/investments/overview", icon: FolderKanban },
       { name: "Allocations", href: "/investments/allocations", icon: PieChart },
       { name: "Holdings", href: "/investments/holdings", icon: BarChart3 },
       { name: "SIPs", href: "/investments/sips", icon: Repeat },
+      { name: "Transactions", href: "/investments/transactions", icon: Receipt },
+      { name: "SIP Executions", href: "/investments/sip-executions", icon: TrendingUp },
     ],
   },
   {
@@ -62,7 +56,7 @@ const navigation: NavigationItem[] = [
     href: "/expenses",
     icon: Receipt,
     children: [
-      { name: "Add Expense", href: "/expenses/new", icon: Plus },
+      { name: "Add Expense", href: "/expenses?add=true", icon: Plus },
       { name: "Budget", href: "/expenses/budget", icon: PieChart },
       { name: "Reports", href: "/expenses/reports", icon: FileText },
     ],
@@ -95,7 +89,7 @@ export function Sidebar({ className }: SidebarProps) {
   const router = useRouter()
   const { data: session } = useSession()
 
-  const isSuperAdmin = session?.user?.roles?.includes("SUPER_ADMIN")
+  const isSuperAdmin = session?.user?.roles?.includes(Role.SUPER_ADMIN)
 
   // Determine view mode based on current route
   const isAdminRoute = pathname.startsWith("/admin")

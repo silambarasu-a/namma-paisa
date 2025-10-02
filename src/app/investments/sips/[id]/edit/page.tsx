@@ -352,7 +352,7 @@ export default function EditSIPPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => router.push("/sips")}
+                  onClick={() => router.push("/investments/sips")}
                   disabled={isSubmitting}
                   className="flex-1"
                 >

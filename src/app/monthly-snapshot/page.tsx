@@ -7,7 +7,7 @@ import { formatDate } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Calendar, Lock, Unlock, TrendingUp, TrendingDown, ArrowRight, CheckCircle, AlertCircle } from "lucide-react"
+import { Calendar, Lock, Unlock, TrendingUp, TrendingDown, CheckCircle, AlertCircle, Receipt } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,6 +37,7 @@ interface MonthlySnapshot {
   spentAmount: number
   surplusAmount: number
   previousSurplus: number
+  investmentsMade: number | null
   isClosed: boolean
   closedAt: string | null
 }
@@ -74,10 +75,13 @@ export default function MonthlySnapshotPage() {
       if (response.ok) {
         const data = await response.json()
         setSnapshot(data)
+      } else {
+        setSnapshot(null)
       }
     } catch (error) {
       console.error("Error loading snapshot:", error)
       toast.error("Failed to load monthly snapshot")
+      setSnapshot(null)
     } finally {
       setIsLoading(false)
     }
@@ -122,32 +126,6 @@ export default function MonthlySnapshotPage() {
         </div>
       </div>
     )
-  }
-
-  const handleGenerateSnapshot = async () => {
-    try {
-      setIsClosing(true)
-      const response = await fetch("/api/monthly-snapshot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          month: selectedMonth,
-          year: selectedYear,
-        }),
-      })
-
-      if (response.ok) {
-        toast.success("Snapshot generated successfully")
-        loadSnapshot()
-      } else {
-        const data = await response.json()
-        toast.error(data.error || "Failed to generate snapshot")
-      }
-    } catch {
-      toast.error("An error occurred")
-    } finally {
-      setIsClosing(false)
-    }
   }
 
   if (!snapshot) {
@@ -200,14 +178,11 @@ export default function MonthlySnapshotPage() {
           <CardContent className="p-6 text-center space-y-4">
             <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
             <div>
-              <p className="text-lg font-semibold mb-2">No snapshot available for {MONTHS[selectedMonth - 1]} {selectedYear}</p>
+              <p className="text-lg font-semibold mb-2">No data available for {MONTHS[selectedMonth - 1]} {selectedYear}</p>
               <p className="text-sm text-muted-foreground mb-4">
-                Generate a snapshot to view your financial summary for this month
+                Unable to load snapshot data
               </p>
             </div>
-            <Button onClick={handleGenerateSnapshot} disabled={isClosing}>
-              {isClosing ? "Generating..." : "Generate Snapshot"}
-            </Button>
           </CardContent>
         </Card>
       </div>
@@ -231,9 +206,43 @@ export default function MonthlySnapshotPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Calendar className="h-5 w-5" />
-              <CardTitle>Select Period</CardTitle>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Calendar className="h-5 w-5" />
+                <CardTitle>Select Period</CardTitle>
+              </div>
+              <div className="flex gap-3">
+                <Select
+                  value={selectedMonth.toString()}
+                  onValueChange={(value) => setSelectedMonth(parseInt(value))}
+                >
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTHS.map((month, index) => (
+                      <SelectItem key={index} value={(index + 1).toString()}>
+                        {month}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={selectedYear.toString()}
+                  onValueChange={(value) => setSelectedYear(parseInt(value))}
+                >
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             {snapshot.isClosed ? (
               <Badge variant="secondary" className="flex items-center space-x-1">
@@ -248,44 +257,6 @@ export default function MonthlySnapshotPage() {
             )}
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <Select
-                value={selectedMonth.toString()}
-                onValueChange={(value) => setSelectedMonth(parseInt(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MONTHS.map((month, index) => (
-                    <SelectItem key={index} value={(index + 1).toString()}>
-                      {month}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex-1">
-              <Select
-                value={selectedYear.toString()}
-                onValueChange={(value) => setSelectedYear(parseInt(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map((year) => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
       </Card>
 
       {/* Summary Cards */}
@@ -338,145 +309,30 @@ export default function MonthlySnapshotPage() {
         </Card>
       </div>
 
-      {/* Income Flow */}
+      {/* Expenses & Investments Breakdown */}
       <Card>
         <CardHeader>
-          <CardTitle>Income Flow</CardTitle>
-          <CardDescription>How your salary is distributed</CardDescription>
+          <CardTitle>Spending Summary</CardTitle>
+          <CardDescription>Complete breakdown of monthly spending</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {/* Income */}
-            <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <div>
-                <p className="font-semibold">Income</p>
-                <p className="text-sm text-muted-foreground">Monthly income</p>
-              </div>
-              <p className="text-xl font-bold text-green-600 dark:text-green-400">
-                {formatAmount(snapshot.salary)}
-              </p>
-            </div>
-
-            <div className="flex justify-center">
-              <ArrowRight className="h-5 w-5 text-muted-foreground rotate-90" />
-            </div>
-
-            {/* Tax */}
-            {snapshot.taxAmount > 0 && (
-              <div className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                <div>
-                  <p className="font-semibold">Tax Deduction</p>
-                  <p className="text-sm text-muted-foreground">Remaining: {formatAmount(snapshot.afterTax)}</p>
-                </div>
-                <p className="text-xl font-bold text-red-600 dark:text-red-400">
-                  -{formatAmount(snapshot.taxAmount).replace('₹', '₹')}
-                </p>
-              </div>
-            )}
-            {snapshot.taxAmount > 0 && (
-              <div className="flex justify-center">
-                <ArrowRight className="h-5 w-5 text-muted-foreground rotate-90" />
-              </div>
-            )}
-
-            {/* Loans */}
-            {snapshot.totalLoans > 0 && (
-              <div className="flex items-center justify-between p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                <div>
-                  <p className="font-semibold">Loan EMIs</p>
-                  <p className="text-sm text-muted-foreground">Monthly payments</p>
-                </div>
-                <p className="text-xl font-bold text-orange-600 dark:text-orange-400">
-                  -{formatAmount(snapshot.totalLoans).replace('₹', '₹')}
-                </p>
-              </div>
-            )}
-
-            {snapshot.totalLoans > 0 && (
-              <div className="flex justify-center">
-                <ArrowRight className="h-5 w-5 text-muted-foreground rotate-90" />
-              </div>
-            )}
-
-            {/* SIPs */}
-            {snapshot.totalSIPs > 0 && (
-              <div className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                <div>
-                  <p className="font-semibold">SIP Investments</p>
-                  <p className="text-sm text-muted-foreground">Systematic investments</p>
-                </div>
-                <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
-                  -{formatAmount(snapshot.totalSIPs).replace('₹', '₹')}
-                </p>
-              </div>
-            )}
-
-            {snapshot.totalSIPs > 0 && (
-              <div className="flex justify-center">
-                <ArrowRight className="h-5 w-5 text-muted-foreground rotate-90" />
-              </div>
-            )}
-
-            {/* Available (Current Month) */}
-            <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-2 border-blue-300 dark:border-blue-700">
-              <div>
-                <p className="font-semibold">Available (Current Month)</p>
-                <p className="text-sm text-muted-foreground">After all deductions</p>
-              </div>
-              <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                {formatAmount(snapshot.availableAmount, true)}
-              </p>
-            </div>
-
-            {snapshot.previousSurplus > 0 && (
-              <>
-                <div className="flex justify-center">
-                  <ArrowRight className="h-5 w-5 text-muted-foreground rotate-90" />
-                </div>
-
-                {/* Previous Surplus */}
-                <div className="flex items-center justify-between p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                  <div>
-                    <p className="font-semibold">Carried Forward Surplus</p>
-                    <p className="text-sm text-muted-foreground">From previous month</p>
-                  </div>
-                  <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                    +{formatAmount(snapshot.previousSurplus)}
-                  </p>
-                </div>
-
-                <div className="flex justify-center">
-                  <ArrowRight className="h-5 w-5 text-muted-foreground rotate-90" />
-                </div>
-
-                {/* Total Available */}
-                <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-2 border-blue-500 dark:border-blue-600">
-                  <div>
-                    <p className="font-bold text-lg">Total Available</p>
-                    <p className="text-sm text-muted-foreground">Current + Carried Forward</p>
-                  </div>
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {formatAmount(totalAvailableWithCarryForward, true)}
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Expenses Breakdown */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Expenses Breakdown</CardTitle>
-          <CardDescription>How you spent this month</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-4">
               <div className="p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
                 <p className="text-sm text-muted-foreground">Total Expenses</p>
                 <p className="text-2xl font-bold">{formatAmount(snapshot.totalExpenses)}</p>
+              </div>
+              <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                <p className="text-sm text-muted-foreground">SIP Investments</p>
+                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                  {formatAmount(snapshot.totalSIPs)}
+                </p>
+              </div>
+              <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+                <p className="text-sm text-muted-foreground">One-Time Investments</p>
+                <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                  {formatAmount(snapshot.investmentsMade || 0)}
+                </p>
               </div>
               <div className="p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
                 <p className="text-sm text-muted-foreground">Remaining</p>
@@ -523,16 +379,114 @@ export default function MonthlySnapshotPage() {
         </CardContent>
       </Card>
 
+      {/* Investment Details - Only show if investments were made */}
+      {(snapshot.investmentsMade ?? 0) > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Receipt className="h-5 w-5" />
+                  Investment Activity
+                </CardTitle>
+                <CardDescription>
+                  Breakdown of all investments made this month
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.href = `/investments/transactions?month=${selectedMonth}&year=${selectedYear}`}
+              >
+                View Full History
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg border-2 border-indigo-200 dark:border-indigo-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Total Investments Made</p>
+                    <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
+                      ₹{(snapshot.investmentsMade ?? 0).toLocaleString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      One-time purchases and SIP executions combined
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground mb-1">SIP Deductions</p>
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                      ₹{snapshot.totalSIPs.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Recurring investments
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="p-3 border rounded-lg bg-white dark:bg-gray-900">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-muted-foreground">One-Time Purchases</span>
+                    <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                      Manual
+                    </Badge>
+                  </div>
+                  <p className="text-xl font-bold mt-2 text-green-600 dark:text-green-400">
+                    ₹{((snapshot.investmentsMade ?? 0) - (snapshot.totalSIPs ?? 0)).toLocaleString()}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    From current month salary
+                  </p>
+                </div>
+
+                <div className="p-3 border rounded-lg bg-white dark:bg-gray-900">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-muted-foreground">Automated SIPs</span>
+                    <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
+                      Auto
+                    </Badge>
+                  </div>
+                  <p className="text-xl font-bold mt-2 text-orange-600 dark:text-orange-400">
+                    ₹{snapshot.totalSIPs.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Scheduled recurring investments
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-blue-900 dark:text-blue-100">
+                  💡 <strong>Tip:</strong> View detailed transaction history including holdings updated,
+                  quantities purchased, and execution dates in the{" "}
+                  <a
+                    href={`/investments/transactions?month=${selectedMonth}&year=${selectedYear}`}
+                    className="underline font-medium hover:text-blue-700"
+                  >
+                    Transaction History
+                  </a>{" "}
+                  page.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Actions */}
       {!snapshot.isClosed && (
         <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <AlertCircle className="h-5 w-5 text-yellow-600" />
-              <span>Close This Month</span>
+              <span>Close & Save This Month</span>
             </CardTitle>
             <CardDescription>
-              Closing the month will lock all data and carry forward the surplus to next month
+              Closing will save the snapshot, lock all data, and carry forward the surplus to next month. Currently viewing preview data.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -542,7 +496,7 @@ export default function MonthlySnapshotPage() {
               disabled={isClosing}
             >
               <Lock className="h-4 w-4 mr-2" />
-              Close {MONTHS[selectedMonth - 1]} {selectedYear}
+              Close & Save {MONTHS[selectedMonth - 1]} {selectedYear}
             </Button>
           </CardContent>
         </Card>
