@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/monthly-snapshot",
+      "schedule": "0 0 1 * *"
+    },
+    {
+      "path": "/api/cron/sip-execution",
+      "schedule": "0 9 * * *"
+    }
+  ]
+}
