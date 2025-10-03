@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
+import { useState, useRef } from "react"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard,
@@ -91,6 +92,11 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
   const isSuperAdmin = session?.user?.roles?.includes(Role.SUPER_ADMIN)
   const hasCustomerRole = session?.user?.roles?.includes(Role.CUSTOMER)
 
+  // Drag state for mobile bottom sheet
+  const [dragOffset, setDragOffset] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const dragStartY = useRef(0)
+
   // Determine view mode based on current route
   const isAdminRoute = pathname.startsWith("/admin")
   const viewMode = isAdminRoute ? "admin" : "customer"
@@ -120,7 +126,49 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
 
   const allNavigation = viewMode === "admin" && isSuperAdmin ? adminNavigation : navigation
 
-  const closeSidebar = () => setIsOpen?.(false)
+  const closeSidebar = () => {
+    setDragOffset(0)
+    setIsOpen?.(false)
+  }
+
+  // Handle drag start
+  const handleDragStart = (e: React.TouchEvent | React.MouseEvent) => {
+    setIsDragging(true)
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    dragStartY.current = clientY
+  }
+
+  // Handle drag move
+  const handleDragMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!isDragging) return
+
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    const diff = clientY - dragStartY.current
+
+    // Only allow dragging down (positive offset)
+    if (diff > 0) {
+      setDragOffset(diff)
+    }
+  }
+
+  // Handle drag end
+  const handleDragEnd = () => {
+    setIsDragging(false)
+
+    // If dragged more than 100px, smoothly animate close
+    if (dragOffset > 100) {
+      // Animate to full height before closing
+      setDragOffset(window.innerHeight)
+
+      // Wait for animation to complete, then close
+      setTimeout(() => {
+        closeSidebar()
+      }, 300) // Match the transition duration
+    } else {
+      // Snap back to original position
+      setDragOffset(0)
+    }
+  }
 
   return (
     <>
@@ -220,14 +268,26 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
       {/* Mobile Bottom Sheet */}
       <div
         className={cn(
-          "md:hidden fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl border-t border-gray-200 dark:border-gray-800 transition-transform duration-300 ease-out",
-          isOpen ? "translate-y-0" : "translate-y-full"
+          "md:hidden fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl border-t border-gray-200 dark:border-gray-800",
+          isOpen ? "translate-y-0" : "translate-y-full",
+          isDragging ? "transition-none" : "transition-transform duration-300 ease-out"
         )}
-        style={{ top: "64px" }}
+        style={{
+          top: "64px",
+          transform: isOpen ? `translateY(${dragOffset}px)` : 'translateY(100%)'
+        }}
+        onTouchMove={handleDragMove}
+        onTouchEnd={handleDragEnd}
+        onMouseMove={handleDragMove}
+        onMouseUp={handleDragEnd}
       >
         <div className="flex flex-col h-full">
           {/* Handle Bar */}
-          <div className="flex items-center justify-center py-3 border-b border-gray-200 dark:border-gray-800">
+          <div
+            className="flex items-center justify-center py-3 border-b border-gray-200 dark:border-gray-800 cursor-grab active:cursor-grabbing"
+            onTouchStart={handleDragStart}
+            onMouseDown={handleDragStart}
+          >
             <div className="w-12 h-1 rounded-full bg-gray-300 dark:bg-gray-700"></div>
           </div>
 
