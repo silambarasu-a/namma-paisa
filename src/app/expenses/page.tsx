@@ -429,7 +429,7 @@ export default function ExpensesPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Calendar className="h-5 w-5 text-gray-500" />
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
             <SelectTrigger className="w-[140px]">
@@ -613,10 +613,10 @@ export default function ExpensesPage() {
 
               {/* Category Breakdown - Only show if budget is set */}
               {available.hasBudget && (
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                   {/* Expected Expenses */}
                   {available.expectedBudget! > 0 && (
-                    <div className="p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
+                    <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium">Expected Budget</span>
                         <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
@@ -654,7 +654,7 @@ export default function ExpensesPage() {
 
                   {/* Unexpected Expenses */}
                   {available.unexpectedBudget! > 0 && (
-                    <div className="p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
+                    <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium">Unexpected Budget</span>
                         <span className="text-sm font-bold text-orange-600 dark:text-orange-400">
@@ -695,7 +695,7 @@ export default function ExpensesPage() {
               {/* Category-wise spending (always show) */}
               <div>
                 <h4 className="text-sm font-semibold mb-3">Category-wise Spending</h4>
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2">
                   {/* Needs */}
                   <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                     <div className="flex items-center justify-between">
@@ -736,7 +736,7 @@ export default function ExpensesPage() {
               <CardTitle>Expense List</CardTitle>
               <CardDescription>All expenses for selected month</CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Select value={filter} onValueChange={setFilter}>
                 <SelectTrigger className="w-[150px]">
                   <SelectValue placeholder="Filter" />
@@ -763,9 +763,10 @@ export default function ExpensesPage() {
                 </SelectContent>
               </Select>
 
-              <Button onClick={() => openDialog()} size="sm">
+              <Button onClick={() => openDialog()} size="sm" className="w-full sm:w-auto">
                 <PlusCircle className="h-4 w-4 mr-2" />
-                Add Expense
+                <span className="hidden sm:inline">Add Expense</span>
+                <span className="sm:hidden">Add</span>
               </Button>
             </div>
           </div>

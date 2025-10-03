@@ -157,18 +157,18 @@ export default function HoldingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
             Investment Holdings
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
             {bucketFilter
               ? `Viewing ${BUCKET_LABELS[bucketFilter] || bucketFilter} holdings`
               : "Track your portfolio performance with detailed P&L analysis"}
           </p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
+        <Button onClick={() => setIsDialogOpen(true)} className="w-full sm:w-auto">
           <PlusCircle className="h-4 w-4 mr-2" />
           Add Holding
         </Button>
@@ -190,8 +190,8 @@ export default function HoldingsPage() {
             <CardContent>
               <div className="space-y-6">
                 {/* Main P&L Display */}
-                <div className="p-4 bg-gradient-to-r from-blue-50 to-white dark:from-blue-900/20 dark:to-gray-900 rounded-lg border-2 border-blue-200 dark:border-blue-800">
-                  <div className="grid md:grid-cols-3 gap-6">
+                <div className="p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-white dark:from-blue-900/20 dark:to-gray-900 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+                  <div className="grid gap-4 sm:gap-6 md:grid-cols-3">
                     {/* Total Invested */}
                     <div>
                       <div className="flex items-center space-x-2 mb-2">

@@ -172,16 +172,16 @@ export default function SIPsPage() {
   return (
     <div className="space-y-8 pb-8">
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-900 dark:to-indigo-900 -mx-6 md:-mx-8 -mt-20 px-6 md:px-8 pt-24 pb-8 mb-6">
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
           <div>
-            <h1 className="text-3xl font-bold text-white">SIP Management</h1>
-            <p className="text-blue-100 dark:text-blue-200 mt-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">SIP Management</h1>
+            <p className="text-sm sm:text-base text-blue-100 dark:text-blue-200 mt-2">
               Manage your systematic investment plans
             </p>
           </div>
           <Button
             onClick={() => router.push("/investments/sips/new")}
-            className="bg-white text-blue-600 hover:bg-blue-50"
+            className="bg-white text-blue-600 hover:bg-blue-50 w-full sm:w-auto"
           >
             <Plus className="mr-2 h-4 w-4" />
             Add New SIP

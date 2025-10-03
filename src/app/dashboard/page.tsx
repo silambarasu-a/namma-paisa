@@ -352,7 +352,7 @@ export default async function Dashboard({
             <div className="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400 break-words">
               ₹{expensesData.totalExpenses.toLocaleString('en-IN')}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">This month</p>
+            <p className="text-xs text-muted-foreground mt-1">₹{(financialSummary.availableForExpenses-expensesData.totalExpenses).toLocaleString('en-IN')} Remaining</p>
           </CardContent>
         </Card>
 
@@ -651,7 +651,7 @@ export default async function Dashboard({
                 {expensesData.expenses.map((expense) => (
                   <div key={expense.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm sm:text-base break-words">{expense.title}</p>
+                      <p className="font-semibold text-sm sm:text-base break-words text-blue-700 dark:text-blue-400">{expense.title}</p>
                       <div className="flex items-center gap-1.5 sm:gap-2 mt-1 flex-wrap">
                         <Badge variant={expense.expenseType === 'EXPECTED' ? 'secondary' : 'destructive'} className="text-xs">
                           {expense.expenseType}
@@ -663,7 +663,7 @@ export default async function Dashboard({
                       </div>
                     </div>
                     <div className="text-left sm:text-right shrink-0">
-                      <p className="font-bold text-sm sm:text-base break-words">₹{Number(expense.amount).toLocaleString('en-IN')}</p>
+                      <p className="font-bold text-base sm:text-lg break-words text-red-600 dark:text-red-400">₹{Number(expense.amount).toLocaleString('en-IN')}</p>
                     </div>
                   </div>
                 ))}
@@ -696,7 +696,7 @@ export default async function Dashboard({
                         </div>
                       </div>
                       <div className="text-left sm:text-right shrink-0">
-                        <p className="font-bold text-sm sm:text-base break-words">₹{Number(emi.emiAmount).toLocaleString('en-IN')}</p>
+                        <p className="font-bold text-base sm:text-lg break-words text-orange-600 dark:text-orange-400">₹{Number(emi.emiAmount).toLocaleString('en-IN')}</p>
                       </div>
                     </div>
                   ))

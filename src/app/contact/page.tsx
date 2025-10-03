@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner"
 import { Logo } from "@/components/icons/logo"
 import { Footer } from "@/components/layout/footer"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { Mail, MapPin, Phone, ArrowLeft } from "lucide-react"
 
 interface ContactInfo {
@@ -95,33 +96,36 @@ export default function ContactPage() {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
       <header className="border-b border-gray-200 dark:border-gray-800">
-        <nav className="container mx-auto px-6 py-4 flex justify-between items-center">
+        <nav className="container mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center space-x-2">
-            <Logo className="h-8 w-8" />
-            <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+            <Logo className="h-7 w-7 sm:h-8 sm:w-8" />
+            <span className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
               Namma Paisa
             </span>
           </Link>
-          <Link href="/">
-            <Button variant="ghost">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Home
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Link href="/">
+              <Button variant="ghost" size="sm" className="sm:size-default">
+                <ArrowLeft className="mr-0 sm:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Back to Home</span>
+              </Button>
+            </Link>
+          </div>
         </nav>
       </header>
 
       {/* Contact Content */}
-      <section className="container mx-auto px-6 py-12 md:py-20">
+      <section className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 md:py-20">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Get in Touch</h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300">
+          <div className="text-center mb-8 sm:mb-10 md:mb-12">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4">Get in Touch</h1>
+            <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 px-4">
               Have questions? We&apos;d love to hear from you. Send us a message and we&apos;ll respond as soon as possible.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
             {/* Contact Form */}
             <div className="md:col-span-2">
               <Card>
@@ -132,8 +136,8 @@ export default function ContactPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid md:grid-cols-2 gap-4">
+                  <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                    <div className="grid sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="name">Name *</Label>
                         <Input
@@ -195,21 +199,21 @@ export default function ContactPage() {
             </div>
 
             {/* Contact Information */}
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {(contactInfo.email || contactInfo.phone || contactInfo.location) && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Contact Information</CardTitle>
+                    <CardTitle className="text-base sm:text-lg">Contact Information</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-3 sm:space-y-4">
                     {contactInfo.email && (
                       <div className="flex items-start space-x-3">
-                        <Mail className="h-5 w-5 text-primary mt-1" />
-                        <div>
+                        <Mail className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
+                        <div className="min-w-0">
                           <p className="font-medium">Email</p>
                           <a
                             href={`mailto:${contactInfo.email}`}
-                            className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary transition-colors"
+                            className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary transition-colors break-all"
                           >
                             {contactInfo.email}
                           </a>
@@ -219,7 +223,7 @@ export default function ContactPage() {
 
                     {contactInfo.phone && (
                       <div className="flex items-start space-x-3">
-                        <Phone className="h-5 w-5 text-primary mt-1" />
+                        <Phone className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
                         <div>
                           <p className="font-medium">Phone</p>
                           <a
@@ -234,7 +238,7 @@ export default function ContactPage() {
 
                     {contactInfo.location && (
                       <div className="flex items-start space-x-3">
-                        <MapPin className="h-5 w-5 text-primary mt-1" />
+                        <MapPin className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
                         <div>
                           <p className="font-medium">Location</p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -248,9 +252,9 @@ export default function ContactPage() {
               )}
 
               <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-800">
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold mb-2">Quick Response</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                <CardContent className="pt-4 sm:pt-6">
+                  <h3 className="font-semibold mb-2 text-sm sm:text-base">Quick Response</h3>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                     We typically respond within 24 hours during business days.
                   </p>
                 </CardContent>
@@ -260,7 +264,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-      <div className="mt-12">
+      <div className="mt-8 sm:mt-12">
         <Footer />
       </div>
     </div>

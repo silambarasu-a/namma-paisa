@@ -50,6 +50,8 @@ export default function CustomersPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false)
+  const [userToBlock, setUserToBlock] = useState<{ id: string; isBlocked: boolean } | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
 
   // Form state
@@ -163,16 +165,23 @@ export default function CustomersPage() {
     }
   }
 
-  const handleToggleBlock = async (userId: string, currentBlockedStatus: boolean) => {
+  const openBlockDialog = (userId: string, isBlocked: boolean) => {
+    setUserToBlock({ id: userId, isBlocked })
+    setBlockDialogOpen(true)
+  }
+
+  const handleToggleBlock = async () => {
+    if (!userToBlock) return
+
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
+      const response = await fetch(`/api/admin/users/${userToBlock.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isBlocked: !currentBlockedStatus }),
+        body: JSON.stringify({ isBlocked: !userToBlock.isBlocked }),
       })
 
       if (response.ok) {
-        toast.success(currentBlockedStatus ? "User unblocked" : "User blocked")
+        toast.success(userToBlock.isBlocked ? "User unblocked" : "User blocked")
         loadUsers()
       } else {
         const data = await response.json()
@@ -180,6 +189,9 @@ export default function CustomersPage() {
       }
     } catch {
       toast.error("An error occurred")
+    } finally {
+      setBlockDialogOpen(false)
+      setUserToBlock(null)
     }
   }
 
@@ -212,21 +224,21 @@ export default function CustomersPage() {
   }
 
   return (
-    <div className="space-y-8 pb-8">
-      <div className="bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-900 dark:to-cyan-900 -mx-6 md:-mx-8 -mt-20 px-6 md:px-8 pt-24 pb-8 mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center space-x-3">
-              <Users className="h-8 w-8 text-white" />
-              <h1 className="text-3xl font-bold text-white">Customers</h1>
+    <div className="space-y-6 sm:space-y-8 pb-8">
+      <div className="bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-900 dark:to-cyan-900 -mx-4 sm:-mx-6 md:-mx-8 -mt-20 px-4 sm:px-6 md:px-8 pt-24 pb-6 sm:pb-8 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <Users className="h-6 w-6 sm:h-8 sm:w-8 text-white flex-shrink-0" />
+              <h1 className="text-2xl sm:text-3xl font-bold text-white truncate">Customers</h1>
             </div>
-            <p className="text-blue-100 dark:text-blue-200 mt-2">
+            <p className="text-sm sm:text-base text-blue-100 dark:text-blue-200 mt-1 sm:mt-2">
               Manage customer accounts and permissions
             </p>
           </div>
           <Button
             onClick={() => handleOpenDialog()}
-            className="bg-white text-blue-600 hover:bg-gray-100"
+            className="bg-white text-blue-600 hover:bg-gray-100 w-full sm:w-auto"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Customer
@@ -236,17 +248,17 @@ export default function CustomersPage() {
 
       <Card className="shadow-lg -mt-12">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4">
             <div>
-              <CardTitle>All Customers</CardTitle>
-              <CardDescription>Regular users with customer access and permissions</CardDescription>
+              <CardTitle className="text-lg sm:text-xl">All Customers</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Regular users with customer access and permissions</CardDescription>
             </div>
-            <div className="w-64">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <Input
                 placeholder="Search by name or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full"
+                className="w-full sm:flex-1 sm:max-w-md"
               />
             </div>
           </div>
@@ -254,22 +266,92 @@ export default function CustomersPage() {
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8">Loading...</div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Registered</TableHead>
-                    <TableHead>Last Accessed</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {customers.length > 0 ? (
-                    customers.map((user) => (
+          ) : customers.length > 0 ? (
+            <>
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-4">
+                {customers.map((user) => (
+                  <div key={user.id} className="p-4 border rounded-lg space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-sm break-all">{user.email}</p>
+                        <p className="text-sm text-muted-foreground">{user.name || "-"}</p>
+                      </div>
+                      {user.isBlocked ? (
+                        <Badge variant="destructive" className="flex items-center gap-1 flex-shrink-0">
+                          <Ban className="h-3 w-3" />
+                          Blocked
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="flex items-center gap-1 text-green-600 flex-shrink-0">
+                          <CheckCircle className="h-3 w-3" />
+                          Active
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <p>Registered: {new Date(user.createdAt).toLocaleDateString()}</p>
+                      <p>Last Access: {user.recentlyAccessedAt ? new Date(user.recentlyAccessedAt).toLocaleString() : "Never"}</p>
+                    </div>
+                    <div className="flex flex-col gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenDialog(user)}
+                        className="w-full"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit User
+                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openBlockDialog(user.id, user.isBlocked)}
+                          className={`flex-1 ${user.isBlocked ? "text-green-600" : "text-orange-600"}`}
+                        >
+                          {user.isBlocked ? (
+                            <>
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Unblock
+                            </>
+                          ) : (
+                            <>
+                              <Ban className="h-4 w-4 mr-2" />
+                              Block
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openDeleteDialog(user.id)}
+                          className="flex-1 text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Registered</TableHead>
+                      <TableHead>Last Accessed</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {customers.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell className="font-medium">{user.email}</TableCell>
                         <TableCell>{user.name || "-"}</TableCell>
@@ -300,14 +382,16 @@ export default function CustomersPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleOpenDialog(user)}
+                              title="Edit user"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleToggleBlock(user.id, user.isBlocked)}
+                              onClick={() => openBlockDialog(user.id, user.isBlocked)}
                               className={user.isBlocked ? "text-green-600" : "text-orange-600"}
+                              title={user.isBlocked ? "Unblock user" : "Block user"}
                             >
                               {user.isBlocked ? (
                                 <CheckCircle className="h-4 w-4" />
@@ -320,22 +404,21 @@ export default function CustomersPage() {
                               size="sm"
                               onClick={() => openDeleteDialog(user.id)}
                               className="text-red-600"
+                              title="Delete user"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        No customers found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No customers found
             </div>
           )}
         </CardContent>
@@ -343,10 +426,10 @@ export default function CustomersPage() {
 
       {/* Add/Edit User Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{isEditing ? "Edit Customer" : "Create New Customer"}</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm">
               {isEditing
                 ? "Update customer information"
                 : "Add a new customer to the system"}
@@ -463,6 +546,31 @@ export default function CustomersPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Block/Unblock Confirmation Dialog */}
+      <AlertDialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {userToBlock?.isBlocked ? "Unblock Customer" : "Block Customer"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {userToBlock?.isBlocked
+                ? "Are you sure you want to unblock this customer? They will regain access to their account."
+                : "Are you sure you want to block this customer? They will be unable to access their account."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleToggleBlock}
+              className={userToBlock?.isBlocked ? "bg-green-600 hover:bg-green-700" : "bg-orange-600 hover:bg-orange-700"}
+            >
+              {userToBlock?.isBlocked ? "Unblock Customer" : "Block Customer"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
