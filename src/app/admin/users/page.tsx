@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Edit, Trash2, Ban, CheckCircle, Shield, Mail, Loader2 } from "lucide-react"
+import { Plus, Edit, Trash2, Ban, CheckCircle, Shield, Mail } from "lucide-react"
 import { toast } from "sonner"
 import { Role, ROLE_LABELS, getRoleBadgeColor } from "@/constants"
 import {
