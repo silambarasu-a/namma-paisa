@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { useSession } from "next-auth/react"
 import { usePathname } from "next/navigation"
 import { Sidebar } from "./sidebar"
@@ -13,6 +14,7 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const { data: session, status } = useSession()
   const pathname = usePathname()
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   // Don't show layout for auth pages and landing page
   if (pathname.startsWith("/auth") || pathname === "/unauthorized" || pathname === "/" || pathname === "/contact") {
@@ -35,11 +37,11 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="flex flex-1">
-        <Sidebar />
-        <div className="flex flex-col flex-1">
-          <Header />
-          <main className="p-6 md:p-8 flex-1">
+      <div className="flex flex-1 overflow-x-hidden">
+        <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+        <div className="flex flex-col flex-1 min-w-0">
+          <Header onMenuClick={() => setIsSidebarOpen(true)} />
+          <main className="p-4 md:p-8 flex-1 overflow-x-hidden">
             {children}
           </main>
         </div>

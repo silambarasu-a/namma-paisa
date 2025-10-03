@@ -142,7 +142,7 @@ export default function ExpenseReportsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Calendar className="h-5 w-5 text-gray-500" />
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
             <SelectTrigger className="w-[140px]">
@@ -297,7 +297,7 @@ export default function ExpenseReportsPage() {
             </CardHeader>
             <CardContent>
               {expenses.length > 0 ? (
-                <div className="rounded-md border">
+                <div className="overflow-x-auto rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow>

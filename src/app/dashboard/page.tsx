@@ -1,7 +1,7 @@
 import { Metadata } from "next"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { requireAuth } from "@/lib/authz"
+import { requireCustomerAccess } from "@/lib/authz"
 import { prisma } from "@/lib/prisma"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -225,7 +225,7 @@ export default async function Dashboard({
   searchParams: Promise<{ month?: string; year?: string }>
 }) {
   const session = await getServerSession(authOptions)
-  requireAuth(session)
+  requireCustomerAccess(session)
 
   const userId = session!.user.id
   const params = await searchParams
@@ -270,48 +270,52 @@ export default async function Dashboard({
 
   return (
     <div className="space-y-8 pb-8">
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-900 dark:to-indigo-900 -mx-6 md:-mx-8 -mt-20 px-6 md:px-8 pt-24 pb-8 mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-white">
-              Dashboard
-            </h1>
-            <p className="text-blue-100 dark:text-blue-200 mt-2">
-              Complete overview of your financial pipeline - {monthName} {selectedYear}
-            </p>
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-900 dark:to-indigo-900 -mx-4 md:-mx-8 -mt-20 px-4 md:px-8 pt-24 pb-6 md:pb-8 mb-6">
+        <div className="flex flex-col gap-3 md:gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl md:text-3xl font-bold text-white">
+                Dashboard
+              </h1>
+              <p className="text-sm md:text-base text-blue-100 dark:text-blue-200 mt-1 md:mt-2 break-words">
+                Financial overview - {monthName} {selectedYear}
+              </p>
+            </div>
+            <div className="shrink-0">
+              <DashboardFilter />
+            </div>
           </div>
-          <DashboardFilter />
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5 -mt-12">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 -mt-12">
         <Card className="shadow-lg hover:shadow-xl transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Income ({new Date(selectedYear, selectedMonth - 1).toLocaleString('en-IN', { month: 'short' })})</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-              <IndianRupee className="h-5 w-5 text-green-600 dark:text-green-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 pt-0 sm:p-4 sm:pt-0">
+            <CardTitle className="text-xs sm:text-sm font-medium">Income ({new Date(selectedYear, selectedMonth - 1).toLocaleString('en-IN', { month: 'short' })})</CardTitle>
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
+              <IndianRupee className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 dark:text-green-400" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+          <CardContent className="p-3 pb-0 pt-0 sm:p-4 sm:py-0">
+            <div className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400 break-words">
               {totalIncome > 0 ? `₹${totalIncome.toLocaleString('en-IN')}` : 'Not set'}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1 break-words">
               {additionalIncome.count > 0 ? `Salary: ₹${salary.toLocaleString('en-IN')} + ₹${additionalIncome.totalIncome.toLocaleString('en-IN')} other` : 'Monthly income'}
             </p>
           </CardContent>
         </Card>
 
         <Card className="shadow-lg hover:shadow-xl transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Loans</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-              <Wallet className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 pt-0 sm:p-4 sm:pt-0">
+            <CardTitle className="text-xs sm:text-sm font-medium">Active Loans</CardTitle>
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
+              <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 dark:text-orange-400" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+          <CardContent className="p-3 pb-0 pt-0 sm:p-4 sm:py-0">
+            <div className="text-xl sm:text-2xl font-bold text-orange-600 dark:text-orange-400 break-words">
               ₹{loansData.totalEMI.toLocaleString('en-IN')}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -321,14 +325,14 @@ export default async function Dashboard({
         </Card>
 
         <Card className="shadow-lg hover:shadow-xl transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active SIPs</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-              <Repeat className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 pt-0 sm:p-4 sm:pt-0">
+            <CardTitle className="text-xs sm:text-sm font-medium">Active SIPs</CardTitle>
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center shrink-0">
+              <Repeat className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+          <CardContent className="p-3 pb-0 pt-0 sm:p-4 sm:py-0">
+            <div className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400 break-words">
               ₹{sipsData.totalAmount.toLocaleString('en-IN')}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -338,36 +342,36 @@ export default async function Dashboard({
         </Card>
 
         <Card className="shadow-lg hover:shadow-xl transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-              <Receipt className="h-5 w-5 text-red-600 dark:text-red-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 pt-0 sm:p-4 sm:pt-0">
+            <CardTitle className="text-xs sm:text-sm font-medium">Total Expenses</CardTitle>
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
+              <Receipt className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 dark:text-red-400" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+          <CardContent className="p-3 pb-0 pt-0 sm:p-4 sm:py-0">
+            <div className="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400 break-words">
               ₹{expensesData.totalExpenses.toLocaleString('en-IN')}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">This month</p>
+            <p className="text-xs text-muted-foreground mt-1">₹{(financialSummary.availableForExpenses-expensesData.totalExpenses).toLocaleString('en-IN')} Remaining</p>
           </CardContent>
         </Card>
 
         <Card className="shadow-lg hover:shadow-xl transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Surplus</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 pt-0 sm:p-4 sm:pt-0">
+            <CardTitle className="text-xs sm:text-sm font-medium">Surplus</CardTitle>
             <div className={cn(
-              "h-10 w-10 rounded-full flex items-center justify-center",
+              "h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center shrink-0",
               surplus >= 0 ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-red-100 dark:bg-red-900/30"
             )}>
               <TrendingUp className={cn(
-                "h-5 w-5",
+                "h-4 w-4 sm:h-5 sm:w-5",
                 surplus >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
               )} />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 pb-0 pt-0 sm:p-4 sm:py-0">
             <div className={cn(
-              "text-2xl font-bold",
+              "text-xl sm:text-2xl font-bold break-words",
               surplus >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
             )}>
               {surplus >= 0 ? '+' : ''}₹{surplus.toLocaleString('en-IN')}
@@ -379,29 +383,29 @@ export default async function Dashboard({
 
       {/* Salary Flow Pipeline */}
       <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle>Salary Flow Pipeline</CardTitle>
-          <CardDescription>
+        <CardHeader className="p-4 sm:px-6 sm:py-0">
+          <CardTitle className="text-lg sm:text-xl">Salary Flow Pipeline</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
             Complete breakdown of how your salary is distributed
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+        <CardContent className="p-4 sm:p-6">
+          <div className="space-y-3 sm:space-y-4">
             {/* Income */}
-            <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border-l-4 border-green-500">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <IndianRupee className="h-5 w-5 text-green-600 dark:text-green-400" />
-                  <h3 className="font-semibold text-lg">Income ({new Date(selectedYear, selectedMonth - 1).toLocaleString('en-IN', { month: 'short' })})</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border-l-4 border-green-500">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <IndianRupee className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 dark:text-green-400 shrink-0" />
+                  <h3 className="font-semibold text-base sm:text-lg">Income ({new Date(selectedYear, selectedMonth - 1).toLocaleString('en-IN', { month: 'short' })})</h3>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">Your monthly income</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">Your monthly income</p>
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+              <div className="text-left sm:text-right shrink-0">
+                <div className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400 break-words">
                   ₹{totalIncome.toLocaleString('en-IN')}
                 </div>
                 {additionalIncome.count > 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-1 break-words">
                     Salary ₹{salary.toLocaleString('en-IN')} + Other ₹{additionalIncome.totalIncome.toLocaleString('en-IN')}
                   </p>
                 )}
@@ -409,164 +413,166 @@ export default async function Dashboard({
             </div>
 
             <div className="flex items-center justify-center">
-              <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90" />
+              <ArrowRight className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground rotate-90" />
             </div>
 
             {/* Tax Deduction */}
-            <div className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border-l-4 border-red-500">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <Calculator className="h-5 w-5 text-red-600 dark:text-red-400" />
-                  <h3 className="font-semibold text-lg">Tax Deduction</h3>
-                  <Badge variant="destructive">{taxPercentage.toFixed(1)}%</Badge>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border-l-4 border-red-500">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Calculator className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 dark:text-red-400 shrink-0" />
+                  <h3 className="font-semibold text-base sm:text-lg">Tax Deduction</h3>
+                  <Badge variant="destructive" className="text-xs">{taxPercentage.toFixed(1)}%</Badge>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">Tax savings and deductions</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">Tax savings and deductions</p>
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+              <div className="text-left sm:text-right shrink-0">
+                <div className="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400 break-words">
                   -₹{taxAmount.toLocaleString('en-IN')}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground mt-1 break-words">
                   Remaining: ₹{afterTax.toLocaleString('en-IN')}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center justify-center">
-              <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90" />
+              <ArrowRight className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground rotate-90" />
             </div>
 
             {/* Loans */}
-            <div className="flex items-center justify-between p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border-l-4 border-orange-500">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <Wallet className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                  <h3 className="font-semibold text-lg">Loan EMIs</h3>
-                  <Badge variant="secondary">{loansData.count} active</Badge>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border-l-4 border-orange-500">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 dark:text-orange-400 shrink-0" />
+                  <h3 className="font-semibold text-base sm:text-lg">Loan EMIs</h3>
+                  <Badge variant="secondary" className="text-xs">{loansData.count} active</Badge>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">Monthly loan payments</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">Monthly loan payments</p>
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+              <div className="text-left sm:text-right shrink-0">
+                <div className="text-xl sm:text-2xl font-bold text-orange-600 dark:text-orange-400 break-words">
                   -₹{loansData.totalEMI.toLocaleString('en-IN')}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground mt-1 break-words">
                   Remaining: ₹{afterLoans.toLocaleString('en-IN')}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center justify-center">
-              <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90" />
+              <ArrowRight className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground rotate-90" />
             </div>
 
             {/* SIPs */}
-            <div className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border-l-4 border-purple-500">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <Repeat className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                  <h3 className="font-semibold text-lg">Active SIPs</h3>
-                  <Badge variant="secondary">{sipsData.count} active</Badge>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border-l-4 border-purple-500">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Repeat className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400 shrink-0" />
+                  <h3 className="font-semibold text-base sm:text-lg">Active SIPs</h3>
+                  <Badge variant="secondary" className="text-xs">{sipsData.count} active</Badge>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">Systematic investment plans</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">Systematic investment plans</p>
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+              <div className="text-left sm:text-right shrink-0">
+                <div className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400 break-words">
                   -₹{sipsData.totalAmount.toLocaleString('en-IN')}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground mt-1 break-words">
                   Remaining: ₹{afterSIPs.toLocaleString('en-IN')}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center justify-center">
-              <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90" />
+              <ArrowRight className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground rotate-90" />
             </div>
 
             {/* Available for Expenses & Investment */}
-            <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  <h3 className="font-semibold text-lg">Available After Deductions</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <h3 className="font-semibold text-base sm:text-lg">Available After Deductions</h3>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                   For expenses and investments
                 </p>
               </div>
-              <div className="text-right">
-                <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+              <div className="text-left sm:text-right shrink-0">
+                <div className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400 break-words">
                   ₹{financialSummary.availableSurplus.toLocaleString('en-IN')}
                 </div>
               </div>
             </div>
 
             <div className="flex items-center justify-center">
-              <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90" />
+              <ArrowRight className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground rotate-90" />
             </div>
 
             {/* Budget for Expenses */}
-            <div className="flex items-center justify-between p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border-l-4 border-yellow-500">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <Receipt className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-                  <h3 className="font-semibold text-lg">Available for Expenses</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border-l-4 border-yellow-500">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Receipt className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600 dark:text-yellow-400 shrink-0" />
+                  <h3 className="font-semibold text-base sm:text-lg">Available for Expenses</h3>
                   {financialSummary.isUsingBudget && (
                     <Badge variant="secondary" className="text-xs">Budgeted</Badge>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 break-words">
                   {financialSummary.isUsingBudget
                     ? `Expected: ₹${financialSummary.expectedBudget.toLocaleString('en-IN')} + Unexpected: ₹${financialSummary.unexpectedBudget.toLocaleString('en-IN')}`
                     : 'No budget set - using available surplus'}
                 </p>
               </div>
-              <div className="text-right">
-                <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
+              <div className="text-left sm:text-right shrink-0">
+                <div className="text-lg sm:text-xl font-bold text-yellow-600 dark:text-yellow-400 break-words">
                   ₹{financialSummary.availableForExpenses.toLocaleString('en-IN')}
                 </div>
               </div>
             </div>
 
             <div className="flex items-center justify-center">
-              <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90" />
+              <ArrowRight className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground rotate-90" />
             </div>
 
             {/* Investment Allocation */}
             {hasAllocations ? (
-              <div className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border-l-4 border-purple-500">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <PieChart className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                    <h3 className="font-semibold text-lg">Available for Investment</h3>
-                    <Badge variant="secondary" className="text-xs">Allocated</Badge>
+              <div className="flex flex-col gap-3 p-3 sm:p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border-l-4 border-purple-500">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <PieChart className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400 shrink-0" />
+                      <h3 className="font-semibold text-base sm:text-lg">Available for Investment</h3>
+                      <Badge variant="secondary" className="text-xs">Allocated</Badge>
+                    </div>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                      Allocated across {allocations.length} bucket{allocations.length !== 1 ? 's' : ''}
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Allocated across {allocations.length} bucket{allocations.length !== 1 ? 's' : ''}
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {financialSummary.investmentAllocationBreakdown.map((alloc) => (
-                      <Badge key={alloc.bucket} variant="outline" className="text-xs">
-                        {alloc.bucket.replace(/_/g, ' ')}: ₹{alloc.amount.toLocaleString('en-IN')}
-                      </Badge>
-                    ))}
+                  <div className="text-left sm:text-right shrink-0">
+                    <div className="text-lg sm:text-xl font-bold text-purple-600 dark:text-purple-400 break-words">
+                      ₹{financialSummary.availableForInvestment.toLocaleString('en-IN')}
+                    </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-xl font-bold text-purple-600 dark:text-purple-400">
-                    ₹{financialSummary.availableForInvestment.toLocaleString('en-IN')}
-                  </div>
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                  {financialSummary.investmentAllocationBreakdown.map((alloc) => (
+                    <Badge key={alloc.bucket} variant="outline" className="text-xs">
+                      {alloc.bucket.replace(/_/g, ' ')}: ₹{alloc.amount.toLocaleString('en-IN')}
+                    </Badge>
+                  ))}
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg border-l-4 border-gray-400">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <h3 className="font-semibold text-lg text-gray-600 dark:text-gray-400">Available for Investment</h3>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg border-l-4 border-gray-400">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-400 shrink-0" />
+                    <h3 className="font-semibold text-base sm:text-lg text-gray-600 dark:text-gray-400">Available for Investment</h3>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1 break-words">
                     No allocation set - ₹{financialSummary.availableForInvestment.toLocaleString('en-IN')} available from surplus
                   </p>
                 </div>
@@ -574,54 +580,54 @@ export default async function Dashboard({
             )}
 
             <div className="flex items-center justify-center">
-              <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90" />
+              <ArrowRight className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground rotate-90" />
             </div>
 
             {/* Expenses */}
-            <div className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border-l-4 border-red-500">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <Receipt className="h-5 w-5 text-red-600 dark:text-red-400" />
-                  <h3 className="font-semibold text-lg">Total Expenses</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border-l-4 border-red-500">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Receipt className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 dark:text-red-400 shrink-0" />
+                  <h3 className="font-semibold text-base sm:text-lg">Total Expenses</h3>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">Monthly spending</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">Monthly spending</p>
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+              <div className="text-left sm:text-right shrink-0">
+                <div className="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400 break-words">
                   -₹{expensesData.totalExpenses.toLocaleString('en-IN')}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground mt-1 break-words">
                   Remaining: ₹{(afterSIPs - expensesData.totalExpenses).toLocaleString('en-IN')}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center justify-center">
-              <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90" />
+              <ArrowRight className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground rotate-90" />
             </div>
 
             {/* Surplus */}
             <div className={cn(
-              "flex items-center justify-between p-4 rounded-lg border-l-4",
+              "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 rounded-lg border-l-4",
               surplus >= 0
                 ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500"
                 : "bg-red-50 dark:bg-red-900/20 border-red-500"
             )}>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
                   <TrendingUp className={cn(
-                    "h-5 w-5",
+                    "h-4 w-4 sm:h-5 sm:w-5 shrink-0",
                     surplus >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
                   )} />
-                  <h3 className="font-semibold text-lg">Month Surplus</h3>
+                  <h3 className="font-semibold text-base sm:text-lg">Month Surplus</h3>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                   {surplus >= 0 ? 'Savings for the month' : 'Deficit for the month'}
                 </p>
               </div>
-              <div className="text-right">
+              <div className="text-left sm:text-right shrink-0">
                 <div className={cn(
-                  "text-2xl font-bold",
+                  "text-xl sm:text-2xl font-bold break-words",
                   surplus >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
                 )}>
                   {surplus >= 0 ? '+' : ''}₹{surplus.toLocaleString('en-IN')}
@@ -632,72 +638,72 @@ export default async function Dashboard({
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
         {/* Recent Expenses */}
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle>Recent Expenses</CardTitle>
-            <CardDescription>Last 5 expenses for {monthName} {selectedYear}</CardDescription>
+        <Card className="shadow-lg py-1 gap-0">
+          <CardHeader className="p-4 pb-0 sm:p-6 sm:pb-0">
+            <CardTitle className="text-lg sm:text-xl">Recent Expenses</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Last 5 expenses for {monthName} {selectedYear}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6">
             {expensesData.expenses.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {expensesData.expenses.map((expense) => (
-                  <div key={expense.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
-                    <div>
-                      <p className="font-medium">{expense.title}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant={expense.expenseType === 'EXPECTED' ? 'secondary' : 'destructive'}>
+                  <div key={expense.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm sm:text-base break-words text-blue-700 dark:text-blue-400">{expense.title}</p>
+                      <div className="flex items-center gap-1.5 sm:gap-2 mt-1 flex-wrap">
+                        <Badge variant={expense.expenseType === 'EXPECTED' ? 'secondary' : 'destructive'} className="text-xs">
                           {expense.expenseType}
                         </Badge>
-                        <Badge variant="outline">{expense.category}</Badge>
+                        <Badge variant="outline" className="text-xs">{expense.category}</Badge>
                         <p className="text-xs text-muted-foreground">
                           {new Date(expense.date).toLocaleDateString('en-IN')}
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold">₹{Number(expense.amount).toLocaleString('en-IN')}</p>
+                    <div className="text-left sm:text-right shrink-0">
+                      <p className="font-bold text-base sm:text-lg break-words text-red-600 dark:text-red-400">₹{Number(expense.amount).toLocaleString('en-IN')}</p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-center text-muted-foreground py-8">No expenses recorded yet</p>
+              <p className="text-center text-muted-foreground py-8 text-sm">No expenses recorded yet</p>
             )}
           </CardContent>
         </Card>
 
         {/* Upcoming EMIs */}
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle>Upcoming EMI Payments</CardTitle>
-            <CardDescription>Next 3 unpaid EMIs across all loans</CardDescription>
+        <Card className="shadow-lg py-0 gap-0">
+          <CardHeader className="p-4 pb-0 sm:p-6 sm:pb-0">
+            <CardTitle className="text-lg sm:text-xl">Upcoming EMI Payments</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Next 3 unpaid EMIs across all loans</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6">
             {loansData.loans.length > 0 && loansData.loans.some(loan => loan.emis.length > 0) ? (
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {loansData.loans.map((loan) =>
                   loan.emis.slice(0, 3).map((emi) => (
-                    <div key={emi.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
-                      <div>
-                        <p className="font-medium">{loan.loanType.replace('_', ' ')}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <p className="text-xs text-muted-foreground">{loan.institution}</p>
+                    <div key={emi.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm sm:text-base break-words">{loan.loanType.replace('_', ' ')}</p>
+                        <div className="flex items-center gap-1.5 sm:gap-2 mt-1 flex-wrap">
+                          <p className="text-xs text-muted-foreground break-words">{loan.institution}</p>
                           <p className="text-xs text-muted-foreground">
                             Due: {new Date(emi.dueDate).toLocaleDateString('en-IN')}
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold">₹{Number(emi.emiAmount).toLocaleString('en-IN')}</p>
+                      <div className="text-left sm:text-right shrink-0">
+                        <p className="font-bold text-base sm:text-lg break-words text-orange-600 dark:text-orange-400">₹{Number(emi.emiAmount).toLocaleString('en-IN')}</p>
                       </div>
                     </div>
                   ))
                 )}
               </div>
             ) : (
-              <p className="text-center text-muted-foreground py-8">No active loans</p>
+              <p className="text-center text-muted-foreground py-8 text-sm">No active loans</p>
             )}
           </CardContent>
         </Card>

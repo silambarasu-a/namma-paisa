@@ -85,14 +85,14 @@ export default function LoansPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Loans</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             Manage your loans and track EMI payments
           </p>
         </div>
-        <Button onClick={() => router.push("/loans/new")}>
+        <Button onClick={() => router.push("/loans/new")} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Add New Loan
         </Button>
@@ -119,9 +119,9 @@ export default function LoansPage() {
           {loans.map((loan) => (
             <Card key={loan.id} className="overflow-hidden">
               <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                       <CardTitle className="text-xl">
                         {getLoanTypeLabel(loan.loanType)}
                       </CardTitle>
@@ -139,22 +139,24 @@ export default function LoansPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => router.push(`/loans/${loan.id}/edit`)}
+                      className="flex-1 sm:flex-initial"
                     >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
+                      <Edit className="h-4 w-4 sm:mr-1" />
+                      <span className="hidden sm:inline">Edit</span>
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleDelete(loan.id)}
                       disabled={deletingId === loan.id}
+                      className="flex-1 sm:flex-initial"
                     >
                       {deletingId === loan.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <>
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Delete
+                          <Trash2 className="h-4 w-4 sm:mr-1" />
+                          <span className="hidden sm:inline">Delete</span>
                         </>
                       )}
                     </Button>
@@ -162,36 +164,36 @@ export default function LoansPage() {
                 </div>
               </CardHeader>
               <CardContent className="pt-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+                <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-4 mb-6">
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">
                       Principal Amount
                     </p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                    <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                       ₹{loan.principalAmount.toLocaleString()}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">
                       EMI Amount
                     </p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                    <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                       ₹{loan.emiAmount.toLocaleString()}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">
                       Outstanding
                     </p>
-                    <p className="text-lg font-semibold text-red-600 dark:text-red-400">
+                    <p className="text-base sm:text-lg font-semibold text-red-600 dark:text-red-400">
                       ₹{loan.currentOutstanding.toLocaleString()}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">
                       Interest Rate
                     </p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                    <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                       {loan.interestRate}%
                     </p>
                   </div>
@@ -207,7 +209,7 @@ export default function LoansPage() {
                       {getUpcomingEMIs(loan.emis).map((emi) => (
                         <div
                           key={emi.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                          className="flex flex-col gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg sm:flex-row sm:items-center sm:justify-between"
                         >
                           <div className="flex items-center gap-3">
                             <IndianRupee className="h-4 w-4 text-gray-500" />
@@ -228,8 +230,8 @@ export default function LoansPage() {
                 )}
 
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-4">
+                  <div className="flex flex-col gap-2 text-xs sm:text-sm sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
                       <span className="text-gray-600 dark:text-gray-400">
                         Tenure: <span className="font-medium text-gray-900 dark:text-white">{loan.tenure} months</span>
                       </span>

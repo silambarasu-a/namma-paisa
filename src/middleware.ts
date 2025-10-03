@@ -4,11 +4,21 @@ import { Role } from "@/constants"
 
 export default withAuth(
   function middleware(req) {
+    const roles = req.nextauth.token?.roles as string[] || []
+
     // Check if accessing admin routes
     if (req.nextUrl.pathname.startsWith("/admin")) {
-      if (!req.nextauth.token?.roles?.includes(Role.SUPER_ADMIN)) {
+      if (!roles.includes(Role.SUPER_ADMIN)) {
         return NextResponse.rewrite(new URL("/unauthorized", req.url))
       }
+    }
+
+    // Check if super_admin without CUSTOMER role is trying to access customer routes
+    const customerRoutes = ["/dashboard", "/profile", "/income", "/tax", "/loans", "/investments", "/expenses", "/credit-cards", "/monthly-snapshot"]
+    const isCustomerRoute = customerRoutes.some(route => req.nextUrl.pathname.startsWith(route))
+
+    if (isCustomerRoute && roles.includes(Role.SUPER_ADMIN) && !roles.includes(Role.CUSTOMER)) {
+      return NextResponse.redirect(new URL("/admin", req.url))
     }
 
     // All other protected routes require authentication

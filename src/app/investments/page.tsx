@@ -200,7 +200,7 @@ export default function InvestmentsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Calendar className="h-5 w-5 text-gray-500" />
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
             <SelectTrigger className="w-[140px]">
@@ -245,55 +245,55 @@ export default function InvestmentsPage() {
           <div className="space-y-6">
             {/* Investment Overview Cards */}
             {calculateData && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
                 {/* Total Amount (After Tax & Loans) */}
-                <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-900/20 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+                <div className="p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-900/20 rounded-lg border-2 border-blue-200 dark:border-blue-800">
                   <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">
                     Total Amount
                   </p>
                   <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">
                     After Tax & Loans
                   </p>
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  <p className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
                     ₹{calculateData.availableForInvestment.toLocaleString()}
                   </p>
                 </div>
 
                 {/* Total Allocated */}
-                <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-900/20 rounded-lg border-2 border-purple-200 dark:border-purple-800">
+                <div className="p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-900/20 rounded-lg border-2 border-purple-200 dark:border-purple-800">
                   <p className="text-xs font-medium text-purple-700 dark:text-purple-300 mb-1">
                     Total Allocated
                   </p>
                   <p className="text-xs text-purple-600 dark:text-purple-400 mb-2">
                     {hasAllocations ? 'To Buckets' : 'Not Set'}
                   </p>
-                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                  <p className="text-lg sm:text-2xl font-bold text-purple-600 dark:text-purple-400">
                     ₹{calculateTotalAllocated().toLocaleString()}
                   </p>
                 </div>
 
                 {/* Current Month Investment (SIPs) */}
-                <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-900/20 rounded-lg border-2 border-orange-200 dark:border-orange-800">
+                <div className="p-3 sm:p-4 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-900/20 rounded-lg border-2 border-orange-200 dark:border-orange-800">
                   <p className="text-xs font-medium text-orange-700 dark:text-orange-300 mb-1">
                     This Month SIPs
                   </p>
                   <p className="text-xs text-orange-600 dark:text-orange-400 mb-2">
                     {calculateData.sipCount} Active
                   </p>
-                  <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                  <p className="text-lg sm:text-2xl font-bold text-orange-600 dark:text-orange-400">
                     ₹{calculateData.totalSIPAmount.toLocaleString()}
                   </p>
                 </div>
 
                 {/* Remaining for Investment */}
-                <div className={`p-4 bg-gradient-to-br ${calculateRemainingForInvestment() >= 0 ? 'from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-900/20' : 'from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-900/20'} rounded-lg border-2 ${calculateRemainingForInvestment() >= 0 ? 'border-green-200 dark:border-green-800' : 'border-red-200 dark:border-red-800'}`}>
+                <div className={`p-3 sm:p-4 bg-gradient-to-br ${calculateRemainingForInvestment() >= 0 ? 'from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-900/20' : 'from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-900/20'} rounded-lg border-2 ${calculateRemainingForInvestment() >= 0 ? 'border-green-200 dark:border-green-800' : 'border-red-200 dark:border-red-800'}`}>
                   <p className={`text-xs font-medium ${calculateRemainingForInvestment() >= 0 ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'} mb-1`}>
                     Remaining
                   </p>
                   <p className={`text-xs ${calculateRemainingForInvestment() >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} mb-2`}>
                     {calculateRemainingForInvestment() >= 0 ? 'Unallocated' : 'Over Allocated'}
                   </p>
-                  <p className={`text-2xl font-bold ${calculateRemainingForInvestment() >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  <p className={`text-lg sm:text-2xl font-bold ${calculateRemainingForInvestment() >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     ₹{calculateRemainingForInvestment().toLocaleString()}
                   </p>
                 </div>
@@ -332,7 +332,7 @@ export default function InvestmentsPage() {
             {hasAllocations && calculateData && (
               <div>
                 <h4 className="text-sm font-semibold mb-3">Bucket Allocations</h4>
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2">
                   {allocations.map((allocation) => {
                     const allocatedAmount = calculateBucketAmount(allocation)
                     const bucketSIPs = calculateData.sipsByBucket?.[allocation.bucket]
@@ -406,7 +406,7 @@ export default function InvestmentsPage() {
             {calculateData && (
               <div className="pt-4 border-t">
                 <h4 className="text-sm font-semibold mb-3">Monthly Cash Flow</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
                   <div>
                     <p className="text-xs text-gray-600 dark:text-gray-400">Gross Income</p>
                     <p className="text-sm font-semibold">₹{calculateData.grossIncome.toLocaleString()}</p>
@@ -608,10 +608,10 @@ export default function InvestmentsPage() {
                 .map((sip) => (
                 <div
                   key={sip.id}
-                  className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800"
+                  className="flex flex-col gap-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       <p className="font-medium text-sm">{sip.name}</p>
                       <Badge className={BUCKET_COLORS[sip.bucket]} variant="secondary">
                         {BUCKET_LABELS[sip.bucket]}
@@ -621,7 +621,7 @@ export default function InvestmentsPage() {
                       Starts: {sip.startDate ? new Date(sip.startDate).toLocaleDateString() : 'N/A'}
                     </p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-left sm:text-right">
                     <p className="font-bold text-orange-600 dark:text-orange-400">
                       ₹{Number(sip.amount).toLocaleString()}
                     </p>

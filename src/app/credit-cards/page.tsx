@@ -168,15 +168,15 @@ export default function CreditCardsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Credit Cards</h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Credit Cards</h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
             Manage your credit cards and billing cycles
           </p>
         </div>
-        <Button onClick={() => handleOpenDialog()}>
+        <Button onClick={() => handleOpenDialog()} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Add Card
         </Button>
@@ -186,47 +186,47 @@ export default function CreditCardsPage() {
         <div className="text-center py-12">Loading...</div>
       ) : cards.length === 0 ? (
         <Card>
-          <CardContent className="p-12 text-center">
-            <CardIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No credit cards</h3>
-            <p className="text-muted-foreground mb-4">
+          <CardContent className="p-6 sm:p-12 text-center">
+            <CardIcon className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-base sm:text-lg font-semibold mb-2">No credit cards</h3>
+            <p className="text-sm sm:text-base text-muted-foreground mb-4">
               Add your first credit card to track expenses
             </p>
-            <Button onClick={() => handleOpenDialog()}>
+            <Button onClick={() => handleOpenDialog()} className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Add Card
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((card) => (
             <Card key={card.id} className={!card.isActive ? "opacity-60" : ""}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-2">
-                    <CardIcon className="h-5 w-5" />
-                    <CardTitle className="text-lg">{card.bank}</CardTitle>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center space-x-2 min-w-0">
+                    <CardIcon className="h-5 w-5 flex-shrink-0" />
+                    <CardTitle className="text-base sm:text-lg truncate">{card.bank}</CardTitle>
                   </div>
-                  {!card.isActive && <Badge variant="secondary">Inactive</Badge>}
+                  {!card.isActive && <Badge variant="secondary" className="flex-shrink-0">Inactive</Badge>}
                 </div>
-                <CardDescription>{card.cardName}</CardDescription>
+                <CardDescription className="truncate">{card.cardName}</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-3">
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Card Number</span>
+                  <div className="flex items-center justify-between text-sm gap-2">
+                    <span className="text-muted-foreground flex-shrink-0">Card Number</span>
                     <span className="font-mono">•••• {card.lastFourDigits}</span>
                   </div>
                   {card.cardNetwork && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Network</span>
-                      <span>{card.cardNetwork}</span>
+                    <div className="flex items-center justify-between text-sm gap-2">
+                      <span className="text-muted-foreground flex-shrink-0">Network</span>
+                      <span className="truncate">{card.cardNetwork}</span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Billing Cycle</span>
-                    <span className="flex items-center">
+                  <div className="flex items-center justify-between text-sm gap-2">
+                    <span className="text-muted-foreground flex-shrink-0">Billing Cycle</span>
+                    <span className="flex items-center flex-shrink-0">
                       <Calendar className="h-3 w-3 mr-1" />
                       {card.billingCycle}
                       {card.billingCycle === 1 || card.billingCycle === 21 || card.billingCycle === 31
@@ -239,9 +239,9 @@ export default function CreditCardsPage() {
                       of month
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Payment Due</span>
-                    <span className="flex items-center">
+                  <div className="flex items-center justify-between text-sm gap-2">
+                    <span className="text-muted-foreground flex-shrink-0">Payment Due</span>
+                    <span className="flex items-center flex-shrink-0">
                       <Calendar className="h-3 w-3 mr-1" />
                       {card.dueDate}
                       {card.dueDate === 1 || card.dueDate === 21 || card.dueDate === 31
@@ -255,20 +255,20 @@ export default function CreditCardsPage() {
                     </span>
                   </div>
                   {card.cardLimit != null && card.cardLimit > 0 && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Limit</span>
-                      <span>₹{card.cardLimit.toLocaleString()}</span>
+                    <div className="flex items-center justify-between text-sm gap-2">
+                      <span className="text-muted-foreground flex-shrink-0">Limit</span>
+                      <span className="truncate">₹{card.cardLimit.toLocaleString()}</span>
                     </div>
                   )}
                 </div>
-                <div className="flex space-x-2 mt-4">
+                <div className="flex gap-2 mt-4">
                   <Button
                     variant="outline"
                     size="sm"
                     className="flex-1"
                     onClick={() => handleOpenDialog(card)}
                   >
-                    <Edit className="h-3 w-3 mr-1" />
+                    <Edit className="h-4 w-4 mr-2" />
                     Edit
                   </Button>
                   <Button
@@ -277,7 +277,7 @@ export default function CreditCardsPage() {
                     className="flex-1 text-red-600 hover:text-red-700"
                     onClick={() => openDeleteDialog(card.id)}
                   >
-                    <Trash2 className="h-3 w-3 mr-1" />
+                    <Trash2 className="h-4 w-4 mr-2" />
                     Delete
                   </Button>
                 </div>
@@ -288,7 +288,7 @@ export default function CreditCardsPage() {
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{isEditing ? "Edit" : "Add"} Credit Card</DialogTitle>
             <DialogDescription>
@@ -307,7 +307,7 @@ export default function CreditCardsPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="bank">Bank *</Label>
                 <Input
@@ -332,9 +332,9 @@ export default function CreditCardsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
               <div className="space-y-2">
-                <Label htmlFor="billingCycle">Billing Day *</Label>
+                <Label htmlFor="billingCycle" className="text-xs sm:text-sm">Billing Day *</Label>
                 <Select value={billingCycle} onValueChange={setBillingCycle}>
                   <SelectTrigger>
                     <SelectValue />
@@ -351,7 +351,7 @@ export default function CreditCardsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="dueDate">Due Day *</Label>
+                <Label htmlFor="dueDate" className="text-xs sm:text-sm">Due Day *</Label>
                 <Select value={dueDate} onValueChange={setDueDate}>
                   <SelectTrigger>
                     <SelectValue />
@@ -368,7 +368,7 @@ export default function CreditCardsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="gracePeriod">Grace Days *</Label>
+                <Label htmlFor="gracePeriod" className="text-xs sm:text-sm">Grace Days *</Label>
                 <Select value={gracePeriod} onValueChange={setGracePeriod}>
                   <SelectTrigger>
                     <SelectValue />
@@ -385,7 +385,7 @@ export default function CreditCardsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="cardNetwork">Network</Label>
                 <Select value={cardNetwork} onValueChange={setCardNetwork}>
@@ -427,15 +427,16 @@ export default function CreditCardsPage() {
               </Label>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsDialogOpen(false)}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
-              <Button type="submit">{isEditing ? "Update" : "Add"} Card</Button>
+              <Button type="submit" className="w-full sm:w-auto">{isEditing ? "Update" : "Add"} Card</Button>
             </DialogFooter>
           </form>
         </DialogContent>

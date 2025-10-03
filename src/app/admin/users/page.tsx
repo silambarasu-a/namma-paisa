@@ -51,6 +51,10 @@ export default function UserManagementPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
+  const [resetDialogOpen, setResetDialogOpen] = useState(false)
+  const [userToReset, setUserToReset] = useState<{ id: string; email: string } | null>(null)
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false)
+  const [userToBlock, setUserToBlock] = useState<{ id: string; isBlocked: boolean } | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [roleFilter, setRoleFilter] = useState<"all" | Role>("all")
   const [sendingResetLink, setSendingResetLink] = useState<string | null>(null)
@@ -169,16 +173,18 @@ export default function UserManagementPage() {
     }
   }
 
-  const handleToggleBlock = async (userId: string, currentBlockedStatus: boolean) => {
+  const handleToggleBlock = async () => {
+    if (!userToBlock) return
+
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
+      const response = await fetch(`/api/admin/users/${userToBlock.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isBlocked: !currentBlockedStatus }),
+        body: JSON.stringify({ isBlocked: !userToBlock.isBlocked }),
       })
 
       if (response.ok) {
-        toast.success(currentBlockedStatus ? "User unblocked" : "User blocked")
+        toast.success(userToBlock.isBlocked ? "User unblocked" : "User blocked")
         loadUsers()
       } else {
         const data = await response.json()
@@ -186,7 +192,15 @@ export default function UserManagementPage() {
       }
     } catch {
       toast.error("An error occurred")
+    } finally {
+      setBlockDialogOpen(false)
+      setUserToBlock(null)
     }
+  }
+
+  const openBlockDialog = (userId: string, isBlocked: boolean) => {
+    setUserToBlock({ id: userId, isBlocked })
+    setBlockDialogOpen(true)
   }
 
   const handleDelete = async () => {
@@ -217,17 +231,19 @@ export default function UserManagementPage() {
     setDeleteDialogOpen(true)
   }
 
-  const handleSendResetLink = async (userId: string, userEmail: string) => {
-    setSendingResetLink(userId)
+  const handleSendResetLink = async () => {
+    if (!userToReset) return
+
+    setSendingResetLink(userToReset.id)
     try {
-      const response = await fetch(`/api/admin/users/${userId}/send-reset-link`, {
+      const response = await fetch(`/api/admin/users/${userToReset.id}/send-reset-link`, {
         method: "POST",
       })
 
       const data = await response.json()
 
       if (response.ok) {
-        toast.success(`Password reset link sent to ${userEmail}`)
+        toast.success(`Password reset link sent to ${userToReset.email}`)
       } else {
         toast.error(data.error || "Failed to send reset link")
       }
@@ -235,25 +251,32 @@ export default function UserManagementPage() {
       toast.error("An error occurred")
     } finally {
       setSendingResetLink(null)
+      setResetDialogOpen(false)
+      setUserToReset(null)
     }
   }
 
+  const openResetDialog = (userId: string, userEmail: string) => {
+    setUserToReset({ id: userId, email: userEmail })
+    setResetDialogOpen(true)
+  }
+
   return (
-    <div className="space-y-8 pb-8">
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-900 dark:to-pink-900 -mx-6 md:-mx-8 -mt-20 px-6 md:px-8 pt-24 pb-8 mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center space-x-3">
-              <Shield className="h-8 w-8 text-white" />
-              <h1 className="text-3xl font-bold text-white">User Management</h1>
+    <div className="space-y-6 sm:space-y-8 pb-8">
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-900 dark:to-pink-900 -mx-4 sm:-mx-6 md:-mx-8 -mt-20 px-4 sm:px-6 md:px-8 pt-24 pb-6 sm:pb-8 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-white flex-shrink-0" />
+              <h1 className="text-2xl sm:text-3xl font-bold text-white truncate">User Management</h1>
             </div>
-            <p className="text-purple-100 dark:text-purple-200 mt-2">
+            <p className="text-sm sm:text-base text-purple-100 dark:text-purple-200 mt-1 sm:mt-2">
               Create, edit, and manage user accounts
             </p>
           </div>
           <Button
             onClick={() => handleOpenDialog()}
-            className="bg-white text-purple-600 hover:bg-gray-100"
+            className="bg-white text-purple-600 hover:bg-gray-100 w-full sm:w-auto"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add User
@@ -264,14 +287,14 @@ export default function UserManagementPage() {
       {/* All Users Section */}
       <Card className="shadow-lg -mt-12">
         <CardHeader>
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-4">
             <div>
-              <CardTitle>All Users</CardTitle>
-              <CardDescription>Manage all users in the system</CardDescription>
+              <CardTitle className="text-lg sm:text-xl">All Users</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Manage all users in the system</CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <Select value={roleFilter} onValueChange={(value: "all" | Role) => setRoleFilter(value)}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Filter by role" />
                 </SelectTrigger>
                 <SelectContent>
@@ -284,7 +307,7 @@ export default function UserManagementPage() {
                 placeholder="Search by name or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-64"
+                className="w-full sm:flex-1 sm:max-w-md"
               />
             </div>
           </div>
@@ -292,33 +315,117 @@ export default function UserManagementPage() {
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8">Loading...</div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Roles</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Registered</TableHead>
-                    <TableHead>Last Accessed</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.length > 0 ? (
-                    filteredUsers.map((user) => (
+          ) : filteredUsers.length > 0 ? (
+            <>
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-4">
+                {filteredUsers.map((user) => (
+                  <div key={user.id} className="p-4 border rounded-lg space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-sm break-all">{user.email}</p>
+                        <p className="text-sm text-muted-foreground">{user.name || "-"}</p>
+                      </div>
+                      {user.isBlocked ? (
+                        <Badge variant="destructive" className="flex items-center gap-1 flex-shrink-0">
+                          <Ban className="h-3 w-3" />
+                          Blocked
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="flex items-center gap-1 text-green-600 flex-shrink-0">
+                          <CheckCircle className="h-3 w-3" />
+                          Active
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {user.roles.map((role) => (
+                        <Badge key={role} className={getRoleBadgeColor(role)}>
+                          {ROLE_LABELS[role]}
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <p>Registered: {new Date(user.createdAt).toLocaleDateString()}</p>
+                      <p>Last Access: {user.recentlyAccessedAt ? new Date(user.recentlyAccessedAt).toLocaleString() : "Never"}</p>
+                    </div>
+                    <div className="flex flex-col gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenDialog(user)}
+                        className="w-full"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit User
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openResetDialog(user.id, user.email)}
+                        disabled={user.isBlocked}
+                        className="w-full"
+                      >
+                        <Mail className="h-4 w-4 mr-2" />
+                        Reset Password
+                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openBlockDialog(user.id, user.isBlocked)}
+                          className={`flex-1 ${user.isBlocked ? "text-green-600" : "text-orange-600"}`}
+                        >
+                          {user.isBlocked ? (
+                            <>
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Unblock
+                            </>
+                          ) : (
+                            <>
+                              <Ban className="h-4 w-4 mr-2" />
+                              Block
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openDeleteDialog(user.id)}
+                          className="flex-1 text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Roles</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Registered</TableHead>
+                      <TableHead>Last Accessed</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell className="font-medium">{user.email}</TableCell>
                         <TableCell>{user.name || "-"}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
                             {user.roles.map((role) => (
-                              <Badge
-                                key={role}
-                                className={getRoleBadgeColor(role)}
-                              >
+                              <Badge key={role} className={getRoleBadgeColor(role)}>
                                 {ROLE_LABELS[role]}
                               </Badge>
                             ))}
@@ -350,15 +457,11 @@ export default function UserManagementPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleSendResetLink(user.id, user.email)}
+                              onClick={() => openResetDialog(user.id, user.email)}
                               title="Send password reset link"
-                              disabled={user.isBlocked || sendingResetLink === user.id}
+                              disabled={user.isBlocked}
                             >
-                              {sendingResetLink === user.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Mail className="h-4 w-4" />
-                              )}
+                              <Mail className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -371,7 +474,7 @@ export default function UserManagementPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleToggleBlock(user.id, user.isBlocked)}
+                              onClick={() => openBlockDialog(user.id, user.isBlocked)}
                               className={user.isBlocked ? "text-green-600" : "text-orange-600"}
                               title={user.isBlocked ? "Unblock user" : "Block user"}
                             >
@@ -393,16 +496,14 @@ export default function UserManagementPage() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                        No users found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No users found
             </div>
           )}
         </CardContent>
@@ -410,10 +511,10 @@ export default function UserManagementPage() {
 
       {/* Add/Edit User Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{isEditing ? "Edit User" : "Create New User"}</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm">
               {isEditing
                 ? "Update user information and role"
                 : "Add a new user to the system"}
@@ -530,6 +631,53 @@ export default function UserManagementPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Reset Password Confirmation Dialog */}
+      <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send Password Reset Link</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to send a password reset link to {userToReset?.email}?
+              The user will receive an email with instructions to reset their password.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleSendResetLink}
+              disabled={sendingResetLink !== null}
+            >
+              {sendingResetLink ? "Sending..." : "Send Reset Link"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Block/Unblock Confirmation Dialog */}
+      <AlertDialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {userToBlock?.isBlocked ? "Unblock User" : "Block User"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {userToBlock?.isBlocked
+                ? "Are you sure you want to unblock this user? They will be able to access the system again."
+                : "Are you sure you want to block this user? They will not be able to access the system until unblocked."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleToggleBlock}
+              className={userToBlock?.isBlocked ? "bg-green-600 hover:bg-green-700" : "bg-orange-600 hover:bg-orange-700"}
+            >
+              {userToBlock?.isBlocked ? "Unblock User" : "Block User"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

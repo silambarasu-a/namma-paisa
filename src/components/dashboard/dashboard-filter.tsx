@@ -43,10 +43,10 @@ export function DashboardFilter() {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <Calendar className="h-5 w-5 text-blue-100" />
+    <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+      <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-blue-100 shrink-0" />
       <Select value={selectedMonth} onValueChange={handleMonthChange}>
-        <SelectTrigger className="w-[140px] bg-white/10 border-white/20 text-white">
+        <SelectTrigger className="w-[110px] sm:w-[140px] bg-white/10 border-white/20 text-white text-sm">
           <SelectValue placeholder="Month" />
         </SelectTrigger>
         <SelectContent>
@@ -59,7 +59,7 @@ export function DashboardFilter() {
       </Select>
 
       <Select value={selectedYear} onValueChange={handleYearChange}>
-        <SelectTrigger className="w-[100px] bg-white/10 border-white/20 text-white">
+        <SelectTrigger className="w-[85px] sm:w-[100px] bg-white/10 border-white/20 text-white text-sm">
           <SelectValue placeholder="Year" />
         </SelectTrigger>
         <SelectContent>

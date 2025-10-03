@@ -64,6 +64,9 @@ export default function IncomePage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
 
+  // Track active tab
+  const [activeTab, setActiveTab] = useState("additional")
+
   useEffect(() => {
     loadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -260,23 +263,37 @@ export default function IncomePage() {
         </p>
       </div>
 
-      <Tabs defaultValue="additional" className="space-y-6">
-        <div className="flex items-center justify-between">
-          <TabsList className="grid max-w-md grid-cols-2">
-            <TabsTrigger value="additional" className="flex items-center space-x-2">
+      <Tabs defaultValue="additional" className="space-y-6" onValueChange={setActiveTab}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="additional" className="flex items-center justify-center gap-2">
               <TrendingUp className="h-4 w-4" />
-              <span>Additional Income</span>
+              <span className="hidden sm:inline">Additional Income</span>
+              <span className="sm:hidden">Additional</span>
             </TabsTrigger>
-            <TabsTrigger value="salary" className="flex items-center space-x-2">
+            <TabsTrigger value="salary" className="flex items-center justify-center gap-2">
               <Briefcase className="h-4 w-4" />
-              <span>Monthly Salary</span>
+              <span className="hidden sm:inline">Monthly Salary</span>
+              <span className="sm:hidden">Salary</span>
             </TabsTrigger>
           </TabsList>
 
-          <Button onClick={() => handleOpenDialog()}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Income
-          </Button>
+          {activeTab === "additional" && (
+            <Button onClick={() => handleOpenDialog()} className="w-full sm:w-auto">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Income
+            </Button>
+          )}
+          {activeTab === "salary" && (
+            <Button onClick={() => {
+              const today = new Date().toISOString().split('T')[0]
+              setSalaryEffectiveFrom(today)
+              setIsSalaryDialogOpen(true)
+            }} className="w-full sm:w-auto">
+              <Plus className="h-4 w-4 mr-1" />
+              Update Salary
+            </Button>
+          )}
         </div>
 
         <TabsContent value="additional" className="space-y-6">
@@ -290,7 +307,7 @@ export default function IncomePage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row">
             <div className="flex-1">
               <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
                 <SelectTrigger>
@@ -327,7 +344,7 @@ export default function IncomePage() {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-3">
         <Card className="border-l-4 border-l-green-500">
           <CardHeader>
             <CardTitle className="text-sm font-medium">Monthly Salary</CardTitle>
@@ -404,10 +421,10 @@ export default function IncomePage() {
               {incomes.map((income) => (
                 <div
                   key={income.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                  className="flex flex-col gap-4 p-4 border rounded-lg hover:bg-accent/50 transition-colors sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
                       <h4 className="font-semibold">{income.title}</h4>
                       {income.isRecurring && (
                         <Badge variant="outline" className="text-xs">
@@ -426,13 +443,13 @@ export default function IncomePage() {
                       {formatDate(income.date)}
                     </p>
                   </div>
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center justify-between gap-4 sm:justify-end">
                     <div className="text-right">
                       <div className="text-lg font-bold text-green-600 dark:text-green-400">
                         +₹{income.amount.toLocaleString()}
                       </div>
                     </div>
-                    <div className="flex space-x-2">
+                    <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
@@ -460,16 +477,6 @@ export default function IncomePage() {
         </TabsContent>
 
         <TabsContent value="salary" className="space-y-6">
-          <div className="flex items-center justify-end">
-            <Button onClick={() => {
-              const today = new Date().toISOString().split('T')[0]
-              setSalaryEffectiveFrom(today)
-              setIsSalaryDialogOpen(true)
-            }}>
-              <Plus className="h-4 w-4 mr-2" />
-              Update Salary
-            </Button>
-          </div>
 
           {/* Current Salary Card */}
           <Card className="border-l-4 border-l-green-500">
@@ -524,10 +531,10 @@ export default function IncomePage() {
                   {salaryHistory.map((salaryItem, index) => (
                     <div
                       key={salaryItem.id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                      className="flex flex-col gap-3 p-4 border rounded-lg hover:bg-accent/50 transition-colors sm:flex-row sm:items-center sm:justify-between"
                     >
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
                           <h4 className="font-semibold">₹{Number(salaryItem.monthly).toLocaleString()}</h4>
                           {index === 0 && (
                             <Badge variant="default" className="text-xs">
@@ -547,7 +554,7 @@ export default function IncomePage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => openDeleteSalaryDialog(salaryItem.id)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        className="self-end text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 sm:self-center"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

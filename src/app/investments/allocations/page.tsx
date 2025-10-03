@@ -160,10 +160,10 @@ export default function AllocationsPage() {
   return (
     <div className="space-y-6 pb-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
           Investment Allocations
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
           Configure how you want to allocate your investment budget across different asset classes
         </p>
       </div>
@@ -238,41 +238,43 @@ export default function AllocationsPage() {
                     <RadioGroup
                       value={alloc.type}
                       onValueChange={(value) => handleTypeChange(bucket.id, value as "PERCENTAGE" | "AMOUNT")}
-                      className="flex space-x-4"
+                      className="flex flex-col gap-3 sm:flex-row sm:gap-4"
                     >
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center gap-2">
                         <RadioGroupItem value="PERCENTAGE" id={`${bucket.id}-percent`} />
-                        <Label htmlFor={`${bucket.id}-percent`} className="flex items-center space-x-1 cursor-pointer">
-                          <Percent className="h-4 w-4" />
+                        <Label htmlFor={`${bucket.id}-percent`} className="flex items-center gap-1 cursor-pointer text-sm sm:text-base">
+                          <Percent className="h-4 w-4 flex-shrink-0" />
                           <span>Percentage</span>
                         </Label>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center gap-2">
                         <RadioGroupItem value="AMOUNT" id={`${bucket.id}-amount`} />
-                        <Label htmlFor={`${bucket.id}-amount`} className="flex items-center space-x-1 cursor-pointer">
-                          <DollarSign className="h-4 w-4" />
+                        <Label htmlFor={`${bucket.id}-amount`} className="flex items-center gap-1 cursor-pointer text-sm sm:text-base">
+                          <DollarSign className="h-4 w-4 flex-shrink-0" />
                           <span>Custom Amount</span>
                         </Label>
                       </div>
                     </RadioGroup>
 
                     {/* Value Input */}
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-1 max-w-xs">
-                        <Input
-                          type="number"
-                          step={alloc.type === "PERCENTAGE" ? "0.1" : "100"}
-                          min="0"
-                          max={alloc.type === "PERCENTAGE" ? "100" : undefined}
-                          value={alloc.value}
-                          onChange={(e) => handleValueChange(bucket.id, e.target.value)}
-                          placeholder={alloc.type === "PERCENTAGE" ? "0.0" : "0"}
-                          className="text-lg"
-                        />
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 w-full sm:w-auto sm:min-w-[120px]">
+                          <Input
+                            type="number"
+                            step={alloc.type === "PERCENTAGE" ? "0.1" : "100"}
+                            min="0"
+                            max={alloc.type === "PERCENTAGE" ? "100" : undefined}
+                            value={alloc.value}
+                            onChange={(e) => handleValueChange(bucket.id, e.target.value)}
+                            placeholder={alloc.type === "PERCENTAGE" ? "0.0" : "0"}
+                            className="text-base sm:text-lg"
+                          />
+                        </div>
+                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          {alloc.type === "PERCENTAGE" ? "%" : "₹"}
+                        </span>
                       </div>
-                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                        {alloc.type === "PERCENTAGE" ? "%" : "₹"}
-                      </span>
 
                       {/* Progress bar for percentage */}
                       {alloc.type === "PERCENTAGE" && (
@@ -294,7 +296,7 @@ export default function AllocationsPage() {
 
           {/* Summary */}
           <div className="pt-6 border-t space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               {/* Percentage Summary */}
               {totalPercent > 0 && (
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
@@ -336,12 +338,11 @@ export default function AllocationsPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex space-x-4 pt-4">
+          <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:gap-4">
             <Button
               onClick={handleSave}
               disabled={isSaving || totalPercent > 100}
               className="flex-1"
-              size="lg"
             >
               <Save className="h-4 w-4 mr-2" />
               {isSaving ? "Saving..." : "Save Allocations"}
@@ -349,7 +350,7 @@ export default function AllocationsPage() {
             <Button
               variant="outline"
               onClick={() => router.push("/investments")}
-              size="lg"
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>

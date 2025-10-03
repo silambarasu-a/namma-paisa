@@ -217,11 +217,11 @@ export default function ExpenseBudgetPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+      <div className="space-y-2">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
           Expense Budget Allocation
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
           Allocate your available budget between Expected and Unexpected expenses
         </p>
       </div>
@@ -246,28 +246,28 @@ export default function ExpenseBudgetPage() {
               <span className="text-sm text-gray-600 dark:text-gray-400">/month</span>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 pt-4 border-t">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Income</p>
-                <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Income</p>
+                <p className="text-base sm:text-lg font-semibold text-green-600 dark:text-green-400">
                   ₹{available.salary.toLocaleString()}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Tax</p>
-                <p className="text-lg font-semibold text-red-600 dark:text-red-400">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Tax</p>
+                <p className="text-base sm:text-lg font-semibold text-red-600 dark:text-red-400">
                   -₹{available.taxAmount.toLocaleString()}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Loans</p>
-                <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Loans</p>
+                <p className="text-base sm:text-lg font-semibold text-orange-600 dark:text-orange-400">
                   -₹{available.totalLoans.toLocaleString()}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">SIPs</p>
-                <p className="text-lg font-semibold text-purple-600 dark:text-purple-400">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">SIPs</p>
+                <p className="text-base sm:text-lg font-semibold text-purple-600 dark:text-purple-400">
                   -₹{available.totalSIPs.toLocaleString()}
                 </p>
               </div>
@@ -277,7 +277,7 @@ export default function ExpenseBudgetPage() {
       </Card>
 
       {/* Budget Allocation */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
         {/* Expected Expenses */}
         <Card>
           <CardHeader>
@@ -476,7 +476,7 @@ export default function ExpenseBudgetPage() {
       </Card>
 
       {/* Actions */}
-      <div className="flex space-x-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
         <Button
           onClick={handleSave}
           disabled={isSaving || totalBudget > available.availableForExpenses}
@@ -485,7 +485,7 @@ export default function ExpenseBudgetPage() {
           <Save className="h-4 w-4 mr-2" />
           {isSaving ? "Saving..." : "Save Budget Allocation"}
         </Button>
-        <Button variant="outline" onClick={() => router.push("/expenses")}>
+        <Button variant="outline" onClick={() => router.push("/expenses")} className="w-full sm:w-auto">
           Cancel
         </Button>
       </div>
