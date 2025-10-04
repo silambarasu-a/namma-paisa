@@ -63,8 +63,24 @@ export interface Salary {
 export interface EMI {
   id: string
   emiAmount: number
+  paidAmount?: number
   dueDate: string
+  paidDate?: string
   isPaid: boolean
+  principalPaid?: number
+  interestPaid?: number
+  lateFee?: number
+  paymentMethod?: "CASH" | "CARD" | "UPI" | "NET_BANKING" | "OTHER"
+  paymentNotes?: string
+}
+
+export interface PaymentScheduleDate {
+  month: number  // 1-12
+  day: number    // 1-31
+}
+
+export interface PaymentSchedule {
+  dates: PaymentScheduleDate[]  // Array of month-day combinations
 }
 
 export interface Loan {
@@ -73,10 +89,17 @@ export interface Loan {
   institution: string
   principalAmount: number
   emiAmount: number
+  emiFrequency: "MONTHLY" | "QUARTERLY" | "HALF_YEARLY" | "ANNUALLY" | "CUSTOM"
+  customPaymentDay?: number
+  paymentSchedule?: PaymentSchedule
   currentOutstanding: number
+  totalPaid: number
   isActive: boolean
+  isClosed: boolean
+  closedAt?: string
   startDate: string
   tenure: number
+  remainingTenure?: number
   interestRate: number
   emis: EMI[]
 }

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
+import { validateMonthNotClosed } from "@/lib/snapshot-utils"
 
 const incomeSchema = z.object({
   date: z.string().refine((date) => !isNaN(Date.parse(date)), {
@@ -74,6 +75,10 @@ export async function POST(request: Request) {
     const body = await request.json()
     const validatedData = incomeSchema.parse(body)
 
+    // Validate that the income date is not in a closed month
+    const incomeDate = new Date(validatedData.date)
+    await validateMonthNotClosed(session.user.id, incomeDate, "add income")
+
     const income = await prisma.income.create({
       data: {
         userId: session.user.id,
@@ -93,6 +98,9 @@ export async function POST(request: Request) {
         { error: "Validation failed", details: error.issues },
         { status: 400 }
       )
+    }
+    if (error instanceof Error && error.message.includes("month has been closed")) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
     }
     console.error("Error creating income:", error)
     return NextResponse.json(

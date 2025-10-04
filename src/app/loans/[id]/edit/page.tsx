@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { ArrowLeft, Loader2, Save } from "lucide-react"
+import { LOAN_TYPES } from "@/constants"
 
 const loanUpdateSchema = z.object({
   loanType: z.enum([
@@ -50,17 +51,6 @@ interface Loan {
   description?: string
   isActive: boolean
 }
-
-const loanTypes = [
-  { value: "HOME_LOAN", label: "Home Loan" },
-  { value: "CAR_LOAN", label: "Car Loan" },
-  { value: "PERSONAL_LOAN", label: "Personal Loan" },
-  { value: "EDUCATION_LOAN", label: "Education Loan" },
-  { value: "BUSINESS_LOAN", label: "Business Loan" },
-  { value: "GOLD_LOAN", label: "Gold Loan" },
-  { value: "CREDIT_CARD", label: "Credit Card" },
-  { value: "OTHER", label: "Other" },
-]
 
 export default function EditLoanPage() {
   const router = useRouter()
@@ -266,7 +256,7 @@ export default function EditLoanPage() {
                   <SelectValue placeholder="Select loan type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {loanTypes.map((type) => (
+                  {LOAN_TYPES.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
                       {type.label}
                     </SelectItem>

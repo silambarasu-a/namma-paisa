@@ -52,7 +52,37 @@ export async function GET(
       return NextResponse.json({ error: "Loan not found" }, { status: 404 })
     }
 
-    return NextResponse.json(loan)
+    // Calculate remaining tenure - count ALL unpaid EMIs
+    const remainingTenure = await prisma.eMI.count({
+      where: {
+        loanId: id,
+        isPaid: false,
+      }
+    })
+
+    const transformedLoan = {
+      ...loan,
+      principalAmount: Number(loan.principalAmount),
+      interestRate: Number(loan.interestRate),
+      emiAmount: Number(loan.emiAmount),
+      currentOutstanding: Number(loan.currentOutstanding),
+      totalPaid: Number(loan.totalPaid),
+      remainingTenure,
+      emis: loan.emis.map(emi => ({
+        ...emi,
+        emiAmount: Number(emi.emiAmount),
+        paidAmount: emi.paidAmount ? Number(emi.paidAmount) : null,
+        principalPaid: emi.principalPaid ? Number(emi.principalPaid) : null,
+        interestPaid: emi.interestPaid ? Number(emi.interestPaid) : null,
+        lateFee: emi.lateFee ? Number(emi.lateFee) : null,
+      }))
+    }
+
+    return NextResponse.json(transformedLoan, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      },
+    })
   } catch (error) {
     console.error("Error fetching loan:", error)
     return NextResponse.json(

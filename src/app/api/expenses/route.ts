@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { calculatePaymentDueDate } from "@/lib/credit-card-utils"
+import { validateMonthNotClosed } from "@/lib/snapshot-utils"
 
 const expenseSchema = z.object({
   date: z.string().refine((date) => !isNaN(Date.parse(date)), {
@@ -212,6 +213,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = expenseSchema.parse(body)
 
+    // Validate that the expense date is not in a closed month
+    const expenseDate = new Date(validatedData.date)
+    await validateMonthNotClosed(session.user.id, expenseDate, "add an expense")
+
     // Calculate payment due date for credit card expenses
     let paymentDueDate: Date | null = null
     if (validatedData.paymentMethod === "CARD" && validatedData.creditCardId) {
@@ -255,6 +260,9 @@ export async function POST(request: NextRequest) {
         { message: error.issues[0]?.message || "Validation error" },
         { status: 400 }
       )
+    }
+    if (error instanceof Error && error.message.includes("month has been closed")) {
+      return NextResponse.json({ message: error.message }, { status: 400 })
     }
 
     console.error("Expense creation error:", error)

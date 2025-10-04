@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
-import { CreditCard as CardIcon, Plus, Edit, Trash2, Calendar } from "lucide-react"
+import { CreditCard as CardIcon, Plus, Edit, Trash2, Calendar, Check } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import type { CreditCard } from "@/types"
+import { INDIAN_BANKS } from "@/constants/banks"
 
 export default function CreditCardsPage() {
   const [cards, setCards] = useState<CreditCard[]>([])
@@ -42,6 +43,8 @@ export default function CreditCardsPage() {
   const [cardName, setCardName] = useState("")
   const [lastFourDigits, setLastFourDigits] = useState("")
   const [bank, setBank] = useState("")
+  const [bankInput, setBankInput] = useState("")
+  const [showBankDropdown, setShowBankDropdown] = useState(false)
   const [billingCycle, setBillingCycle] = useState("1")
   const [dueDate, setDueDate] = useState("15")
   const [gracePeriod, setGracePeriod] = useState("3")
@@ -52,6 +55,22 @@ export default function CreditCardsPage() {
   useEffect(() => {
     loadCards()
   }, [])
+
+  // Filter banks based on input
+  const filteredBanks = useMemo(() => {
+    if (!bankInput) return INDIAN_BANKS.slice(0, 20)
+
+    const searchLower = bankInput.toLowerCase()
+    const filtered = INDIAN_BANKS.filter((bank) =>
+      bank.toLowerCase().includes(searchLower)
+    )
+
+    if (filtered.length === 0 && bankInput.trim()) {
+      return ["Other"]
+    }
+
+    return filtered
+  }, [bankInput])
 
   const loadCards = async () => {
     try {
@@ -72,6 +91,8 @@ export default function CreditCardsPage() {
     setCardName("")
     setLastFourDigits("")
     setBank("")
+    setBankInput("")
+    setShowBankDropdown(false)
     setBillingCycle("1")
     setDueDate("15")
     setGracePeriod("3")
@@ -87,6 +108,7 @@ export default function CreditCardsPage() {
       setCardName(card.cardName)
       setLastFourDigits(card.lastFourDigits)
       setBank(card.bank)
+      setBankInput(card.bank)
       setBillingCycle(card.billingCycle.toString())
       setDueDate(card.dueDate.toString())
       setGracePeriod(card.gracePeriod.toString())
@@ -99,6 +121,16 @@ export default function CreditCardsPage() {
       resetForm()
     }
     setIsDialogOpen(true)
+  }
+
+  const handleBankSelect = (selectedBank: string) => {
+    if (selectedBank === "Other") {
+      setBank(bankInput)
+    } else {
+      setBankInput(selectedBank)
+      setBank(selectedBank)
+    }
+    setShowBankDropdown(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -308,15 +340,51 @@ export default function CreditCardsPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div className="space-y-2 relative">
                 <Label htmlFor="bank">Bank *</Label>
-                <Input
-                  id="bank"
-                  value={bank}
-                  onChange={(e) => setBank(e.target.value)}
-                  placeholder="e.g., HDFC, Axis"
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="bank"
+                    placeholder="Type to search or enter bank name..."
+                    value={bankInput}
+                    onChange={(e) => {
+                      setBankInput(e.target.value)
+                      setBank(e.target.value)
+                      setShowBankDropdown(true)
+                    }}
+                    onFocus={() => setShowBankDropdown(true)}
+                    onBlur={() => {
+                      setTimeout(() => setShowBankDropdown(false), 200)
+                    }}
+                    autoComplete="off"
+                    required
+                  />
+                  {showBankDropdown && filteredBanks.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-[200px] overflow-y-auto">
+                      {filteredBanks.map((bankOption) => (
+                        <div
+                          key={bankOption}
+                          className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm flex items-center gap-2"
+                          onClick={() => handleBankSelect(bankOption)}
+                        >
+                          {bankOption === "Other" ? (
+                            <>
+                              <span className="text-muted-foreground">Other:</span>
+                              <span className="font-medium">&quot;{bankInput}&quot;</span>
+                            </>
+                          ) : (
+                            <>
+                              {bankInput && bankOption.toLowerCase().includes(bankInput.toLowerCase()) && (
+                                <Check className="h-4 w-4 text-green-600" />
+                              )}
+                              {bankOption}
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">

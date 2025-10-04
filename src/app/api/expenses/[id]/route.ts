@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { calculatePaymentDueDate } from "@/lib/credit-card-utils"
+import { validateMonthNotClosed } from "@/lib/snapshot-utils"
 
 const expenseSchema = z.object({
   date: z.string().refine((date) => !isNaN(Date.parse(date)), {
@@ -63,6 +64,11 @@ export async function PUT(
     if (!existingExpense || existingExpense.userId !== session.user.id) {
       return NextResponse.json({ error: "Expense not found" }, { status: 404 })
     }
+
+    // Validate that both old and new expense dates are not in closed months
+    await validateMonthNotClosed(session.user.id, new Date(existingExpense.date), "edit this expense")
+    const newExpenseDate = new Date(validatedData.date)
+    await validateMonthNotClosed(session.user.id, newExpenseDate, "change expense date to this month")
 
     // Calculate payment due date if credit card
     let paymentDueDate = null

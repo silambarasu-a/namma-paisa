@@ -19,6 +19,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
+interface LoanData {
+  loanId: string
+  loanType: string
+  institution: string
+  emiAmount: number
+  isPaid: boolean
+  paidDate: string | null
+  dueDate: string | null
+  isClosed: boolean
+  closedAt: string | null
+}
+
 interface MonthlySnapshot {
   id: string
   month: number
@@ -38,6 +50,7 @@ interface MonthlySnapshot {
   surplusAmount: number
   previousSurplus: number
   investmentsMade: number | null
+  loansData?: LoanData[]
   isClosed: boolean
   closedAt: string | null
 }
@@ -378,6 +391,85 @@ export default function MonthlySnapshotPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Loan Tracking - Only show if there are loans */}
+      {snapshot.loansData && snapshot.loansData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Loan EMI Tracking</CardTitle>
+            <CardDescription>EMI payment status for {MONTHS[selectedMonth - 1]} {selectedYear}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {snapshot.loansData.map((loan) => (
+                <div
+                  key={loan.loanId}
+                  className={`p-4 rounded-lg border-l-4 ${
+                    loan.isPaid
+                      ? 'bg-green-50 dark:bg-green-900/20 border-green-500'
+                      : 'bg-orange-50 dark:bg-orange-900/20 border-orange-500'
+                  }`}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h4 className="font-semibold text-base">{loan.loanType.replace(/_/g, ' ')}</h4>
+                        {loan.isClosed && (
+                          <Badge variant="outline" className="text-xs bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                            Loan Closed
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{loan.institution}</p>
+                      {loan.dueDate && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Due: {new Date(loan.dueDate).toLocaleDateString('en-IN')}
+                        </p>
+                      )}
+                      {loan.isClosed && loan.closedAt && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Closed on: {new Date(loan.closedAt).toLocaleDateString('en-IN')}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <p className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                        ₹{loan.emiAmount.toLocaleString()}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1 justify-start sm:justify-end">
+                        {loan.isPaid ? (
+                          <>
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="text-sm font-semibold text-green-600">Paid</span>
+                            {loan.paidDate && (
+                              <span className="text-xs text-muted-foreground">
+                                on {new Date(loan.paidDate).toLocaleDateString('en-IN')}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="h-4 w-4 text-orange-600" />
+                            <span className="text-sm font-semibold text-orange-600">Unpaid</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 mt-4">
+                <p className="text-sm text-blue-900 dark:text-blue-100">
+                  <strong>Total EMI this month:</strong> ₹{snapshot.totalLoans.toLocaleString()}
+                  <span className="ml-2 text-xs">
+                    ({snapshot.loansData.filter(l => l.isPaid).length} of {snapshot.loansData.length} paid)
+                  </span>
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Investment Details - Only show if investments were made */}
       {(snapshot.investmentsMade ?? 0) > 0 && (

@@ -186,7 +186,7 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
 
   const afterTax = salary - taxAmount
 
-  // Get loans for this month
+  // Get loans for this month with EMI details
   const loans = await prisma.loan.findMany({
     where: {
       userId,
@@ -197,9 +197,35 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
         { endDate: { gte: startDate } }
       ]
     },
+    include: {
+      emis: {
+        where: {
+          dueDate: {
+            gte: startDate,
+            lt: endDate
+          }
+        }
+      }
+    }
   })
 
   const totalLoans = loans.reduce((sum, loan) => sum + Number(loan.emiAmount), 0)
+
+  // Build loan tracking data
+  const loansData = loans.map(loan => {
+    const emi = loan.emis[0] // Get the EMI for this month
+    return {
+      loanId: loan.id,
+      loanType: loan.loanType,
+      institution: loan.institution,
+      emiAmount: Number(loan.emiAmount),
+      isPaid: emi?.isPaid || false,
+      paidDate: emi?.paidDate?.toISOString() || null,
+      dueDate: emi?.dueDate?.toISOString() || null,
+      isClosed: loan.isClosed,
+      closedAt: loan.closedAt?.toISOString() || null,
+    }
+  })
 
   // Get SIPs for this month
   const sips = await prisma.sIP.findMany({
@@ -340,5 +366,6 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
     surplusAmount,
     previousSurplus,
     investmentsMade,
+    loansData,
   }
 }

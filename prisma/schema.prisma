@@ -44,6 +44,14 @@ enum SIPFrequency {
   CUSTOM
 }
 
+enum EMIFrequency {
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  ANNUALLY
+  CUSTOM
+}
+
 enum TransactionType {
   ONE_TIME_PURCHASE
   SIP_EXECUTION
@@ -222,23 +230,29 @@ model TaxSetting {
 }
 
 model Loan {
-  id                  String    @id @default(cuid())
+  id                  String        @id @default(cuid())
   userId              String
   loanType            LoanType
   institution         String
-  principalAmount     Decimal   @db.Decimal(12, 2)
-  interestRate        Decimal   @db.Decimal(5, 2)
+  principalAmount     Decimal       @db.Decimal(12, 2)
+  interestRate        Decimal       @db.Decimal(5, 2)
   tenure              Int
-  emiAmount           Decimal   @db.Decimal(12, 2)
+  emiAmount           Decimal       @db.Decimal(12, 2)
+  emiFrequency        EMIFrequency  @default(MONTHLY)
+  customPaymentDay    Int?          // Day of month for custom payments (1-31)
+  paymentSchedule     Json?         // Stores payment schedule dates for different frequencies
   startDate           DateTime
   endDate             DateTime?
-  currentOutstanding  Decimal   @db.Decimal(12, 2)
+  currentOutstanding  Decimal       @db.Decimal(12, 2)
+  totalPaid           Decimal       @default(0) @db.Decimal(12, 2)
   accountNumber       String?
   description         String?
-  currency            String    @default("INR")
-  isActive            Boolean   @default(true)
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  currency            String        @default("INR")
+  isActive            Boolean       @default(true)
+  isClosed            Boolean       @default(false)
+  closedAt            DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
   emis EMI[]
   user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -247,18 +261,21 @@ model Loan {
 }
 
 model EMI {
-  id            String    @id @default(cuid())
+  id            String         @id @default(cuid())
   loanId        String
-  emiAmount     Decimal   @db.Decimal(12, 2)
+  emiAmount     Decimal        @db.Decimal(12, 2)
+  paidAmount    Decimal?       @db.Decimal(12, 2)
   dueDate       DateTime
   paidDate      DateTime?
-  principalPaid Decimal?  @db.Decimal(12, 2)
-  interestPaid  Decimal?  @db.Decimal(12, 2)
-  isPaid        Boolean   @default(false)
-  lateFee       Decimal?  @db.Decimal(12, 2)
+  principalPaid Decimal?       @db.Decimal(12, 2)
+  interestPaid  Decimal?       @db.Decimal(12, 2)
+  isPaid        Boolean        @default(false)
+  lateFee       Decimal?       @db.Decimal(12, 2)
+  paymentMethod PaymentMethod?
+  paymentNotes  String?
   receiptUrl    String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   loan Loan @relation(fields: [loanId], references: [id], onDelete: Cascade)
 
@@ -464,6 +481,9 @@ model MonthlySnapshot {
 
   // Investments Made
   investmentsMade   Decimal? @db.Decimal(12, 2)
+
+  // Loan Tracking - JSON structure: [{ loanId, loanType, institution, emiAmount, isPaid, paidDate, dueDate, isClosed, closedAt }]
+  loansData         Json?
 
   // Status
   isClosed          Boolean  @default(false) // Whether month is closed
