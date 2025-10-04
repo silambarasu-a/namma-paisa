@@ -8,7 +8,14 @@
     "start": "next start",
     "lint": "eslint",
     "normalize-symbols": "tsx scripts/normalize-holding-symbols.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:prod": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "db:studio:prod": "DATABASE_URL=$DATABASE_URL_PROD prisma studio",
+    "db:push": "prisma db push",
+    "db:reset": "prisma migrate reset",
+    "db:seed": "prisma db seed"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",
