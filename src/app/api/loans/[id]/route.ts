@@ -45,6 +45,7 @@ export async function GET(
         emis: {
           orderBy: { dueDate: "asc" },
         },
+        goldItems: true,
       },
     })
 
@@ -75,7 +76,15 @@ export async function GET(
         principalPaid: emi.principalPaid ? Number(emi.principalPaid) : null,
         interestPaid: emi.interestPaid ? Number(emi.interestPaid) : null,
         lateFee: emi.lateFee ? Number(emi.lateFee) : null,
-      }))
+      })),
+      goldItems: loan.goldItems?.map(item => ({
+        ...item,
+        carat: Number(item.carat),
+        quantity: Number(item.quantity),
+        grossWeight: Number(item.grossWeight),
+        netWeight: Number(item.netWeight),
+        loanAmount: item.loanAmount ? Number(item.loanAmount) : null,
+      })) || [],
     }
 
     return NextResponse.json(transformedLoan, {
@@ -128,6 +137,84 @@ export async function PATCH(
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message || "Validation error" }, { status: 400 })
     }
+    console.error("Error updating loan:", error)
+    return NextResponse.json(
+      { error: "Failed to update loan" },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+    const { id } = await params
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const body = await request.json()
+
+    // Verify the loan belongs to the user
+    const existingLoan = await prisma.loan.findFirst({
+      where: {
+        id,
+        userId: session.user.id,
+      },
+    })
+
+    if (!existingLoan) {
+      return NextResponse.json({ error: "Loan not found" }, { status: 404 })
+    }
+
+    // Delete existing gold items if updating a gold loan
+    if (body.goldItems) {
+      await prisma.goldLoanItem.deleteMany({
+        where: { loanId: id },
+      })
+    }
+
+    // Update the loan
+    const updatedLoan = await prisma.loan.update({
+      where: { id },
+      data: {
+        loanType: body.loanType,
+        institution: body.institution,
+        accountHolderName: body.accountHolderName,
+        principalAmount: body.principalAmount,
+        interestRate: body.interestRate,
+        tenure: body.tenure,
+        emiAmount: body.emiAmount,
+        emiFrequency: body.emiFrequency,
+        startDate: body.startDate,
+        accountNumber: body.accountNumber,
+        description: body.description,
+        paymentSchedule: body.paymentSchedule || null,
+        goldItems: body.goldItems
+          ? {
+              create: body.goldItems.map((item: any) => ({
+                title: item.title,
+                carat: item.carat,
+                quantity: item.quantity,
+                grossWeight: item.grossWeight,
+                netWeight: item.netWeight,
+                loanAmount: item.loanAmount,
+              })),
+            }
+          : undefined,
+      },
+      include: {
+        emis: true,
+        goldItems: true,
+      },
+    })
+
+    return NextResponse.json(updatedLoan)
+  } catch (error) {
     console.error("Error updating loan:", error)
     return NextResponse.json(
       { error: "Failed to update loan" },

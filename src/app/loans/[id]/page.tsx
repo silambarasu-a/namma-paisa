@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
   AlertDialog,
@@ -160,15 +159,20 @@ export default function LoanDetailPage() {
 
   if (!loan) {
     return (
-      <div className="max-w-6xl mx-auto space-y-6">
-        <Card>
-          <CardContent className="text-center py-12">
-            <p className="text-gray-600 dark:text-gray-400">Loan not found</p>
-            <Button className="mt-4" onClick={() => router.push("/loans")}>
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="relative overflow-hidden rounded-2xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl">
+          <div className="text-center py-12 px-4">
+            <p className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Loan not found</p>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">The loan you're looking for doesn't exist or has been removed.</p>
+            <Button
+              onClick={() => router.push("/loans")}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Loans
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     )
   }
@@ -178,18 +182,17 @@ export default function LoanDetailPage() {
   const paidEmis = getPaidEmis(loan.emis)
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push("/loans")}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Loans
-          </Button>
-        </div>
+    <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => router.push("/loans")}
+          className="w-fit bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border-gray-200/50 dark:border-gray-700/50 hover:bg-white/90 dark:hover:bg-gray-800/90"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Loans
+        </Button>
         {!loan.isClosed && loan.isActive && (
           <Button
             onClick={() => setCloseLoanModal({
@@ -197,6 +200,7 @@ export default function LoanDetailPage() {
               loanId: loan.id,
               currentOutstanding: loan.currentOutstanding,
             })}
+            className="w-full sm:w-auto bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg shadow-green-500/30"
           >
             <DollarSign className="h-4 w-4 mr-2" />
             Close Loan
@@ -205,118 +209,210 @@ export default function LoanDetailPage() {
       </div>
 
       {/* Loan Header */}
-      <Card>
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/80 via-white/60 to-blue-50/60 dark:from-gray-800/80 dark:via-gray-800/60 dark:to-blue-900/20 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none"></div>
+        <div className="relative p-4 sm:p-6">
+          {/* Header Section */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-5">
             <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-3">
-                <CardTitle className="text-2xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
                   {getLoanTypeLabel(loan.loanType)}
-                </CardTitle>
-                <Badge variant={loan.isActive ? "default" : "secondary"}>
+                </h1>
+                <Badge
+                  variant={loan.isActive ? "default" : "secondary"}
+                  className="px-3 py-1 bg-blue-100/80 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-blue-200/50 dark:border-blue-700/50 backdrop-blur-sm"
+                >
                   {loan.isActive ? "Active" : "Inactive"}
                 </Badge>
                 {loan.isClosed && (
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300">
+                  <Badge className="px-3 py-1 bg-green-100/80 text-green-700 border-green-200/50 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700/50 backdrop-blur-sm">
                     Closed
                   </Badge>
                 )}
               </div>
-              <CardDescription className="text-base">{loan.institution}</CardDescription>
+              <p className="text-base sm:text-lg text-gray-700 dark:text-gray-300 font-medium">{loan.institution}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">A/c: {loan.accountHolderName}</p>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Principal Amount</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-3 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Principal Amount</p>
+              <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
                 ₹{loan.principalAmount.toLocaleString()}
               </p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">EMI Amount</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+            <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-3 border border-blue-200/50 dark:border-blue-700/50 hover:shadow-lg transition-all">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">EMI Amount</p>
+              <p className="text-base sm:text-lg font-bold text-blue-600 dark:text-blue-400">
                 ₹{loan.emiAmount.toLocaleString()}
               </p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Frequency</p>
-              <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+            <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-3 border border-purple-200/50 dark:border-purple-700/50 hover:shadow-lg transition-all">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Frequency</p>
+              <p className="text-base sm:text-lg font-bold text-purple-600 dark:text-purple-400">
                 {getFrequencyLabel(loan.emiFrequency)}
               </p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Outstanding</p>
-              <p className="text-lg font-semibold text-red-600 dark:text-red-400">
+            <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-3 border border-red-200/50 dark:border-red-700/50 hover:shadow-lg transition-all">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Outstanding</p>
+              <p className="text-base sm:text-lg font-bold text-red-600 dark:text-red-400">
                 ₹{loan.currentOutstanding.toLocaleString()}
               </p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Paid</p>
-              <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+            <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-3 border border-green-200/50 dark:border-green-700/50 hover:shadow-lg transition-all">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Paid</p>
+              <p className="text-base sm:text-lg font-bold text-green-600 dark:text-green-400">
                 ₹{loan.totalPaid.toLocaleString()}
               </p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Interest Rate</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+            <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-3 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Interest Rate</p>
+              <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
                 {loan.interestRate}%
               </p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Tenure</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+            <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-3 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Tenure</p>
+              <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
                 {loan.tenure} months
               </p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Start Date</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+            <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-3 border border-orange-200/50 dark:border-orange-700/50 hover:shadow-lg transition-all">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Remaining</p>
+              <p className="text-base sm:text-lg font-bold text-orange-600 dark:text-orange-400">
+                {loan.remainingTenure || 0} months
+              </p>
+            </div>
+            <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-3 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Start Date</p>
+              <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
                 {format(new Date(loan.startDate), "MMM dd, yyyy")}
               </p>
             </div>
             {loan.isClosed && loan.closedAt && (
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Closed On</p>
-                <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+              <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-3 border border-green-200/50 dark:border-green-700/50 hover:shadow-lg transition-all">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Closed On</p>
+                <p className="text-base sm:text-lg font-bold text-green-600 dark:text-green-400">
                   {format(new Date(loan.closedAt), "MMM dd, yyyy")}
                 </p>
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      {/* Gold Items Pledged - Only for Gold Loans */}
+      {loan.loanType === "GOLD_LOAN" && loan.goldItems && loan.goldItems.length > 0 && (
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-yellow-50/80 via-amber-50/60 to-white/60 dark:from-yellow-900/20 dark:via-amber-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-yellow-200/50 dark:border-yellow-700/50 shadow-xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-transparent to-amber-500/5 pointer-events-none"></div>
+          <div className="relative p-4 sm:p-6">
+            <div className="mb-4">
+              <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-yellow-800 dark:text-yellow-300">
+                <IndianRupee className="h-5 w-5 sm:h-6 sm:w-6" />
+                Gold Items Pledged
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Details of gold items used as collateral for this loan
+              </p>
+            </div>
+            <div className="space-y-3">
+              {loan.goldItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="relative overflow-hidden bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-4 border border-yellow-200/50 dark:border-yellow-700/50 hover:shadow-lg transition-all"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-base sm:text-lg font-bold text-yellow-900 dark:text-yellow-100">
+                      {item.title}
+                    </h4>
+                    <Badge className="px-3 py-1 bg-yellow-100/80 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border-yellow-300/50 dark:border-yellow-700/50 backdrop-blur-sm">
+                      {item.carat}K Gold
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
+                    <div className="bg-white/70 dark:bg-gray-900/40 backdrop-blur-sm rounded-lg p-2 border border-gray-200/50 dark:border-gray-700/50">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Quantity</p>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">
+                        {item.quantity} {item.quantity === 1 ? "pc" : "pcs"}
+                      </p>
+                    </div>
+                    <div className="bg-white/70 dark:bg-gray-900/40 backdrop-blur-sm rounded-lg p-2 border border-gray-200/50 dark:border-gray-700/50">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Gross Weight</p>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">
+                        {item.grossWeight}g
+                      </p>
+                    </div>
+                    <div className="bg-white/70 dark:bg-gray-900/40 backdrop-blur-sm rounded-lg p-2 border border-gray-200/50 dark:border-gray-700/50">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Net Weight</p>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">
+                        {item.netWeight}g
+                      </p>
+                    </div>
+                    <div className="bg-white/70 dark:bg-gray-900/40 backdrop-blur-sm rounded-lg p-2 border border-yellow-200/50 dark:border-yellow-700/50">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Carat</p>
+                      <p className="text-sm font-bold text-yellow-700 dark:text-yellow-400">
+                        {item.carat}K
+                      </p>
+                    </div>
+                    {item.loanAmount && (
+                      <div className="bg-white/70 dark:bg-gray-900/40 backdrop-blur-sm rounded-lg p-2 border border-green-200/50 dark:border-green-700/50">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Loan Amount</p>
+                        <p className="text-sm font-bold text-green-600 dark:text-green-400">
+                          ₹{item.loanAmount.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Current Month EMI */}
       {currentMonthEmi && !loan.isClosed && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              Current Month EMI
-            </CardTitle>
-            <CardDescription>
-              EMI for {format(new Date(currentMonthEmi.dueDate), "MMMM yyyy")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className={`relative overflow-hidden rounded-2xl backdrop-blur-xl border shadow-xl transition-all ${
+          currentMonthEmi.isPaid
+            ? 'bg-gradient-to-br from-green-50/80 via-emerald-50/60 to-white/60 dark:from-green-900/20 dark:via-emerald-900/10 dark:to-gray-800/60 border-green-200/50 dark:border-green-700/50'
+            : 'bg-gradient-to-br from-amber-50/80 via-orange-50/60 to-white/60 dark:from-amber-900/20 dark:via-orange-900/10 dark:to-gray-800/60 border-amber-200/50 dark:border-amber-700/50'
+        }`}>
+          <div className={`absolute inset-0 pointer-events-none ${
+            currentMonthEmi.isPaid
+              ? 'bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5'
+              : 'bg-gradient-to-br from-amber-500/5 via-transparent to-orange-500/5'
+          }`}></div>
+          <div className="relative p-4 sm:p-6">
+            <div className="mb-4">
+              <h2 className={`text-xl sm:text-2xl font-bold flex items-center gap-2 ${
+                currentMonthEmi.isPaid ? 'text-green-800 dark:text-green-300' : 'text-amber-800 dark:text-amber-300'
+              }`}>
+                <Calendar className="h-5 w-5 sm:h-6 sm:w-6" />
+                Current Month EMI
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                EMI for {format(new Date(currentMonthEmi.dueDate), "MMMM yyyy")}
+              </p>
+            </div>
             <div
-              className={`flex flex-col gap-3 p-4 rounded-lg border sm:flex-row sm:items-center sm:justify-between transition-all ${
+              className={`flex flex-col gap-3 p-4 rounded-xl border backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between transition-all ${
                 currentMonthEmi.isPaid
-                  ? 'bg-green-50 dark:bg-green-950/30 border-green-300 dark:border-green-700 shadow-sm'
-                  : 'bg-amber-50 dark:bg-amber-900/10 border-amber-300 dark:border-amber-700'
+                  ? 'bg-green-50/80 dark:bg-green-950/40 border-green-300/50 dark:border-green-700/50 shadow-lg shadow-green-500/20'
+                  : 'bg-amber-50/80 dark:bg-amber-900/20 border-amber-300/50 dark:border-amber-700/50 shadow-lg shadow-amber-500/20'
               }`}
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6 flex-1">
                 <div className="flex items-center gap-3">
                   {currentMonthEmi.isPaid && (
-                    <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400 flex-shrink-0" />
+                    <CheckCircle className="h-7 w-7 text-green-600 dark:text-green-400 flex-shrink-0" />
                   )}
                   <div className="flex items-center gap-3">
-                    <IndianRupee className={`h-5 w-5 ${currentMonthEmi.isPaid ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`} />
+                    <IndianRupee className={`h-5 w-5 ${currentMonthEmi.isPaid ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`} />
                     <div>
-                      <p className={`text-lg font-bold ${currentMonthEmi.isPaid ? 'text-green-700 dark:text-green-300' : 'text-gray-900 dark:text-white'}`}>
+                      <p className={`text-xl font-bold ${currentMonthEmi.isPaid ? 'text-green-700 dark:text-green-300' : 'text-gray-900 dark:text-white'}`}>
                         ₹{currentMonthEmi.emiAmount.toLocaleString()}
                       </p>
                       <p className={`text-xs ${currentMonthEmi.isPaid ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
@@ -326,9 +422,9 @@ export default function LoanDetailPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Calendar className={`h-5 w-5 ${currentMonthEmi.isPaid ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`} />
+                  <Calendar className={`h-5 w-5 ${currentMonthEmi.isPaid ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`} />
                   <div>
-                    <p className={`font-semibold ${currentMonthEmi.isPaid ? 'text-green-700 dark:text-green-300' : 'text-gray-900 dark:text-white'}`}>
+                    <p className={`text-base font-bold ${currentMonthEmi.isPaid ? 'text-green-700 dark:text-green-300' : 'text-gray-900 dark:text-white'}`}>
                       {format(new Date(currentMonthEmi.dueDate), "MMM dd, yyyy")}
                     </p>
                     <p className={`text-xs ${currentMonthEmi.isPaid ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
@@ -338,7 +434,7 @@ export default function LoanDetailPage() {
                 </div>
               </div>
               {currentMonthEmi.isPaid ? (
-                <div className="flex items-center gap-2 px-5 py-3 bg-green-100 dark:bg-green-900/40 rounded-lg border-2 border-green-400 dark:border-green-600">
+                <div className="flex items-center gap-2 px-5 py-3 bg-green-100/80 dark:bg-green-900/50 rounded-xl border border-green-400/50 dark:border-green-600/50 backdrop-blur-sm shadow-lg shadow-green-500/20">
                   <CheckCircle className="h-5 w-5 text-green-700 dark:text-green-300" />
                   <div className="text-left">
                     <p className="text-sm font-bold text-green-700 dark:text-green-300">
@@ -354,7 +450,7 @@ export default function LoanDetailPage() {
               ) : (
                 <Button
                   size="lg"
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/30"
                   onClick={() => setPayEmiModal({
                     open: true,
                     loanId: loan.id,
@@ -368,43 +464,48 @@ export default function LoanDetailPage() {
                 </Button>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Other Unpaid EMIs */}
       {otherUnpaidEmis.length > 0 && !loan.isClosed && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-amber-600" />
-              Upcoming Payments ({otherUnpaidEmis.length})
-            </CardTitle>
-            <CardDescription>
-              Future EMIs that are yet to be paid
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/80 via-gray-50/60 to-blue-50/60 dark:from-gray-800/80 dark:via-gray-800/60 dark:to-gray-900/60 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-500/5 via-transparent to-blue-500/5 pointer-events-none"></div>
+          <div className="relative p-4 sm:p-6">
+            <div className="mb-4">
+              <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-gray-800 dark:text-gray-200">
+                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600 dark:text-amber-400" />
+                Upcoming Payments ({otherUnpaidEmis.length})
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Future EMIs that are yet to be paid
+              </p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
               {otherUnpaidEmis.map((emi) => (
                 <div
                   key={emi.id}
-                  className="flex flex-col gap-3 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-3 p-4 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-xl hover:shadow-lg transition-all"
                 >
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6 flex-1">
+                  <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-3">
-                      <IndianRupee className="h-5 w-5 text-gray-500" />
-                      <div>
-                        <p className="font-semibold text-gray-900 dark:text-white">
+                      <div className="p-2 bg-blue-100/80 dark:bg-blue-900/40 rounded-lg backdrop-blur-sm border border-blue-200/50 dark:border-blue-700/50">
+                        <IndianRupee className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-base font-bold text-gray-900 dark:text-white">
                           ₹{emi.emiAmount.toLocaleString()}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">EMI Amount</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Calendar className="h-5 w-5 text-gray-500" />
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">
+                      <div className="p-2 bg-purple-100/80 dark:bg-purple-900/40 rounded-lg backdrop-blur-sm border border-purple-200/50 dark:border-purple-700/50">
+                        <Calendar className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">
                           {format(new Date(emi.dueDate), "MMM dd, yyyy")}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">Due Date</p>
@@ -414,7 +515,7 @@ export default function LoanDetailPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="w-full sm:w-auto"
+                    className="w-full bg-blue-50/80 hover:bg-blue-100/80 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 border-blue-200/50 dark:border-blue-700/50 text-blue-700 dark:text-blue-300 backdrop-blur-sm"
                     onClick={() => setPayEmiModal({
                       open: true,
                       loanId: loan.id,
@@ -429,33 +530,37 @@ export default function LoanDetailPage() {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Paid EMIs */}
       {paidEmis.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              Payment History ({paidEmis.length})
-            </CardTitle>
-            <CardDescription>
-              EMIs that have been successfully paid
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50/80 via-emerald-50/60 to-white/60 dark:from-green-900/20 dark:via-emerald-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-green-200/50 dark:border-green-700/50 shadow-xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5 pointer-events-none"></div>
+          <div className="relative p-4 sm:p-6">
+            <div className="mb-4">
+              <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-green-800 dark:text-green-300">
+                <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6" />
+                Payment History ({paidEmis.length})
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                EMIs that have been successfully paid
+              </p>
+            </div>
             <div className="space-y-3">
               {paidEmis.map((emi) => (
                 <div
                   key={emi.id}
-                  className="p-4 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg"
+                  className="relative overflow-hidden bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border border-green-200/50 dark:border-green-700/50 rounded-xl p-4 hover:shadow-lg transition-all"
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-                      Payment Details
-                    </h4>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                        Payment Details
+                      </h4>
+                    </div>
                     <div className="flex gap-2">
                       <Button
                         variant="ghost"
@@ -474,7 +579,7 @@ export default function LoanDetailPage() {
                             paymentNotes: emi.paymentNotes,
                           },
                         })}
-                        className="h-8 px-2"
+                        className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50/80 dark:hover:bg-blue-900/30"
                       >
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
@@ -488,86 +593,82 @@ export default function LoanDetailPage() {
                           emiId: emi.id,
                           emiDueDate: format(new Date(emi.dueDate), "MMM dd, yyyy"),
                         })}
-                        className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                        className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50/80 dark:hover:bg-red-950/30"
                       >
                         <Trash2 className="h-4 w-4 mr-1" />
                         Delete
                       </Button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                    <div>
+                  <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                    <div className="bg-white/70 dark:bg-gray-900/40 backdrop-blur-sm rounded-lg p-2 border border-gray-200/50 dark:border-gray-700/50">
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">EMI Amount</p>
-                      <p className="font-semibold text-gray-900 dark:text-white">
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">
                         ₹{emi.emiAmount.toLocaleString()}
                       </p>
                     </div>
-                    <div>
+                    <div className="bg-white/70 dark:bg-gray-900/40 backdrop-blur-sm rounded-lg p-2 border border-green-200/50 dark:border-green-700/50">
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Paid Amount</p>
-                      <p className="font-semibold text-green-600 dark:text-green-400">
+                      <p className="text-sm font-bold text-green-600 dark:text-green-400">
                         ₹{(emi.paidAmount || emi.emiAmount).toLocaleString()}
                       </p>
                     </div>
-                    <div>
+                    <div className="bg-white/70 dark:bg-gray-900/40 backdrop-blur-sm rounded-lg p-2 border border-gray-200/50 dark:border-gray-700/50">
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Due Date</p>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">
                         {format(new Date(emi.dueDate), "MMM dd, yyyy")}
                       </p>
                     </div>
-                    <div>
+                    <div className="bg-white/70 dark:bg-gray-900/40 backdrop-blur-sm rounded-lg p-2 border border-green-200/50 dark:border-green-700/50">
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Paid Date</p>
-                      <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                      <p className="text-sm font-bold text-green-600 dark:text-green-400">
                         {emi.paidDate ? format(new Date(emi.paidDate), "MMM dd, yyyy") : "-"}
                       </p>
                     </div>
-                    {(emi.principalPaid || emi.interestPaid || emi.lateFee) && (
-                      <>
-                        {emi.principalPaid && (
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Principal</p>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">
-                              ₹{emi.principalPaid.toLocaleString()}
-                            </p>
-                          </div>
-                        )}
-                        {emi.interestPaid && (
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Interest</p>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">
-                              ₹{emi.interestPaid.toLocaleString()}
-                            </p>
-                          </div>
-                        )}
-                        {emi.lateFee && (
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Late Fee</p>
-                            <p className="text-sm font-medium text-red-600 dark:text-red-400">
-                              ₹{emi.lateFee.toLocaleString()}
-                            </p>
-                          </div>
-                        )}
-                      </>
+                    {emi.principalPaid && (
+                      <div className="bg-white/70 dark:bg-gray-900/40 backdrop-blur-sm rounded-lg p-2 border border-blue-200/50 dark:border-blue-700/50">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Principal</p>
+                        <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                          ₹{emi.principalPaid.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {emi.interestPaid && (
+                      <div className="bg-white/70 dark:bg-gray-900/40 backdrop-blur-sm rounded-lg p-2 border border-purple-200/50 dark:border-purple-700/50">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Interest</p>
+                        <p className="text-sm font-bold text-purple-600 dark:text-purple-400">
+                          ₹{emi.interestPaid.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {emi.lateFee && (
+                      <div className="bg-white/70 dark:bg-gray-900/40 backdrop-blur-sm rounded-lg p-2 border border-red-200/50 dark:border-red-700/50">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Late Fee</p>
+                        <p className="text-sm font-bold text-red-600 dark:text-red-400">
+                          ₹{emi.lateFee.toLocaleString()}
+                        </p>
+                      </div>
                     )}
                     {emi.paymentMethod && (
-                      <div>
+                      <div className="bg-white/70 dark:bg-gray-900/40 backdrop-blur-sm rounded-lg p-2 border border-gray-200/50 dark:border-gray-700/50">
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Payment Method</p>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">
                           {emi.paymentMethod.replace("_", " ")}
                         </p>
                       </div>
                     )}
                   </div>
                   {emi.paymentNotes && (
-                    <div className="mt-3 pt-3 border-t border-green-200 dark:border-green-800">
+                    <div className="mt-3 pt-3 border-t border-green-200/50 dark:border-green-700/50">
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Notes</p>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">{emi.paymentNotes}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 italic">{emi.paymentNotes}</p>
                     </div>
                   )}
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Modals */}

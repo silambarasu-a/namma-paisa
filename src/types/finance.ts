@@ -62,6 +62,7 @@ export interface Salary {
 // Loan types
 export interface EMI {
   id: string
+  installmentNumber: number
   emiAmount: number
   paidAmount?: number
   dueDate: string
@@ -83,10 +84,21 @@ export interface PaymentSchedule {
   dates: PaymentScheduleDate[]  // Array of month-day combinations
 }
 
+export interface GoldLoanItem {
+  id: string
+  title: string
+  carat: number
+  quantity: number
+  grossWeight: number
+  netWeight: number
+  loanAmount?: number
+}
+
 export interface Loan {
   id: string
   loanType: string
   institution: string
+  accountHolderName: string
   principalAmount: number
   emiAmount: number
   emiFrequency: "MONTHLY" | "QUARTERLY" | "HALF_YEARLY" | "ANNUALLY" | "CUSTOM"
@@ -102,6 +114,7 @@ export interface Loan {
   remainingTenure?: number
   interestRate: number
   emis: EMI[]
+  goldItems?: GoldLoanItem[]
 }
 
 // Credit card types

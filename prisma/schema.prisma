@@ -234,6 +234,7 @@ model Loan {
   userId              String
   loanType            LoanType
   institution         String
+  accountHolderName   String        @default("") // Name of the account holder
   principalAmount     Decimal       @db.Decimal(12, 2)
   interestRate        Decimal       @db.Decimal(5, 2)
   tenure              Int
@@ -254,10 +255,28 @@ model Loan {
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
-  emis EMI[]
-  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emis      EMI[]
+  goldItems GoldLoanItem[] // Only for GOLD_LOAN type
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("loans")
+}
+
+model GoldLoanItem {
+  id          String   @id @default(cuid())
+  loanId      String
+  title       String // Item description (e.g., "Gold Chain", "Gold Ring")
+  carat       Int // Carat in K (e.g., 22, 24)
+  quantity    Int // Number of items
+  grossWeight Decimal  @db.Decimal(10, 3) // Weight in grams
+  netWeight   Decimal  @db.Decimal(10, 3) // Net weight in grams
+  loanAmount  Decimal? @db.Decimal(12, 2) // Optional loan amount for this item
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  loan Loan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@map("gold_loan_items")
 }
 
 model EMI {

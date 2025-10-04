@@ -4,6 +4,7 @@ import { z } from "zod"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { validateMonthNotClosed } from "@/lib/snapshot-utils"
+import { autoCalculateLoanField } from "@/lib/emi-calculator"
 
 const paymentScheduleSchema = z.object({
   dates: z.array(
@@ -12,6 +13,20 @@ const paymentScheduleSchema = z.object({
       day: z.number().int().min(1).max(31),
     })
   ),
+})
+
+const goldLoanItemSchema = z.object({
+  title: z.string().min(1),
+  carat: z.number().int().min(1).max(24),
+  quantity: z.number().int().positive(),
+  grossWeight: z.number().positive(),
+  netWeight: z.number().positive(),
+  loanAmount: z.number().positive().optional(),
+})
+
+const customEMISchema = z.object({
+  installmentNumber: z.number().int().positive(),
+  amount: z.number().positive(),
 })
 
 const loanSchema = z.object({
@@ -26,15 +41,20 @@ const loanSchema = z.object({
     "OTHER",
   ]),
   institution: z.string().min(1),
+  accountHolderName: z.string().min(1),
   principalAmount: z.number().positive(),
   interestRate: z.number().min(0).max(100),
-  tenure: z.number().int().positive(),
-  emiAmount: z.number().positive(),
+  tenure: z.number().int().positive().optional(),
+  emiAmount: z.number().positive().optional(),
   emiFrequency: z.enum(["MONTHLY", "QUARTERLY", "HALF_YEARLY", "ANNUALLY", "CUSTOM"]),
   paymentSchedule: paymentScheduleSchema.optional(),
   startDate: z.string(),
   accountNumber: z.string().optional(),
   description: z.string().optional(),
+  goldItems: z.array(goldLoanItemSchema).optional(),
+  customEMIs: z.array(customEMISchema).optional(),
+}).refine((data) => data.tenure || data.emiAmount, {
+  message: "Either tenure or EMI amount must be provided",
 })
 
 export async function GET() {
@@ -85,8 +105,9 @@ export async function GET() {
             ],
           },
           orderBy: { dueDate: "asc" },
-          take: 5,
+          take: 3,
         },
+        goldItems: true,
       },
       orderBy: [
         { isClosed: "asc" }, // Active loans first
@@ -119,7 +140,15 @@ export async function GET() {
           principalPaid: emi.principalPaid ? Number(emi.principalPaid) : null,
           interestPaid: emi.interestPaid ? Number(emi.interestPaid) : null,
           lateFee: emi.lateFee ? Number(emi.lateFee) : null,
-        }))
+        })),
+        goldItems: loan.goldItems?.map(item => ({
+          ...item,
+          carat: Number(item.carat),
+          quantity: Number(item.quantity),
+          grossWeight: Number(item.grossWeight),
+          netWeight: Number(item.netWeight),
+          loanAmount: item.loanAmount ? Number(item.loanAmount) : null,
+        })) || [],
       }
     }))
 
@@ -161,6 +190,18 @@ export async function POST(request: Request) {
     const loanStartDate = new Date(data.startDate)
     await validateMonthNotClosed(session.user.id, loanStartDate, "create a loan")
 
+    // Auto-calculate EMI or tenure based on what's provided
+    const calculatedValues = autoCalculateLoanField({
+      principalAmount: data.principalAmount,
+      interestRate: data.interestRate,
+      tenure: data.tenure,
+      emiAmount: data.emiAmount,
+      frequency: data.emiFrequency,
+    })
+
+    const finalEMIAmount = calculatedValues.emiAmount
+    const finalTenure = calculatedValues.tenure
+
     // Helper function to calculate months between payments based on frequency
     const getMonthsIncrement = (frequency: string): number => {
       switch (frequency) {
@@ -184,16 +225,27 @@ export async function POST(request: Request) {
     const startDate = new Date(data.startDate)
     const startYear = startDate.getFullYear()
 
+    // Create a map of custom EMI amounts if provided
+    const customEMIMap = new Map<number, number>()
+    if (data.customEMIs && data.customEMIs.length > 0) {
+      data.customEMIs.forEach(emi => {
+        customEMIMap.set(emi.installmentNumber, emi.amount)
+      })
+    }
+
     if (data.emiFrequency === "MONTHLY") {
       // Monthly frequency: generate EMIs for each month
-      const totalPayments = data.tenure
+      const totalPayments = finalTenure
 
       for (let i = 0; i < totalPayments; i++) {
         const dueDate = new Date(startDate)
         dueDate.setMonth(dueDate.getMonth() + i)
 
+        // Use custom EMI amount if available, otherwise use calculated amount
+        const customEMIAmount: number = customEMIMap.get(i + 1) || finalEMIAmount
+
         emis.push({
-          emiAmount: data.emiAmount,
+          emiAmount: customEMIAmount,
           dueDate,
           isPaid: false,
         })
@@ -207,28 +259,31 @@ export async function POST(request: Request) {
       let totalPayments: number
       if (data.emiFrequency === "CUSTOM") {
         // For custom, tenure is in months, divide by number of dates per year
-        totalPayments = Math.ceil(data.tenure / dates.length)
+        totalPayments = Math.ceil(finalTenure / dates.length)
       } else {
-        totalPayments = Math.ceil(data.tenure / monthsIncrement)
+        totalPayments = Math.ceil(finalTenure / monthsIncrement)
       }
 
       // Generate EMIs for each year
-      for (let year = 0; year < Math.ceil(totalPayments / dates.length); year++) {
+      for (let year = 0; year < Math.ceil(totalPayments / dates.length) + 1; year++) {
         for (const scheduleDate of dates) {
           const dueDate = new Date(startYear + year, scheduleDate.month - 1, scheduleDate.day)
 
           // Only add if the due date is on or after the start date
           if (dueDate >= startDate) {
+            // Use custom EMI amount if available, otherwise use calculated amount
+            const customEMIAmount: number = customEMIMap.get(emis.length + 1) || finalEMIAmount
+
             emis.push({
-              emiAmount: data.emiAmount,
+              emiAmount: customEMIAmount,
               dueDate,
               isPaid: false,
             })
-          }
 
-          // Stop when we have enough payments
-          if (emis.length >= totalPayments) {
-            break
+            // Stop when we have enough payments
+            if (emis.length >= totalPayments) {
+              break
+            }
           }
         }
 
@@ -236,35 +291,40 @@ export async function POST(request: Request) {
           break
         }
       }
-
-      // Trim to exact number of payments needed
-      emis.splice(totalPayments)
     } else {
       // Fallback to simple monthly if no payment schedule provided
       const monthsIncrement = getMonthsIncrement(data.emiFrequency)
-      const totalPayments = Math.ceil(data.tenure / monthsIncrement)
+      const totalPayments = Math.ceil(finalTenure / monthsIncrement)
 
       for (let i = 0; i < totalPayments; i++) {
         const dueDate = new Date(startDate)
         dueDate.setMonth(dueDate.getMonth() + (i * monthsIncrement))
 
+        // Use custom EMI amount if available, otherwise use calculated amount
+        const customEMIAmount: number = customEMIMap.get(i + 1) || finalEMIAmount
+
         emis.push({
-          emiAmount: data.emiAmount,
+          emiAmount: customEMIAmount,
           dueDate,
           isPaid: false,
         })
       }
     }
 
-    // Create loan with EMI schedule
+    // Debug: Log EMI generation
+    console.log('Generated EMIs count:', emis.length)
+    console.log('First few EMIs:', emis.slice(0, 3))
+
+    // Create loan with EMI schedule and gold items (if gold loan)
     const loan = await prisma.loan.create({
       data: {
         loanType: data.loanType,
         institution: data.institution,
+        accountHolderName: data.accountHolderName,
         principalAmount: data.principalAmount,
         interestRate: data.interestRate,
-        tenure: data.tenure,
-        emiAmount: data.emiAmount,
+        tenure: finalTenure,
+        emiAmount: finalEMIAmount,
         emiFrequency: data.emiFrequency,
         paymentSchedule: data.paymentSchedule || undefined,
         startDate: new Date(data.startDate),
@@ -272,19 +332,49 @@ export async function POST(request: Request) {
         accountNumber: data.accountNumber,
         description: data.description,
         userId: session.user.id,
-        emis: {
+        emis: emis.length > 0 ? {
           create: emis,
-        },
+        } : undefined,
+        goldItems: data.loanType === "GOLD_LOAN" && data.goldItems ? {
+          create: data.goldItems.map(item => ({
+            title: item.title,
+            carat: item.carat,
+            quantity: item.quantity,
+            grossWeight: item.grossWeight,
+            netWeight: item.netWeight,
+            loanAmount: item.loanAmount,
+          }))
+        } : undefined,
       },
       include: {
         emis: {
           orderBy: { dueDate: "asc" },
           take: 3,
         },
+        goldItems: true,
       },
     })
 
-    return NextResponse.json(loan, { status: 201 })
+    return NextResponse.json({
+      ...loan,
+      principalAmount: Number(loan.principalAmount),
+      interestRate: Number(loan.interestRate),
+      emiAmount: Number(loan.emiAmount),
+      currentOutstanding: Number(loan.currentOutstanding),
+      totalPaid: Number(loan.totalPaid),
+      goldItems: loan.goldItems?.map(item => ({
+        ...item,
+        carat: Number(item.carat),
+        quantity: Number(item.quantity),
+        grossWeight: Number(item.grossWeight),
+        netWeight: Number(item.netWeight),
+        loanAmount: item.loanAmount ? Number(item.loanAmount) : null,
+      })) || [],
+      emis: loan.emis.map(emi => ({
+        ...emi,
+        emiAmount: Number(emi.emiAmount),
+      })),
+    }, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message || "Validation error" }, { status: 400 })

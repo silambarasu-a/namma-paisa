@@ -180,8 +180,25 @@ async function getActiveLoans(userId: string, month: number, year: number) {
     },
   })
 
+  // Calculate current month's total EMI (both paid and unpaid)
+  const currentMonthTotalEMI = loans.reduce((sum, loan) => {
+    const allEmis = loan.emis
+    const emiTotal = allEmis.reduce((emiSum, emi) => emiSum + Number(emi.emiAmount), 0)
+    return sum + emiTotal
+  }, 0)
+
+  // Count all EMIs for current month
+  const currentMonthEMICount = loans.reduce((count, loan) => {
+    return count + loan.emis.length
+  }, 0)
+
+  // Count unpaid EMIs for badge display
+  const unpaidEMICount = loans.reduce((count, loan) => {
+    return count + loan.emis.filter(emi => !emi.isPaid).length
+  }, 0)
+
   const totalEMI = loans.reduce((sum, loan) => sum + Number(loan.emiAmount), 0)
-  return { count: loans.length, totalEMI, loans }
+  return { count: loans.length, totalEMI, loans, currentMonthTotalEMI, currentMonthEMICount, unpaidEMICount }
 }
 
 async function getRecentExpenses(userId: string, month: number, year: number) {
@@ -246,11 +263,11 @@ export default async function Dashboard({
   const totalIncome = salary + additionalIncome.totalIncome
   const { taxAmount, taxPercentage } = await getTaxCalculation(userId, totalIncome)
 
-  // Use new budget/allocation logic
+  // Use new budget/allocation logic with current month's total EMI
   const financialSummary = calculateFinancialSummary(
     totalIncome,
     taxAmount,
-    loansData.totalEMI,
+    loansData.currentMonthTotalEMI,
     sipsData.totalAmount,
     expensesData.totalExpenses,
     budget,
@@ -309,17 +326,17 @@ export default async function Dashboard({
 
         <Card className="shadow-lg hover:shadow-xl transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 pt-0 sm:p-4 sm:pt-0">
-            <CardTitle className="text-xs sm:text-sm font-medium">Active Loans</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">EMI ({new Date(selectedYear, selectedMonth - 1).toLocaleString('en-IN', { month: 'short' })})</CardTitle>
             <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
               <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 dark:text-orange-400" />
             </div>
           </CardHeader>
           <CardContent className="p-3 pb-0 pt-0 sm:p-4 sm:py-0">
             <div className="text-xl sm:text-2xl font-bold text-orange-600 dark:text-orange-400 break-words">
-              ₹{loansData.totalEMI.toLocaleString('en-IN')}
+              ₹{loansData.currentMonthTotalEMI.toLocaleString('en-IN')}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {loansData.count} active loan{loansData.count !== 1 ? 's' : ''}
+              {loansData.currentMonthEMICount} EMI{loansData.currentMonthEMICount !== 1 ? 's' : ''} ({loansData.unpaidEMICount} unpaid)
             </p>
           </CardContent>
         </Card>
@@ -445,14 +462,14 @@ export default async function Dashboard({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 dark:text-orange-400 shrink-0" />
-                  <h3 className="font-semibold text-base sm:text-lg">Loan EMIs</h3>
-                  <Badge variant="secondary" className="text-xs">{loansData.count} active</Badge>
+                  <h3 className="font-semibold text-base sm:text-lg">Loan EMIs ({new Date(selectedYear, selectedMonth - 1).toLocaleString('en-IN', { month: 'short' })})</h3>
+                  <Badge variant="secondary" className="text-xs">{loansData.currentMonthEMICount} due</Badge>
                 </div>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1">Monthly loan payments</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">Current month EMI payments ({loansData.unpaidEMICount} unpaid)</p>
               </div>
               <div className="text-left sm:text-right shrink-0">
                 <div className="text-xl sm:text-2xl font-bold text-orange-600 dark:text-orange-400 break-words">
-                  -₹{loansData.totalEMI.toLocaleString('en-IN')}
+                  -₹{loansData.currentMonthTotalEMI.toLocaleString('en-IN')}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 break-words">
                   Remaining: ₹{afterLoans.toLocaleString('en-IN')}

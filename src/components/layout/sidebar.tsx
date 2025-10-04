@@ -175,7 +175,7 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
       {/* Desktop Sidebar */}
       <div
         className={cn(
-          "hidden md:flex md:sticky md:top-0 md:h-screen md:w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800",
+          "hidden lg:flex lg:sticky lg:top-0 lg:h-screen lg:w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800",
           className
         )}
       >
@@ -268,7 +268,7 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
       {/* Mobile Bottom Sheet */}
       <div
         className={cn(
-          "md:hidden fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl border-t border-gray-200 dark:border-gray-800",
+          "lg:hidden fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl border-t border-gray-200 dark:border-gray-800",
           isOpen ? "translate-y-0" : "translate-y-full",
           isDragging ? "transition-none" : "transition-transform duration-300 ease-out"
         )}
@@ -378,7 +378,7 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
       {/* Overlay */}
       {isOpen && (
         <div
-          className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+          className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
           onClick={closeSidebar}
         />
       )}

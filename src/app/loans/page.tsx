@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
-import { Plus, Edit, Trash2, Calendar, Building2, IndianRupee, Loader2, CheckCircle, DollarSign, Eye, ChevronDown, ChevronUp } from "lucide-react"
+import { Plus, Edit, Trash2, Calendar, Building2, IndianRupee, Loader2, CheckCircle, DollarSign, Eye, ChevronDown, ChevronUp, Wallet } from "lucide-react"
 import { format } from "date-fns"
 import type { Loan, EMI } from "@/types"
 import { PayEmiModal } from "@/components/loans/pay-emi-modal"
@@ -31,6 +31,7 @@ export default function LoansPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [expandedLoanId, setExpandedLoanId] = useState<string | null>(null)
   const [addLoanModalOpen, setAddLoanModalOpen] = useState(false)
+  const [editingLoan, setEditingLoan] = useState<Loan | null>(null)
   const [payEmiModal, setPayEmiModal] = useState<{
     open: boolean
     loanId: string
@@ -75,6 +76,27 @@ export default function LoansPage() {
       toast.error("Failed to load loans")
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleEditLoan = async (loanId: string) => {
+    try {
+      const response = await fetch(`/api/loans/${loanId}?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch loan details")
+      }
+
+      const fullLoanData = await response.json()
+      setEditingLoan(fullLoanData)
+    } catch (error) {
+      console.error("Error fetching loan for edit:", error)
+      toast.error("Failed to load loan details")
     }
   }
 
@@ -142,6 +164,26 @@ export default function LoansPage() {
     return unique.slice(0, 4) // Limit to 4 total
   }
 
+  // Calculate summary statistics
+  const totalLoanAmount = loans.reduce((sum, loan) => sum + loan.principalAmount, 0)
+  const totalOutstanding = loans.reduce((sum, loan) => sum + loan.currentOutstanding, 0)
+
+  const currentMonthEMITotal = loans.reduce((sum, loan) => {
+    if (loan.isClosed || !loan.isActive) return sum
+    const now = new Date()
+    const currentMonth = now.getMonth()
+    const currentYear = now.getFullYear()
+
+    const currentMonthEmi = loan.emis.find(emi => {
+      const emiDate = new Date(emi.dueDate)
+      return emiDate.getMonth() === currentMonth &&
+             emiDate.getFullYear() === currentYear &&
+             !emi.isPaid
+    })
+
+    return sum + (currentMonthEmi ? currentMonthEmi.emiAmount : 0)
+  }, 0)
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -164,6 +206,65 @@ export default function LoansPage() {
           Add New Loan
         </Button>
       </div>
+
+      {/* Summary Cards */}
+      {loans.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Total Loan Amount */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50/80 via-indigo-50/60 to-white/60 dark:from-blue-900/20 dark:via-indigo-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-blue-200/50 dark:border-blue-700/50 shadow-xl hover:shadow-2xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none"></div>
+            <div className="relative p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-blue-100/80 dark:bg-blue-900/40 rounded-xl backdrop-blur-sm border border-blue-200/50 dark:border-blue-700/50">
+                  <Wallet className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Loan Amount</p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    ₹{totalLoanAmount.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Total Outstanding */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-50/80 via-rose-50/60 to-white/60 dark:from-red-900/20 dark:via-rose-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-red-200/50 dark:border-red-700/50 shadow-xl hover:shadow-2xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-rose-500/5 pointer-events-none"></div>
+            <div className="relative p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-red-100/80 dark:bg-red-900/40 rounded-xl backdrop-blur-sm border border-red-200/50 dark:border-red-700/50">
+                  <DollarSign className="h-6 w-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Outstanding</p>
+                  <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                    ₹{totalOutstanding.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Current Month EMI */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50/80 via-emerald-50/60 to-white/60 dark:from-green-900/20 dark:via-emerald-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-green-200/50 dark:border-green-700/50 shadow-xl hover:shadow-2xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5 pointer-events-none"></div>
+            <div className="relative p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-green-100/80 dark:bg-green-900/40 rounded-xl backdrop-blur-sm border border-green-200/50 dark:border-green-700/50">
+                  <Calendar className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Current Month EMI</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    ₹{currentMonthEMITotal.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loans.length === 0 ? (
         <Card>
@@ -214,16 +315,30 @@ export default function LoansPage() {
                           )}
                         </div>
                         <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{loan.institution}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 truncate">A/c: {loan.accountHolderName}</p>
                       </div>
                     </div>
 
                     {/* Compact Info Pills */}
                     <div className="hidden md:flex items-center gap-2 flex-shrink-0">
-                      <div className="px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700">
-                        <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">
-                          EMI: ₹{loan.emiAmount.toLocaleString()}
-                        </p>
-                      </div>
+                      {(() => {
+                        const now = new Date()
+                        const currentMonth = now.getMonth()
+                        const currentYear = now.getFullYear()
+                        const currentMonthEmi = loan.emis?.find(emi => {
+                          const emiDate = new Date(emi.dueDate)
+                          return emiDate.getMonth() === currentMonth && emiDate.getFullYear() === currentYear
+                        })
+                        const isCurrentMonthPaid = currentMonthEmi?.isPaid || false
+
+                        return (
+                          <div className={`px-3 py-1.5 rounded-full ${isCurrentMonthPaid ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700' : 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700'} border`}>
+                            <p className={`text-xs font-semibold ${isCurrentMonthPaid ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'}`}>
+                              EMI: ₹{loan.emiAmount.toLocaleString()}
+                            </p>
+                          </div>
+                        )
+                      })()}
                       <div className="px-3 py-1.5 rounded-full bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700">
                         <p className="text-xs font-semibold text-red-700 dark:text-red-300">
                           Outstanding: ₹{loan.currentOutstanding.toLocaleString()}
@@ -242,11 +357,24 @@ export default function LoansPage() {
 
                   {/* Mobile Info Pills */}
                   <div className="flex md:hidden items-center gap-2 mt-2 flex-wrap">
-                    <div className="px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700">
-                      <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">
-                        EMI: ₹{loan.emiAmount.toLocaleString()}
-                      </p>
-                    </div>
+                    {(() => {
+                      const now = new Date()
+                      const currentMonth = now.getMonth()
+                      const currentYear = now.getFullYear()
+                      const currentMonthEmi = loan.emis?.find(emi => {
+                        const emiDate = new Date(emi.dueDate)
+                        return emiDate.getMonth() === currentMonth && emiDate.getFullYear() === currentYear
+                      })
+                      const isCurrentMonthPaid = currentMonthEmi?.isPaid || false
+
+                      return (
+                        <div className={`px-2.5 py-1 rounded-full ${isCurrentMonthPaid ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700' : 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700'} border`}>
+                          <p className={`text-xs font-semibold ${isCurrentMonthPaid ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'}`}>
+                            EMI: ₹{loan.emiAmount.toLocaleString()}
+                          </p>
+                        </div>
+                      )
+                    })()}
                     <div className="px-2.5 py-1 rounded-full bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700">
                       <p className="text-xs font-semibold text-red-700 dark:text-red-300">
                         Outstanding: ₹{loan.currentOutstanding.toLocaleString()}
@@ -361,7 +489,7 @@ export default function LoansPage() {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation()
-                            router.push(`/loans/${loan.id}/edit`)
+                            handleEditLoan(loan.id)
                           }}
                           className="w-full sm:flex-1 justify-center text-xs h-9 text-blue-600 hover:text-blue-700 hover:bg-blue-50/80 dark:text-blue-400 dark:hover:bg-blue-900/30 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border-blue-200/50 dark:border-blue-700/50"
                         >
@@ -460,6 +588,40 @@ export default function LoansPage() {
         onOpenChange={setAddLoanModalOpen}
         onSuccess={fetchLoans}
       />
+
+      {/* Edit Loan Modal */}
+      {editingLoan && (
+        <AddLoanModal
+          open={!!editingLoan}
+          onOpenChange={(open) => !open && setEditingLoan(null)}
+          onSuccess={() => {
+            fetchLoans()
+            setEditingLoan(null)
+          }}
+          loan={{
+            id: editingLoan.id,
+            loanType: editingLoan.loanType,
+            institution: editingLoan.institution,
+            accountHolderName: editingLoan.accountHolderName,
+            principalAmount: editingLoan.principalAmount,
+            interestRate: editingLoan.interestRate,
+            tenure: editingLoan.tenure,
+            emiAmount: editingLoan.emiAmount,
+            emiFrequency: editingLoan.emiFrequency,
+            startDate: editingLoan.startDate,
+            accountNumber: editingLoan.accountNumber,
+            description: editingLoan.description,
+            goldItems: editingLoan.goldItems,
+            paymentSchedule: editingLoan.paymentSchedule,
+            emis: editingLoan.emis?.map(emi => ({
+              id: emi.id,
+              installmentNumber: emi.installmentNumber,
+              isPaid: emi.isPaid,
+              paidAmount: emi.paidAmount,
+            })),
+          }}
+        />
+      )}
 
       {/* Pay EMI Modal */}
       {payEmiModal && (
