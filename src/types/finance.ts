@@ -113,6 +113,8 @@ export interface Loan {
   tenure: number
   remainingTenure?: number
   interestRate: number
+  accountNumber?: string | null
+  description?: string | null
   emis: EMI[]
   goldItems?: GoldLoanItem[]
 }

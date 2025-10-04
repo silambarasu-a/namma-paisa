@@ -196,7 +196,14 @@ export async function PUT(
         paymentSchedule: body.paymentSchedule || null,
         goldItems: body.goldItems
           ? {
-              create: body.goldItems.map((item: any) => ({
+              create: body.goldItems.map((item: {
+                title: string
+                carat: number
+                quantity: number
+                grossWeight: number
+                netWeight: number
+                loanAmount?: number
+              }) => ({
                 title: item.title,
                 carat: item.carat,
                 quantity: item.quantity,

@@ -163,7 +163,7 @@ export default function LoanDetailPage() {
         <div className="relative overflow-hidden rounded-2xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl">
           <div className="text-center py-12 px-4">
             <p className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Loan not found</p>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">The loan you're looking for doesn't exist or has been removed.</p>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">The loan you&apos;re looking for doesn&apos;t exist or has been removed.</p>
             <Button
               onClick={() => router.push("/loans")}
               className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
