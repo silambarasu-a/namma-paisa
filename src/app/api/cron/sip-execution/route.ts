@@ -67,16 +67,16 @@ export async function GET(request: Request) {
         if (sip.frequency === "MONTHLY") {
           // Execute on the start date's day of month
           const startDay = new Date(sip.startDate).getDate()
-          shouldExecute = currentDay === startDay
+          shouldExecute = currentDay >= startDay
         } else if (sip.frequency === "YEARLY") {
           // Execute on the start date's day and month
           const startDate = new Date(sip.startDate)
           shouldExecute =
-            currentDay === startDate.getDate() &&
-            currentMonth === startDate.getMonth()
+            currentDay >= startDate.getDate() &&
+            currentMonth >= startDate.getMonth()
         } else if (sip.frequency === "CUSTOM") {
           // Execute on custom day
-          shouldExecute = sip.customDay === currentDay
+          shouldExecute = sip.customDay ? sip.customDay <= currentDay : false
         }
 
         if (!shouldExecute) {
