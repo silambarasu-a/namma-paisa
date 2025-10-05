@@ -12,7 +12,10 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Loader2 } from "lucide-react"
+import { getFrequencyLabel } from "@/lib/frequency-utils"
+import type { SIPFrequency } from "@/types/investment"
 import {
   Form,
   FormControl,
@@ -38,6 +41,8 @@ const sipEditSchema = z.object({
   endDate: z.string().optional(),
   isActive: z.boolean(),
   description: z.string().max(500, "Description too long").optional(),
+  currency: z.enum(["INR", "USD"]).optional(),
+  amountInINR: z.boolean().optional(),
 })
 
 type SIPEditData = z.infer<typeof sipEditSchema>
@@ -46,12 +51,15 @@ interface SIP {
   id: string
   name: string
   amount: number
-  frequency: "MONTHLY" | "YEARLY" | "CUSTOM"
+  frequency: "DAILY" | "WEEKLY" | "MONTHLY" | "QUARTERLY" | "HALF_YEARLY" | "YEARLY" | "CUSTOM"
   customDay?: number | null
   startDate: string
   endDate?: string | null
   isActive: boolean
   description?: string | null
+  bucket?: string | null
+  currency?: string
+  amountInINR?: boolean
 }
 
 export default function EditSIPPage() {
@@ -71,6 +79,8 @@ export default function EditSIPPage() {
       endDate: "",
       isActive: true,
       description: "",
+      currency: "INR",
+      amountInINR: true,
     },
   })
 
@@ -85,7 +95,7 @@ export default function EditSIPPage() {
 
         if (!foundSip) {
           toast.error("SIP not found")
-          router.push("/sips")
+          router.push("/investments/sips")
           return
         }
 
@@ -96,11 +106,13 @@ export default function EditSIPPage() {
           endDate: foundSip.endDate ? new Date(foundSip.endDate).toISOString().split("T")[0] : "",
           isActive: foundSip.isActive,
           description: foundSip.description || "",
+          currency: (foundSip.currency as "INR" | "USD") || "INR",
+          amountInINR: foundSip.amountInINR ?? true,
         })
       } catch (error) {
         toast.error("Failed to load SIP")
         console.error(error)
-        router.push("/sips")
+        router.push("/investments/sips")
       } finally {
         setIsLoading(false)
       }
@@ -121,6 +133,8 @@ export default function EditSIPPage() {
         endDate: data.endDate || null,
         isActive: data.isActive,
         description: data.description || undefined,
+        currency: data.currency,
+        amountInINR: data.amountInINR,
       }
 
       const response = await fetch(`/api/sips/${sipId}`, {
@@ -135,7 +149,7 @@ export default function EditSIPPage() {
       }
 
       toast.success("SIP updated successfully")
-      router.push("/sips")
+      router.push("/investments/sips")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update SIP")
       console.error(error)
@@ -152,11 +166,11 @@ export default function EditSIPPage() {
     })
   }
 
-  const getFrequencyLabel = (frequency: string, customDay?: number | null) => {
+  const getDisplayFrequency = (frequency: string, customDay?: number | null) => {
     if (frequency === "CUSTOM" && customDay) {
       return `Custom (Day ${customDay} of month)`
     }
-    return frequency === "MONTHLY" ? "Monthly" : frequency === "YEARLY" ? "Yearly" : "Custom"
+    return getFrequencyLabel(frequency as SIPFrequency)
   }
 
   if (isLoading) {
@@ -223,7 +237,7 @@ export default function EditSIPPage() {
               <p className="text-sm text-muted-foreground">Frequency</p>
               <p className="font-medium mt-1">
                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                  {getFrequencyLabel(sip.frequency, sip.customDay)}
+                  {getDisplayFrequency(sip.frequency, sip.customDay)}
                 </Badge>
               </p>
             </div>
@@ -254,32 +268,117 @@ export default function EditSIPPage() {
                 )}
               />
 
+              {/* Currency Selection - Only for US_STOCK and CRYPTO */}
+              {sip?.bucket && (sip.bucket === "US_STOCK" || sip.bucket === "CRYPTO") && (
+                <FormField
+                  control={form.control}
+                  name="currency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Currency *</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={(value) => {
+                          field.onChange(value)
+                          // Reset to INR input when changing to INR
+                          if (value === "INR") {
+                            form.setValue("amountInINR", true)
+                          }
+                        }}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select currency" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="INR">INR (₹)</SelectItem>
+                          <SelectItem value="USD">USD ($)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Select the currency for this SIP
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Amount Input Option - Only when USD is selected */}
+              {form.watch("currency") === "USD" && sip?.bucket && (sip.bucket === "US_STOCK" || sip.bucket === "CRYPTO") && (
+                <FormField
+                  control={form.control}
+                  name="amountInINR"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Amount Input Option *</FormLabel>
+                      <Select
+                        value={field.value ? "INR" : "USD"}
+                        onValueChange={(value) => {
+                          field.onChange(value === "INR")
+                        }}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="USD">Enter amount in USD (Direct)</SelectItem>
+                          <SelectItem value="INR">Enter amount in INR (Will convert to USD)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        {field.value
+                          ? "You'll enter the amount in INR, which will be used to buy in USD"
+                          : "You'll enter the amount directly in USD"}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
               {/* Amount */}
               <FormField
                 control={form.control}
                 name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Amount *</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                          ₹
-                        </span>
-                        <Input
-                          type="number"
-                          placeholder="5000"
-                          className="pl-8"
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormDescription>
-                      The investment amount per installment
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const watchCurrency = form.watch("currency")
+                  const watchAmountInINR = form.watch("amountInINR")
+                  const isUSDSIP = watchCurrency === "USD" && sip?.bucket && (sip.bucket === "US_STOCK" || sip.bucket === "CRYPTO")
+                  const currencySymbol = isUSDSIP && !watchAmountInINR ? "$" : "₹"
+                  const currencyLabel = isUSDSIP && !watchAmountInINR ? "USD" : "INR"
+
+                  return (
+                    <FormItem>
+                      <FormLabel>Amount ({currencyLabel}) *</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                            {currencySymbol}
+                          </span>
+                          <Input
+                            type="number"
+                            placeholder={isUSDSIP && !watchAmountInINR ? "100" : "5000"}
+                            className="pl-8"
+                            {...field}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormDescription>
+                        The investment amount per installment
+                        {isUSDSIP && watchAmountInINR && (
+                          <span className="block mt-1 text-blue-600 dark:text-blue-400">
+                            💡 This INR amount will be converted to USD at execution time
+                          </span>
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
               />
 
               {/* End Date */}

@@ -7,8 +7,9 @@ export default withAuth(
     const token = req.nextauth.token
     const roles = token?.roles as string[] || []
 
-    // Redirect authenticated users away from auth pages
-    if (req.nextUrl.pathname.startsWith("/auth") && token) {
+    // Redirect authenticated users away from signin/signup pages only
+    const authPagesToRedirect = ["/auth/signin", "/auth/signup"]
+    if (authPagesToRedirect.includes(req.nextUrl.pathname) && token) {
       // Super admins without customer role go to admin
       if (roles.includes(Role.SUPER_ADMIN) && !roles.includes(Role.CUSTOMER)) {
         return NextResponse.redirect(new URL("/admin", req.url))

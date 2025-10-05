@@ -93,17 +93,24 @@ export default function HoldingsPage() {
     return { amount, percent }
   }
 
+  const getInrValue = (holding: Holding, usdAmount: number) => {
+    if (holding.currency === "USD" && holding.usdInrRate) {
+      return usdAmount * Number(holding.usdInrRate)
+    }
+    return usdAmount
+  }
+
   const calculateTotalPL = () => {
     let totalCost = 0
     let totalValue = 0
 
     holdings.forEach((holding) => {
-      totalCost += holding.avgCost * holding.qty
-      if (holding.currentPrice) {
-        totalValue += holding.currentPrice * holding.qty
-      } else {
-        totalValue += holding.avgCost * holding.qty
-      }
+      const cost = holding.avgCost * holding.qty
+      const value = holding.currentPrice ? holding.currentPrice * holding.qty : cost
+
+      // Convert to INR if US stock
+      totalCost += getInrValue(holding, cost)
+      totalValue += getInrValue(holding, value)
     })
 
     const pl = totalValue - totalCost
@@ -122,8 +129,9 @@ export default function HoldingsPage() {
       const cost = holding.avgCost * holding.qty
       const value = (holding.currentPrice || holding.avgCost) * holding.qty
 
-      bucketStats[holding.bucket].totalCost += cost
-      bucketStats[holding.bucket].totalValue += value
+      // Convert to INR if US stock
+      bucketStats[holding.bucket].totalCost += getInrValue(holding, cost)
+      bucketStats[holding.bucket].totalValue += getInrValue(holding, value)
       bucketStats[holding.bucket].count += 1
     })
 
@@ -394,6 +402,11 @@ export default function HoldingsPage() {
                             Total: {holding.currency === "USD" ? "$" : "₹"}
                             {totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                           </div>
+                          {holding.currency === "USD" && holding.usdInrRate && (
+                            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                              ≈ ₹{getInrValue(holding, totalCost).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           {holding.currentPrice ? (
@@ -415,6 +428,11 @@ export default function HoldingsPage() {
                             {holding.currency === "USD" ? "$" : "₹"}
                             {totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                           </div>
+                          {holding.currency === "USD" && holding.usdInrRate && (
+                            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                              ≈ ₹{getInrValue(holding, totalValue).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           {holding.currentPrice ? (

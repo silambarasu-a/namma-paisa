@@ -15,6 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Loader2, Search } from "lucide-react"
+import { convertToMonthlyAmount } from "@/lib/frequency-utils"
 import {
   Form,
   FormControl,
@@ -57,11 +58,13 @@ const sipFormSchema = z.object({
     (val) => !isNaN(Number(val)) && Number(val) > 0,
     "Amount must be a positive number"
   ),
-  frequency: z.enum(["MONTHLY", "YEARLY", "CUSTOM"]),
+  frequency: z.enum(["DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "HALF_YEARLY", "YEARLY", "CUSTOM"]),
   customDay: z.string().optional(),
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().optional(),
   description: z.string().max(500, "Description too long").optional(),
+  currency: z.enum(["INR", "USD"]).optional(),
+  amountInINR: z.boolean().optional(),
 }).refine(
   (data) => {
     if (data.frequency === "CUSTOM") {
@@ -123,6 +126,8 @@ export default function NewSIPPage() {
       startDate: "",
       endDate: "",
       description: "",
+      currency: "INR",
+      amountInINR: true,
     },
   })
 
@@ -131,9 +136,11 @@ export default function NewSIPPage() {
   const watchSymbol = form.watch("symbol")
   const watchName = form.watch("name")
   const watchAmount = form.watch("amount")
+  const watchCurrency = form.watch("currency")
+  const watchAmountInINR = form.watch("amountInINR")
 
   // Check if amount exceeds allocation
-  const monthlyAmount = watchFrequency === "YEARLY" ? Number(watchAmount) / 12 : Number(watchAmount)
+  const monthlyAmount = convertToMonthlyAmount(Number(watchAmount) || 0, watchFrequency)
   const exceedsAllocation = bucketAllocation && monthlyAmount > bucketAllocation.available
 
   // Load user's holdings
@@ -292,6 +299,8 @@ export default function NewSIPPage() {
         description: data.description || undefined,
         bucket: data.bucket,
         symbol: data.symbol,
+        currency: data.currency,
+        amountInINR: data.amountInINR,
       }
 
       const response = await fetch("/api/sips", {
@@ -337,7 +346,7 @@ export default function NewSIPPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => router.push("/sips")}
+            onClick={() => router.push("/investments/sips")}
             className="text-white hover:bg-white/20"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -594,6 +603,78 @@ export default function NewSIPPage() {
                 </div>
               )}
 
+              {/* Currency Selection - Only for US_STOCK and CRYPTO */}
+              {watchBucket && (watchBucket === "US_STOCK" || watchBucket === "CRYPTO") && (
+                <FormField
+                  control={form.control}
+                  name="currency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Currency *</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={(value) => {
+                          field.onChange(value)
+                          // Reset to INR input when changing to INR
+                          if (value === "INR") {
+                            form.setValue("amountInINR", true)
+                          }
+                        }}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select currency" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="INR">INR (₹)</SelectItem>
+                          <SelectItem value="USD">USD ($)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Select the currency for this SIP
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Amount Input Option - Only when USD is selected */}
+              {watchCurrency === "USD" && (watchBucket === "US_STOCK" || watchBucket === "CRYPTO") && (
+                <FormField
+                  control={form.control}
+                  name="amountInINR"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Amount Input Option *</FormLabel>
+                      <Select
+                        value={field.value ? "INR" : "USD"}
+                        onValueChange={(value) => {
+                          field.onChange(value === "INR")
+                        }}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="USD">Enter amount in USD (Direct)</SelectItem>
+                          <SelectItem value="INR">Enter amount in INR (Will convert to USD)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        {field.value
+                          ? "You'll enter the amount in INR, which will be used to buy in USD"
+                          : "You'll enter the amount directly in USD"}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
               {/* Amount */}
               <FormField
                 control={form.control}
@@ -601,20 +682,25 @@ export default function NewSIPPage() {
                 render={({ field }) => {
                   const amount = Number(field.value) || 0
                   const frequency = form.watch("frequency")
-                  const monthlyAmount = frequency === "YEARLY" ? amount / 12 : amount
+                  const monthlyAmount = convertToMonthlyAmount(amount, frequency)
                   const exceedsLimit = bucketAllocation && monthlyAmount > bucketAllocation.available
+
+                  // Determine currency symbol and label
+                  const isUSDSIP = watchCurrency === "USD" && (watchBucket === "US_STOCK" || watchBucket === "CRYPTO")
+                  const currencySymbol = isUSDSIP && !watchAmountInINR ? "$" : "₹"
+                  const currencyLabel = isUSDSIP && !watchAmountInINR ? "USD" : "INR"
 
                   return (
                     <FormItem>
-                      <FormLabel>SIP Amount *</FormLabel>
+                      <FormLabel>SIP Amount ({currencyLabel}) *</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                            ₹
+                            {currencySymbol}
                           </span>
                           <Input
                             type="number"
-                            placeholder="5000"
+                            placeholder={isUSDSIP && !watchAmountInINR ? "100" : "5000"}
                             className={`pl-8 ${exceedsLimit ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                             step="0.01"
                             {...field}
@@ -624,9 +710,14 @@ export default function NewSIPPage() {
                       </FormControl>
                       <FormDescription>
                         The investment amount per installment
+                        {isUSDSIP && watchAmountInINR && (
+                          <span className="block mt-1 text-blue-600 dark:text-blue-400">
+                            💡 This INR amount will be converted to USD at execution time
+                          </span>
+                        )}
                         {frequency === "YEARLY" && amount > 0 && (
                           <span className="block mt-1 text-blue-600 dark:text-blue-400">
-                            Monthly equivalent: ₹{monthlyAmount.toLocaleString()}
+                            Monthly equivalent: {currencySymbol}{monthlyAmount.toLocaleString()}
                           </span>
                         )}
                       </FormDescription>

@@ -49,6 +49,7 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
   const [avgCost, setAvgCost] = useState("")
   const [currentPrice, setCurrentPrice] = useState("")
   const [currency, setCurrency] = useState("INR")
+  const [usdInrRate, setUsdInrRate] = useState<number | null>(null)
   const [isManual, setIsManual] = useState(false)
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0])
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -71,6 +72,7 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
       setAvgCost("")
       setCurrentPrice("")
       setCurrency("INR")
+      setUsdInrRate(null)
       setIsManual(false)
       setPurchaseDate(new Date().toISOString().split('T')[0])
       initialCurrencySet.current = false
@@ -103,12 +105,26 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  // Auto-set currency based on bucket
+  // Auto-set currency based on bucket and fetch USD-INR rate
   useEffect(() => {
     if (bucket === "US_STOCK") {
       setCurrency("USD")
+      // Fetch current USD-INR exchange rate
+      const fetchExchangeRate = async () => {
+        try {
+          const response = await fetch("/api/exchange-rate?from=USD&to=INR")
+          if (response.ok) {
+            const data = await response.json()
+            setUsdInrRate(data.rate)
+          }
+        } catch (error) {
+          console.error("Error fetching exchange rate:", error)
+        }
+      }
+      fetchExchangeRate()
     } else {
       setCurrency("INR")
+      setUsdInrRate(null)
     }
   }, [bucket])
 
@@ -264,6 +280,7 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
         avgCost: parseFloat(avgCost),
         currentPrice: currentPrice ? parseFloat(currentPrice) : null,
         currency,
+        usdInrRate: bucket === "US_STOCK" && currency === "USD" ? usdInrRate : undefined,
         isManual,
         purchaseDate: isManual ? undefined : purchaseDate,
       }
@@ -360,6 +377,11 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
                   <SelectItem value="USD">USD ($)</SelectItem>
                 </SelectContent>
               </Select>
+              {bucket === "US_STOCK" && usdInrRate && (
+                <p className="text-xs text-muted-foreground">
+                  Current rate: $1 = ₹{usdInrRate.toFixed(2)}
+                </p>
+              )}
             </div>
           </div>
 

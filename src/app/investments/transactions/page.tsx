@@ -78,7 +78,23 @@ export default function TransactionsPage() {
     }
 
     transactions.forEach((txn) => {
-      totals[txn.transactionType] += txn.amount
+      // Use amountInr if available (for USD transactions), otherwise use amount (for INR)
+      let amountInInr: number
+      if (txn.currency === "USD") {
+        // For USD transactions, use amountInr if available, otherwise convert using usdInrRate
+        if (txn.amountInr) {
+          amountInInr = Number(txn.amountInr)
+        } else if (txn.usdInrRate) {
+          amountInInr = Number(txn.amount) * Number(txn.usdInrRate)
+        } else {
+          // Fallback: skip this transaction if we can't convert to INR
+          amountInInr = 0
+        }
+      } else {
+        // For INR transactions, use amount directly
+        amountInInr = Number(txn.amount)
+      }
+      totals[txn.transactionType] += amountInInr
     })
 
     return totals
@@ -315,6 +331,7 @@ export default function TransactionsPage() {
                     <TableHead className="text-right font-semibold">Quantity</TableHead>
                     <TableHead className="text-right font-semibold">Price</TableHead>
                     <TableHead className="text-right font-semibold">Amount</TableHead>
+                    <TableHead className="text-right font-semibold">Amount (INR)</TableHead>
                     <TableHead className="font-semibold">Description</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -349,10 +366,18 @@ export default function TransactionsPage() {
                         {txn.qty.toLocaleString(undefined, { maximumFractionDigits: 9 })}
                       </TableCell>
                       <TableCell className="text-right">
-                        ₹{txn.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                        {txn.currency === "USD" ? "$" : "₹"}{txn.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell className="text-right font-semibold">
-                        ₹{txn.amount.toLocaleString()}
+                        {txn.currency === "USD" ? "$" : "₹"}{txn.amount.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {txn.amountInr ? `₹${txn.amountInr.toLocaleString()}` : "-"}
+                        {txn.usdInrRate && txn.currency === "USD" && (
+                          <div className="text-xs text-muted-foreground">
+                            @ ₹{txn.usdInrRate.toLocaleString()}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="max-w-[150px] truncate text-sm text-muted-foreground" title={txn.description || ""}>
                         {txn.description || "-"}

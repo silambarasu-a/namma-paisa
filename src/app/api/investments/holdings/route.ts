@@ -12,6 +12,7 @@ const holdingSchema = z.object({
   avgCost: z.number().positive("Average cost must be positive"),
   currentPrice: z.number().positive("Current price must be positive").optional(),
   currency: z.string().optional().default("INR"),
+  usdInrRate: z.number().positive().optional(),
   isManual: z.boolean().optional().default(false),
   purchaseDate: z.string().optional(),
 })
@@ -147,8 +148,18 @@ export async function POST(request: Request) {
       const totalQty = oldQty + newQty
       const weightedAvgCost = (oldQty * oldAvgCost + newQty * newAvgCost) / totalQty
 
+      // Calculate weighted average USD-INR rate if applicable
+      let weightedUsdInrRate = existingHolding.usdInrRate ? Number(existingHolding.usdInrRate) : null
+      if (data.bucket === "US_STOCK" && data.currency === "USD" && data.usdInrRate) {
+        const oldRate = existingHolding.usdInrRate ? Number(existingHolding.usdInrRate) : data.usdInrRate
+        const oldInvestment = oldQty * oldAvgCost
+        const newInvestment = newQty * newAvgCost
+        const totalInvestment = oldInvestment + newInvestment
+        weightedUsdInrRate = (oldInvestment * oldRate + newInvestment * data.usdInrRate) / totalInvestment
+      }
+
       console.log(`Updating holding: oldQty=${oldQty}, oldAvgCost=${oldAvgCost}, newQty=${newQty}, newAvgCost=${newAvgCost}`)
-      console.log(`New values: totalQty=${totalQty}, weightedAvgCost=${weightedAvgCost}`)
+      console.log(`New values: totalQty=${totalQty}, weightedAvgCost=${weightedAvgCost}, weightedUsdInrRate=${weightedUsdInrRate}`)
 
       // Update existing holding with weighted average
       holding = await prisma.holding.update({
@@ -157,6 +168,7 @@ export async function POST(request: Request) {
           qty: totalQty,
           avgCost: weightedAvgCost,
           currentPrice: data.currentPrice || existingHolding.currentPrice,
+          usdInrRate: weightedUsdInrRate,
           isManual: data.isManual,
           updatedAt: new Date(),
         },
@@ -176,6 +188,7 @@ export async function POST(request: Request) {
           avgCost: data.avgCost,
           currentPrice: data.currentPrice || null,
           currency: data.currency || "INR",
+          usdInrRate: data.usdInrRate || null,
           isManual: data.isManual,
         },
       })
@@ -185,6 +198,14 @@ export async function POST(request: Request) {
 
     // Track transaction if not manual entry
     if (!data.isManual) {
+      const transactionAmount = data.qty * data.avgCost
+      let amountInr: number | null = null
+
+      // Calculate amountInr for USD transactions
+      if (data.currency === "USD" && data.usdInrRate) {
+        amountInr = transactionAmount * data.usdInrRate
+      }
+
       await prisma.transaction.create({
         data: {
           userId: session.user.id,
@@ -194,9 +215,12 @@ export async function POST(request: Request) {
           name: data.name,
           qty: data.qty,
           price: data.avgCost,
-          amount: data.qty * data.avgCost,
+          amount: transactionAmount,
+          currency: data.currency || "INR",
+          amountInr: amountInr,
           transactionType: "MANUAL_ENTRY",
           purchaseDate: data.purchaseDate ? new Date(data.purchaseDate) : new Date(),
+          usdInrRate: data.usdInrRate || null,
         },
       })
     }

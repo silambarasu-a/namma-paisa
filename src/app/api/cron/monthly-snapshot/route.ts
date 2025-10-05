@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getAmountForMonth } from "@/lib/frequency-utils"
 
 // Auto-close previous month for all users
 // This should be called by a cron job on the 1st of each month
@@ -233,16 +234,14 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
   let totalSIPs = 0
   for (const sip of sips) {
     const sipAmount = Number(sip.amount)
-    if (sip.frequency === "MONTHLY") {
-      totalSIPs += sipAmount
-    } else if (sip.frequency === "YEARLY") {
-      const startMonth = new Date(sip.startDate).getMonth()
-      if (startMonth === month - 1) {
-        totalSIPs += sipAmount / 12
-      }
-    } else if (sip.frequency === "CUSTOM" && sip.customDay) {
-      totalSIPs += sipAmount
-    }
+    const amountForMonth = getAmountForMonth(
+      sipAmount,
+      sip.frequency,
+      new Date(sip.startDate),
+      month - 1, // month - 1 because getAmountForMonth expects 0-based month
+      year
+    )
+    totalSIPs += amountForMonth
   }
 
   // Get expenses for this month

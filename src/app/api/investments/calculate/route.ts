@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { convertToMonthlyAmount, getAmountForMonth } from "@/lib/frequency-utils"
 
 const calculateSchema = z.object({
   monthly: z.number().positive("Net monthly income must be positive"),
@@ -94,22 +95,14 @@ export async function POST(request: Request) {
       // Only count if SIP starts in current month or earlier
       if (sipStartDate <= currentMonthEnd) {
         currentMonthSIPCount++
-
-        switch (sip.frequency) {
-          case "MONTHLY":
-            totalSIPAmount += sipAmount
-            break
-          case "YEARLY":
-            // Check if this is the month when yearly SIP should be deducted
-            if (sipStartDate.getMonth() === now.getMonth()) {
-              totalSIPAmount += sipAmount / 12 // Distribute yearly amount across months
-            }
-            break
-          case "CUSTOM":
-            // For custom frequency, add monthly amount
-            totalSIPAmount += sipAmount
-            break
-        }
+        const amountForMonth = getAmountForMonth(
+          sipAmount,
+          sip.frequency,
+          sipStartDate,
+          now.getMonth(),
+          now.getFullYear()
+        )
+        totalSIPAmount += amountForMonth
       }
     }
 
@@ -155,14 +148,7 @@ export async function POST(request: Request) {
         sipsByBucket[bucket] = { count: 0, total: 0, sips: [] }
       }
 
-      let sipMonthlyAmount = Number(sip.amount)
-      // Adjust for frequency
-      if (sip.frequency === "YEARLY") {
-        sipMonthlyAmount = sipMonthlyAmount / 12
-      } else if (sip.frequency === "CUSTOM") {
-        // Custom frequency SIPs are counted as monthly for simplicity
-        sipMonthlyAmount = sipMonthlyAmount
-      }
+      const sipMonthlyAmount = convertToMonthlyAmount(Number(sip.amount), sip.frequency)
 
       sipsByBucket[bucket].count += 1
       sipsByBucket[bucket].total += sipMonthlyAmount

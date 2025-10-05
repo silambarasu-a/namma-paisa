@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { convertToMonthlyAmount } from "@/lib/frequency-utils"
 
 const purchaseSchema = z.object({
   bucket: z.enum(["MUTUAL_FUND", "IND_STOCK", "US_STOCK", "CRYPTO", "EMERGENCY_FUND"]),
@@ -147,10 +148,7 @@ export async function POST(request: Request) {
 
     let totalExistingSIPAmount = 0
     for (const sip of existingSIPs) {
-      let sipMonthlyAmount = Number(sip.amount)
-      if (sip.frequency === "YEARLY") {
-        sipMonthlyAmount = sipMonthlyAmount / 12
-      }
+      const sipMonthlyAmount = convertToMonthlyAmount(Number(sip.amount), sip.frequency)
       totalExistingSIPAmount += sipMonthlyAmount
     }
 
@@ -236,6 +234,24 @@ export async function POST(request: Request) {
       })
     }
 
+    // Fetch USD/INR exchange rate if currency is USD
+    let usdInrRate: number | null = null
+    let amountInr: number | null = null
+    if (data.currency === "USD") {
+      try {
+        const rateResponse = await fetch("https://api.exchangerate-api.com/v4/latest/USD")
+        if (rateResponse.ok) {
+          const rateData = await rateResponse.json()
+          usdInrRate = rateData?.rates?.INR || null
+          if (usdInrRate) {
+            amountInr = amount * usdInrRate
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch USD/INR rate:", error)
+      }
+    }
+
     // Track transaction for one-time purchase
     await prisma.transaction.create({
       data: {
@@ -247,9 +263,12 @@ export async function POST(request: Request) {
         qty: data.qty,
         price: data.buyPrice,
         amount: amount,
+        currency: data.currency || "INR",
+        amountInr: amountInr,
         transactionType: "ONE_TIME_PURCHASE",
         purchaseDate: new Date(data.date),
         description: data.description,
+        usdInrRate: usdInrRate,
       },
     })
 

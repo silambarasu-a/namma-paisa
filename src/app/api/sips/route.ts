@@ -3,17 +3,20 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { convertToMonthlyAmount } from "@/lib/frequency-utils"
 
 const sipSchema = z.object({
   name: z.string().min(1),
   amount: z.number().positive(),
-  frequency: z.enum(["MONTHLY", "YEARLY", "CUSTOM"]),
+  frequency: z.enum(["DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "HALF_YEARLY", "YEARLY", "CUSTOM"]),
   customDay: z.number().int().min(1).max(31).optional(),
   startDate: z.string(),
   endDate: z.string().optional(),
   description: z.string().optional(),
   bucket: z.enum(["MUTUAL_FUND", "IND_STOCK", "US_STOCK", "CRYPTO", "EMERGENCY_FUND"]).optional(),
   symbol: z.string().optional(),
+  currency: z.enum(["INR", "USD"]).default("INR"),
+  amountInINR: z.boolean().default(true),
 })
 
 export async function GET() {
@@ -156,18 +159,12 @@ export async function POST(request: Request) {
       // Calculate total existing SIP amount in this bucket (monthly equivalent)
       let totalExistingSIPAmount = 0
       for (const sip of existingSIPs) {
-        let sipMonthlyAmount = Number(sip.amount)
-        if (sip.frequency === "YEARLY") {
-          sipMonthlyAmount = sipMonthlyAmount / 12
-        }
+        const sipMonthlyAmount = convertToMonthlyAmount(Number(sip.amount), sip.frequency)
         totalExistingSIPAmount += sipMonthlyAmount
       }
 
       // Calculate monthly amount for new SIP
-      let newSIPMonthlyAmount = data.amount
-      if (data.frequency === "YEARLY") {
-        newSIPMonthlyAmount = data.amount / 12
-      }
+      const newSIPMonthlyAmount = convertToMonthlyAmount(data.amount, data.frequency)
 
       // Check if adding this SIP would exceed the bucket allocation
       const totalAfterNewSIP = totalExistingSIPAmount + newSIPMonthlyAmount
@@ -188,6 +185,8 @@ export async function POST(request: Request) {
         userId: session.user.id,
         startDate: new Date(data.startDate),
         endDate: data.endDate ? new Date(data.endDate) : null,
+        currency: data.currency || "INR",
+        amountInINR: data.amountInINR ?? true,
       },
     })
 

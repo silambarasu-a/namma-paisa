@@ -47,14 +47,22 @@ export const EXECUTION_STATUS_COLORS: Record<ExecutionStatus, string> = {
 
 // SIP frequency options
 export const SIP_FREQUENCIES: readonly SelectOption<SIPFrequency>[] = [
+  { value: "DAILY", label: "Daily" },
+  { value: "WEEKLY", label: "Weekly" },
   { value: "MONTHLY", label: "Monthly" },
+  { value: "QUARTERLY", label: "Quarterly" },
+  { value: "HALF_YEARLY", label: "Half-Yearly" },
   { value: "YEARLY", label: "Yearly" },
   { value: "CUSTOM", label: "Custom" },
 ] as const
 
 // SIP frequency labels mapping
 export const SIP_FREQUENCY_LABELS: Record<SIPFrequency, string> = {
+  DAILY: "Daily",
+  WEEKLY: "Weekly",
   MONTHLY: "Monthly",
+  QUARTERLY: "Quarterly",
+  HALF_YEARLY: "Half-Yearly",
   YEARLY: "Yearly",
   CUSTOM: "Custom",
 }

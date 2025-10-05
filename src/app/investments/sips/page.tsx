@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Pencil, Trash2, TrendingUp, Calendar, IndianRupee } from "lucide-react"
+import { convertToMonthlyAmount, getFrequencyLabel } from "@/lib/frequency-utils"
+import type { SIPFrequency } from "@/types/investment"
 import {
   Table,
   TableBody,
@@ -94,23 +96,10 @@ export default function SIPsPage() {
     const activeSips = sips.filter((sip) => sip.isActive)
     const monthlyTotal = activeSips.reduce((sum, sip) => {
       const amount = Number(sip.amount)
-      if (sip.frequency === "MONTHLY" || sip.frequency === "CUSTOM") {
-        return sum + amount
-      } else if (sip.frequency === "YEARLY") {
-        return sum + amount / 12
-      }
-      return sum
+      return sum + convertToMonthlyAmount(amount, sip.frequency)
     }, 0)
 
-    const yearlyTotal = activeSips.reduce((sum, sip) => {
-      const amount = Number(sip.amount)
-      if (sip.frequency === "MONTHLY" || sip.frequency === "CUSTOM") {
-        return sum + amount * 12
-      } else if (sip.frequency === "YEARLY") {
-        return sum + amount
-      }
-      return sum
-    }, 0)
+    const yearlyTotal = monthlyTotal * 12
 
     return { monthlyTotal, yearlyTotal }
   }
@@ -141,14 +130,18 @@ export default function SIPsPage() {
         </Badge>
       )
     }
-    const colors = {
+    const colors: Record<string, string> = {
+      DAILY: "bg-orange-50 text-orange-700 border-orange-200",
+      WEEKLY: "bg-cyan-50 text-cyan-700 border-cyan-200",
       MONTHLY: "bg-blue-50 text-blue-700 border-blue-200",
+      QUARTERLY: "bg-indigo-50 text-indigo-700 border-indigo-200",
+      HALF_YEARLY: "bg-violet-50 text-violet-700 border-violet-200",
       YEARLY: "bg-green-50 text-green-700 border-green-200",
       CUSTOM: "bg-purple-50 text-purple-700 border-purple-200",
     }
     return (
-      <Badge variant="outline" className={colors[frequency as keyof typeof colors]}>
-        {frequency === "MONTHLY" ? "Monthly" : frequency === "YEARLY" ? "Yearly" : "Custom"}
+      <Badge variant="outline" className={colors[frequency] || colors.MONTHLY}>
+        {getFrequencyLabel(frequency as SIPFrequency)}
       </Badge>
     )
   }

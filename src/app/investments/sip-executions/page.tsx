@@ -79,7 +79,23 @@ export default function SIPExecutionsPage() {
 
     executions.forEach((exec) => {
       totals[exec.status].count += 1
-      totals[exec.status].amount += exec.amount
+      // Use amountInr if available (for USD SIPs), otherwise use amount (for INR)
+      let amountInInr: number
+      if (exec.currency === "USD") {
+        // For USD executions, use amountInr if available, otherwise convert using usdInrRate
+        if (exec.amountInr) {
+          amountInInr = Number(exec.amountInr)
+        } else if (exec.usdInrRate) {
+          amountInInr = Number(exec.amount) * Number(exec.usdInrRate)
+        } else {
+          // Fallback: skip this execution if we can't convert to INR
+          amountInInr = 0
+        }
+      } else {
+        // For INR executions, use amount directly
+        amountInInr = Number(exec.amount)
+      }
+      totals[exec.status].amount += amountInInr
     })
 
     return totals
@@ -296,6 +312,7 @@ export default function SIPExecutionsPage() {
                     <TableHead className="font-semibold">Bucket</TableHead>
                     <TableHead className="font-semibold">Symbol</TableHead>
                     <TableHead className="text-right font-semibold">Amount</TableHead>
+                    <TableHead className="text-right font-semibold">Amount (INR)</TableHead>
                     <TableHead className="text-right font-semibold">Quantity</TableHead>
                     <TableHead className="text-right font-semibold">Price</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
@@ -329,13 +346,21 @@ export default function SIPExecutionsPage() {
                         {exec.sip.symbol || "-"}
                       </TableCell>
                       <TableCell className="text-right font-semibold">
-                        ₹{exec.amount.toLocaleString()}
+                        {exec.currency === "USD" ? "$" : "₹"}{exec.amount.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {exec.amountInr ? `₹${exec.amountInr.toLocaleString()}` : "-"}
+                        {exec.usdInrRate && exec.currency === "USD" && (
+                          <div className="text-xs text-muted-foreground">
+                            @ ₹{exec.usdInrRate.toLocaleString()}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         {exec.qty ? exec.qty.toLocaleString(undefined, { maximumFractionDigits: 9 }) : "-"}
                       </TableCell>
                       <TableCell className="text-right">
-                        {exec.price ? `₹${exec.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "-"}
+                        {exec.price ? `${exec.currency === "USD" ? "$" : "₹"}${exec.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "-"}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
