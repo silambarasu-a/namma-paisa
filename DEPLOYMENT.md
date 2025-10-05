@@ -56,29 +56,37 @@ The application has two automated cron jobs configured in `vercel.json`:
 
 ### 1. Monthly Snapshot Cron
 - **Path**: `/api/cron/monthly-snapshot`
-- **Schedule**: `0 0 1 * *` (Every 1st of the month at midnight UTC)
+- **Schedule**: `30 0 1 * *` (Every 1st of the month at 6:00 AM IST / 00:30 UTC)
 - **Purpose**: Creates monthly financial snapshots for all users
 
 ### 2. SIP Execution Cron
 - **Path**: `/api/cron/sip-execution`
-- **Schedule**: `0 9 * * *` (Every day at 9:00 AM UTC)
+- **Schedule**: `30 0 * * *` (Every day at 6:00 AM IST / 00:30 UTC)
 - **Purpose**: Executes scheduled SIP investments
 
 ### Understanding Cron Schedules
 
 Cron format: `minute hour day month weekday`
 
+**Current schedules (IST/UTC):**
 ```
-0 0 1 * *   → Every 1st of month at 00:00 (Monthly Snapshot)
-0 9 * * *   → Every day at 09:00 (SIP Execution)
+30 0 1 * *   → Every 1st at 6:00 AM IST (00:30 UTC) - Monthly Snapshot
+30 0 * * *   → Every day at 6:00 AM IST (00:30 UTC) - SIP Execution
 ```
 
-**Common schedules:**
+**Timezone Note:**
+- Vercel cron runs in UTC timezone
+- IST = UTC + 5:30 hours
+- To run at a specific IST time, subtract 5:30 from IST to get UTC
+
+**Common IST to UTC conversions:**
 ```bash
-0 0 * * *     # Daily at midnight
-0 */6 * * *   # Every 6 hours
-0 0 * * 0     # Every Sunday at midnight
-0 0 1,15 * *  # 1st and 15th of every month
+# IST Time → UTC Time → Cron Schedule
+6:00 AM IST → 00:30 UTC → 30 0 * * *
+9:00 AM IST → 03:30 UTC → 30 3 * * *
+11:30 AM IST → 06:00 UTC → 00 6 * * *
+12:00 PM IST → 06:30 UTC → 30 6 * * *
+6:00 PM IST → 12:30 UTC → 30 12 * * *
 ```
 
 ### Customize Cron Schedule
@@ -90,15 +98,20 @@ Edit `vercel.json` to change the schedule:
   "crons": [
     {
       "path": "/api/cron/monthly-snapshot",
-      "schedule": "0 0 1 * *"  // Modify this
+      "schedule": "30 0 1 * *"  // 6:00 AM IST on 1st - Modify this
     },
     {
       "path": "/api/cron/sip-execution",
-      "schedule": "0 9 * * *"  // Modify this
+      "schedule": "30 0 * * *"  // 6:00 AM IST daily - Modify this
     }
   ]
 }
 ```
+
+**To change the time:**
+1. Decide your desired IST time
+2. Convert to UTC: Subtract 5 hours 30 minutes
+3. Update the cron schedule in UTC format
 
 ## 🔒 Security
 
@@ -148,14 +161,16 @@ You can also check the Vercel "Cron" tab in your project settings to see:
 During development, you can test cron endpoints locally:
 
 ```bash
-# Test monthly snapshot
-curl -X POST http://localhost:3000/api/cron/monthly-snapshot \
+# Test monthly snapshot (GET method - matching Vercel cron behavior)
+curl -X GET http://localhost:3000/api/cron/monthly-snapshot \
   -H "Authorization: Bearer your-cron-secret"
 
 # Test SIP execution
 curl -X GET http://localhost:3000/api/cron/sip-execution \
   -H "Authorization: Bearer your-cron-secret"
 ```
+
+**Note**: Both endpoints now support GET method to match Vercel cron behavior.
 
 ## 🔧 Troubleshooting
 
@@ -164,7 +179,9 @@ curl -X GET http://localhost:3000/api/cron/sip-execution \
 1. **Check Vercel Plan**: Cron jobs are available on Pro plans and above
 2. **Verify vercel.json**: Ensure file is in root directory and properly formatted
 3. **Check Logs**: Review function logs in Vercel dashboard
-4. **Timezone**: Cron runs in UTC, adjust schedule if needed
+4. **Timezone**: Cron runs in UTC. Current schedules are set for IST (UTC+5:30)
+   - Monthly snapshot: 6:00 AM IST = 00:30 UTC
+   - SIP execution: 6:00 AM IST = 00:30 UTC
 
 ### Common Issues
 

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma"
 
 // Auto-close previous month for all users
 // This should be called by a cron job on the 1st of each month
-export async function POST(request: Request) {
+export async function GET(request: Request) {
   try {
     // Check for cron secret
     const authHeader = request.headers.get("authorization")
@@ -111,20 +111,19 @@ export async function POST(request: Request) {
   }
 }
 
-// Allow GET for manual trigger (admin only)
-export async function GET(request: Request) {
+// Allow POST for manual trigger with body parameters
+export async function POST(request: Request) {
   try {
-    const { searchParams } = new URL(request.url)
-    const secret = searchParams.get("secret")
-
+    // Check for cron secret
+    const authHeader = request.headers.get("authorization")
     const cronSecret = process.env.CRON_SECRET || "your-secret-key"
 
-    if (secret !== cronSecret) {
+    if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Call POST internally
-    return POST(request)
+    // Call GET handler with the same request
+    return GET(request)
   } catch {
     return NextResponse.json({ error: "Failed to trigger snapshot" }, { status: 500 })
   }
@@ -170,25 +169,53 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
 
   const afterTax = salary - taxAmount
 
-  // Get loans for this month
+  // Get loans for this month with EMI details
   const loans = await prisma.loan.findMany({
     where: {
       userId,
-      startDate: { lte: endDate },
+      isActive: true,
+      startDate: { lt: endDate },
+      OR: [
+        { endDate: null },
+        { endDate: { gte: startDate } }
+      ]
     },
+    include: {
+      emis: {
+        where: {
+          dueDate: {
+            gte: startDate,
+            lt: endDate
+          }
+        }
+      }
+    }
   })
 
-  let totalLoans = 0
-  for (const loan of loans) {
-    const loanStartMonth = new Date(loan.startDate.getFullYear(), loan.startDate.getMonth(), 1)
-    const currentMonth = new Date(year, month - 1, 1)
-    const monthsSinceStart = (currentMonth.getFullYear() - loanStartMonth.getFullYear()) * 12 +
-                             (currentMonth.getMonth() - loanStartMonth.getMonth())
+  // Calculate total loans - only count EMIs that are actually due this month
+  const totalLoans = loans.reduce((sum, loan) => {
+    const emi = loan.emis[0] // Get the EMI for this month
+    // Only count if there's an EMI due this month
+    return emi ? sum + Number(emi.emiAmount) : sum
+  }, 0)
 
-    if (monthsSinceStart >= 0 && monthsSinceStart < loan.tenure) {
-      totalLoans += Number(loan.emiAmount)
-    }
-  }
+  // Build loan tracking data - only include loans with EMIs due this month
+  const loansData = loans
+    .filter(loan => loan.emis.length > 0) // Only include loans with EMIs due this month
+    .map(loan => {
+      const emi = loan.emis[0] // Get the EMI for this month
+      return {
+        loanId: loan.id,
+        loanType: loan.loanType,
+        institution: loan.institution,
+        emiAmount: Number(emi.emiAmount),
+        isPaid: emi.isPaid,
+        paidDate: emi.paidDate?.toISOString() || null,
+        dueDate: emi.dueDate.toISOString(),
+        isClosed: loan.isClosed,
+        closedAt: loan.closedAt?.toISOString() || null,
+      }
+    })
 
   // Get SIPs for this month
   const sips = await prisma.sIP.findMany({
@@ -310,5 +337,6 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
     surplusAmount,
     previousSurplus,
     investmentsMade,
+    loansData,
   }
 }
