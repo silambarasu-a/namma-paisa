@@ -19,10 +19,11 @@ type SIPWithUser = Prisma.SIPGetPayload<{
  *    - Creates transaction record
  *    - Creates SIP execution record
  */
-export async function GET(request: Request) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function GET(_request: Request) {
   try {
     // Verify cron secret to prevent unauthorized access
-    const authHeader = request.headers.get("authorization")
+    // const authHeader = _request.headers.get("authorization")
     // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     // }
