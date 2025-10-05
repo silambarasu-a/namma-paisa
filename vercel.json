@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/sip-execution",
-      "schedule": "30 0 * * *"
+      "schedule": "45 0 * * *"
     }
   ]
 }
