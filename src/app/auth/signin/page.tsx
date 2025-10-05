@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { signIn } from "next-auth/react"
+import { signIn, useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
+import { Role } from "@/constants"
 
 export default function SignIn() {
   const [email, setEmail] = useState("")
@@ -18,6 +19,39 @@ export default function SignIn() {
   const [isResending, setIsResending] = useState(false)
   const [cooldownSeconds, setCooldownSeconds] = useState(0)
   const router = useRouter()
+  const { data: session, status } = useSession()
+
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      const roles = session.user.roles as string[] || []
+
+      // Super admins without customer role go to admin
+      if (roles.includes(Role.SUPER_ADMIN) && !roles.includes(Role.CUSTOMER)) {
+        router.replace("/admin")
+      } else {
+        // Everyone else goes to dashboard
+        router.replace("/dashboard")
+      }
+    }
+  }, [status, session, router])
+
+  // Show loading while checking authentication
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-gray-100 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render the form if already authenticated (will redirect)
+  if (status === "authenticated") {
+    return null
+  }
 
   useEffect(() => {
     if (cooldownSeconds > 0) {
