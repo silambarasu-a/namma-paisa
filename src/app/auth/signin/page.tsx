@@ -36,6 +36,15 @@ export default function SignIn() {
     }
   }, [status, session, router])
 
+  useEffect(() => {
+    if (cooldownSeconds > 0) {
+      const timer = setTimeout(() => {
+        setCooldownSeconds(cooldownSeconds - 1)
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [cooldownSeconds])
+
   // Show loading while checking authentication
   if (status === "loading") {
     return (
@@ -52,15 +61,6 @@ export default function SignIn() {
   if (status === "authenticated") {
     return null
   }
-
-  useEffect(() => {
-    if (cooldownSeconds > 0) {
-      const timer = setTimeout(() => {
-        setCooldownSeconds(cooldownSeconds - 1)
-      }, 1000)
-      return () => clearTimeout(timer)
-    }
-  }, [cooldownSeconds])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
