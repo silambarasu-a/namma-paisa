@@ -209,23 +209,30 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
     }
   })
 
-  const totalLoans = loans.reduce((sum, loan) => sum + Number(loan.emiAmount), 0)
-
-  // Build loan tracking data
-  const loansData = loans.map(loan => {
+  // Calculate total loans - only count EMIs that are actually due this month
+  const totalLoans = loans.reduce((sum, loan) => {
     const emi = loan.emis[0] // Get the EMI for this month
-    return {
-      loanId: loan.id,
-      loanType: loan.loanType,
-      institution: loan.institution,
-      emiAmount: Number(loan.emiAmount),
-      isPaid: emi?.isPaid || false,
-      paidDate: emi?.paidDate?.toISOString() || null,
-      dueDate: emi?.dueDate?.toISOString() || null,
-      isClosed: loan.isClosed,
-      closedAt: loan.closedAt?.toISOString() || null,
-    }
-  })
+    // Only count if there's an EMI due this month
+    return emi ? sum + Number(emi.emiAmount) : sum
+  }, 0)
+
+  // Build loan tracking data - only include loans with EMIs due this month
+  const loansData = loans
+    .filter(loan => loan.emis.length > 0) // Only include loans with EMIs due this month
+    .map(loan => {
+      const emi = loan.emis[0] // Get the EMI for this month
+      return {
+        loanId: loan.id,
+        loanType: loan.loanType,
+        institution: loan.institution,
+        emiAmount: Number(emi.emiAmount),
+        isPaid: emi.isPaid,
+        paidDate: emi.paidDate?.toISOString() || null,
+        dueDate: emi.dueDate.toISOString(),
+        isClosed: loan.isClosed,
+        closedAt: loan.closedAt?.toISOString() || null,
+      }
+    })
 
   // Get SIPs for this month
   const sips = await prisma.sIP.findMany({

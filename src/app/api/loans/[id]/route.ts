@@ -190,7 +190,7 @@ export async function PUT(
         tenure: body.tenure,
         emiAmount: body.emiAmount,
         emiFrequency: body.emiFrequency,
-        startDate: body.startDate,
+        startDate: body.startDate ? new Date(body.startDate) : undefined,
         accountNumber: body.accountNumber,
         description: body.description,
         paymentSchedule: body.paymentSchedule || null,

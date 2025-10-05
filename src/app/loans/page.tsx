@@ -325,17 +325,55 @@ export default function LoansPage() {
                         const now = new Date()
                         const currentMonth = now.getMonth()
                         const currentYear = now.getFullYear()
+
+                        // First, check for current month EMI
                         const currentMonthEmi = loan.emis?.find(emi => {
                           const emiDate = new Date(emi.dueDate)
                           return emiDate.getMonth() === currentMonth && emiDate.getFullYear() === currentYear
                         })
-                        const isCurrentMonthPaid = currentMonthEmi?.isPaid || false
+
+                        // If no current month EMI, get the next upcoming unpaid EMI
+                        const upcomingEmi = !currentMonthEmi ? loan.emis?.find(emi => {
+                          const emiDate = new Date(emi.dueDate)
+                          return !emi.isPaid && emiDate > now
+                        }) : null
+
+                        const displayEmi = currentMonthEmi || upcomingEmi
+                        const isCurrentMonth = !!currentMonthEmi
+                        const isPaid = displayEmi?.isPaid || false
+                        const dueDate = displayEmi ? format(new Date(displayEmi.dueDate), "dd/MM/yy") : ""
+
+                        // Color scheme: green for paid, orange for current month unpaid, blue for upcoming
+                        const bgColor = isPaid
+                          ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700'
+                          : isCurrentMonth
+                            ? 'bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-700'
+                            : 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700'
+
+                        const textColor = isPaid
+                          ? 'text-green-700 dark:text-green-300'
+                          : isCurrentMonth
+                            ? 'text-orange-700 dark:text-orange-300'
+                            : 'text-blue-700 dark:text-blue-300'
+
+                        const dateColor = isPaid
+                          ? 'text-green-600 dark:text-green-400'
+                          : isCurrentMonth
+                            ? 'text-orange-600 dark:text-orange-400'
+                            : 'text-blue-600 dark:text-blue-400'
 
                         return (
-                          <div className={`px-3 py-1.5 rounded-full ${isCurrentMonthPaid ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700' : 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700'} border`}>
-                            <p className={`text-xs font-semibold ${isCurrentMonthPaid ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'}`}>
-                              EMI: ₹{loan.emiAmount.toLocaleString()}
-                            </p>
+                          <div className={`px-3 py-1.5 rounded-full ${bgColor} border`}>
+                            <div className="flex items-center gap-2">
+                              <p className={`text-xs font-semibold ${textColor}`}>
+                                EMI: ₹{loan.emiAmount.toLocaleString()}
+                              </p>
+                              {displayEmi && (
+                                <span className={`text-xs ${dateColor}`}>
+                                  • {dueDate}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         )
                       })()}
@@ -361,17 +399,55 @@ export default function LoansPage() {
                       const now = new Date()
                       const currentMonth = now.getMonth()
                       const currentYear = now.getFullYear()
+
+                      // First, check for current month EMI
                       const currentMonthEmi = loan.emis?.find(emi => {
                         const emiDate = new Date(emi.dueDate)
                         return emiDate.getMonth() === currentMonth && emiDate.getFullYear() === currentYear
                       })
-                      const isCurrentMonthPaid = currentMonthEmi?.isPaid || false
+
+                      // If no current month EMI, get the next upcoming unpaid EMI
+                      const upcomingEmi = !currentMonthEmi ? loan.emis?.find(emi => {
+                        const emiDate = new Date(emi.dueDate)
+                        return !emi.isPaid && emiDate > now
+                      }) : null
+
+                      const displayEmi = currentMonthEmi || upcomingEmi
+                      const isCurrentMonth = !!currentMonthEmi
+                      const isPaid = displayEmi?.isPaid || false
+                      const dueDate = displayEmi ? format(new Date(displayEmi.dueDate), "dd/MM/yy") : ""
+
+                      // Color scheme: green for paid, orange for current month unpaid, blue for upcoming
+                      const bgColor = isPaid
+                        ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700'
+                        : isCurrentMonth
+                          ? 'bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-700'
+                          : 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700'
+
+                      const textColor = isPaid
+                        ? 'text-green-700 dark:text-green-300'
+                        : isCurrentMonth
+                          ? 'text-orange-700 dark:text-orange-300'
+                          : 'text-blue-700 dark:text-blue-300'
+
+                      const dateColor = isPaid
+                        ? 'text-green-600 dark:text-green-400'
+                        : isCurrentMonth
+                          ? 'text-orange-600 dark:text-orange-400'
+                          : 'text-blue-600 dark:text-blue-400'
 
                       return (
-                        <div className={`px-2.5 py-1 rounded-full ${isCurrentMonthPaid ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700' : 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700'} border`}>
-                          <p className={`text-xs font-semibold ${isCurrentMonthPaid ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'}`}>
-                            EMI: ₹{loan.emiAmount.toLocaleString()}
-                          </p>
+                        <div className={`px-2.5 py-1 rounded-full ${bgColor} border`}>
+                          <div className="flex items-center gap-1.5">
+                            <p className={`text-xs font-semibold ${textColor}`}>
+                              EMI: ₹{loan.emiAmount.toLocaleString()}
+                            </p>
+                            {displayEmi && (
+                              <span className={`text-xs ${dateColor}`}>
+                                • {dueDate}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       )
                     })()}

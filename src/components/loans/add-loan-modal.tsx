@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Loader2, Plus, X, Check, ChevronRight, ChevronLeft } from "lucide-react"
+import { Loader2, Plus, X, Check, ChevronRight, ChevronLeft, Info } from "lucide-react"
 import { LOAN_TYPES, EMI_FREQUENCIES, type LoanType, type EMIFrequency } from "@/constants"
 import { INDIAN_BANKS } from "@/constants/banks"
 import type { PaymentScheduleDate } from "@/types/finance"
@@ -102,6 +102,7 @@ interface AddLoanModalProps {
 interface CustomEMI {
   installmentNumber: number
   amount: string
+  dueDate: Date
   isPaid?: boolean
 }
 
@@ -125,7 +126,19 @@ export function AddLoanModal({ open, onOpenChange, onSuccess, loan }: AddLoanMod
   const [customEMIs, setCustomEMIs] = useState<CustomEMI[]>([])
   const [emiSearchTerm, setEmiSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
+  const [showMobileInfo, setShowMobileInfo] = useState(false)
   const itemsPerPage = 20
+
+  // Auto-dismiss info panel after 10 seconds
+  useEffect(() => {
+    if (showMobileInfo) {
+      const timer = setTimeout(() => {
+        setShowMobileInfo(false)
+      }, 10000) // 10 seconds
+
+      return () => clearTimeout(timer)
+    }
+  }, [showMobileInfo])
 
   const {
     register,
@@ -163,6 +176,7 @@ export function AddLoanModal({ open, onOpenChange, onSuccess, loan }: AddLoanMod
       setCalculatedTenure(null)
       setCalculatedEMI(null)
       setCustomEMIs([])
+      setShowMobileInfo(false)
       reset()
     }
   }, [open, reset])
@@ -256,6 +270,7 @@ export function AddLoanModal({ open, onOpenChange, onSuccess, loan }: AddLoanMod
 
   const initializePaymentSchedule = (frequency: string, customTenure?: number) => {
     const baseDay = startDate ? new Date(startDate).getDate() : 1
+    const baseMonth = startDate ? new Date(startDate).getMonth() + 1 : 1
 
     switch (frequency) {
       case "QUARTERLY": {
@@ -289,9 +304,9 @@ export function AddLoanModal({ open, onOpenChange, onSuccess, loan }: AddLoanMod
         break
       }
       case "ANNUALLY": {
-        // For annual, just one payment date
+        // For annual, use the actual month and day from start date
         setPaymentSchedule([
-          { month: 1, day: baseDay },
+          { month: baseMonth, day: baseDay },
         ])
         break
       }
@@ -392,12 +407,80 @@ export function AddLoanModal({ open, onOpenChange, onSuccess, loan }: AddLoanMod
     return null
   }
 
+  const calculateDueDates = (tenureValue: number): Date[] => {
+    const dueDates: Date[] = []
+    const start = new Date(startDate)
+
+    if (emiFrequency === "MONTHLY") {
+      // Monthly frequency: generate due dates for each month
+      for (let i = 1; i <= tenureValue; i++) {
+        const dueDate = new Date(start)
+        dueDate.setMonth(dueDate.getMonth() + i)
+        dueDates.push(dueDate)
+      }
+    } else if (paymentSchedule && paymentSchedule.length > 0) {
+      // For QUARTERLY, HALF_YEARLY, ANNUALLY, CUSTOM: use payment schedule
+      const startYear = start.getFullYear()
+      const monthsIncrement = emiFrequency === "QUARTERLY" ? 3 : emiFrequency === "HALF_YEARLY" ? 6 : emiFrequency === "ANNUALLY" ? 12 : 1
+
+      // Convert tenure to months based on frequency
+      const tenureInMonths = emiFrequency === "QUARTERLY" ? tenureValue * 3
+                           : emiFrequency === "HALF_YEARLY" ? tenureValue * 6
+                           : emiFrequency === "ANNUALLY" ? tenureValue * 12
+                           : tenureValue // CUSTOM and others
+
+      let totalPayments: number
+      if (emiFrequency === "CUSTOM") {
+        totalPayments = tenureValue // For custom, tenure represents number of payments
+      } else {
+        totalPayments = Math.ceil(tenureInMonths / monthsIncrement)
+      }
+
+      // Generate due dates for each year
+      for (let year = 0; year < Math.ceil(totalPayments / paymentSchedule.length) + 2; year++) {
+        for (const scheduleDate of paymentSchedule) {
+          const dueDate = new Date(startYear + year, scheduleDate.month - 1, scheduleDate.day)
+
+          // Only add if the due date is after the start date (not on the start date)
+          if (dueDate > start) {
+            dueDates.push(dueDate)
+
+            // Stop when we have enough payments
+            if (dueDates.length >= totalPayments) {
+              return dueDates
+            }
+          }
+        }
+      }
+    } else {
+      // Fallback to simple increment
+      const monthsIncrement = emiFrequency === "QUARTERLY" ? 3 : emiFrequency === "HALF_YEARLY" ? 6 : emiFrequency === "ANNUALLY" ? 12 : 1
+
+      // Convert tenure to months based on frequency
+      const tenureInMonths = emiFrequency === "QUARTERLY" ? tenureValue * 3
+                           : emiFrequency === "HALF_YEARLY" ? tenureValue * 6
+                           : emiFrequency === "ANNUALLY" ? tenureValue * 12
+                           : tenureValue
+
+      const totalPayments = Math.ceil(tenureInMonths / monthsIncrement)
+
+      for (let i = 1; i <= totalPayments; i++) {
+        const dueDate = new Date(start)
+        dueDate.setMonth(dueDate.getMonth() + (i * monthsIncrement))
+        dueDates.push(dueDate)
+      }
+    }
+
+    return dueDates
+  }
+
   const initializeCustomEMIs = () => {
     const tenureValue = Number(tenure) || calculatedTenure || 0
     const emiAmountValue = Number(emiAmount) || calculatedEMI || 0
 
-    if (tenureValue > 0 && emiAmountValue > 0) {
+    if (tenureValue > 0 && emiAmountValue > 0 && startDate) {
       const emis: CustomEMI[] = []
+      const dueDates = calculateDueDates(tenureValue)
 
       // If editing a loan, use actual EMI data
       if (loan?.emis && loan.emis.length > 0) {
@@ -406,6 +489,7 @@ export function AddLoanModal({ open, onOpenChange, onSuccess, loan }: AddLoanMod
           emis.push({
             installmentNumber: i,
             amount: existingEmi?.paidAmount?.toString() || emiAmountValue.toString(),
+            dueDate: dueDates[i - 1] || new Date(),
             isPaid: existingEmi?.isPaid || false,
           })
         }
@@ -415,6 +499,7 @@ export function AddLoanModal({ open, onOpenChange, onSuccess, loan }: AddLoanMod
           emis.push({
             installmentNumber: i,
             amount: emiAmountValue.toString(),
+            dueDate: dueDates[i - 1] || new Date(),
             isPaid: false,
           })
         }
@@ -1131,9 +1216,11 @@ export function AddLoanModal({ open, onOpenChange, onSuccess, loan }: AddLoanMod
     const filteredEMIs = customEMIs.filter(emi => {
       if (!emiSearchTerm) return true
       const searchLower = emiSearchTerm.toLowerCase()
+      const formattedDueDate = emi.dueDate.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: '2-digit' })
       return (
         emi.installmentNumber.toString().includes(searchLower) ||
-        emi.amount.includes(searchLower)
+        emi.amount.includes(searchLower) ||
+        formattedDueDate.includes(emiSearchTerm)
       )
     })
 
@@ -1145,41 +1232,69 @@ export function AddLoanModal({ open, onOpenChange, onSuccess, loan }: AddLoanMod
 
     return (
       <div className="flex flex-col space-y-4 h-full min-h-0">
-        <div className="p-4 border rounded-lg bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800 flex-shrink-0">
-          <p className="text-sm text-muted-foreground">
-            You can customize the EMI amount for each installment. The default EMI amount is shown for all installments.
-            This is useful if you want to pay different amounts for different installments.
-            {loan && <span className="block mt-2 text-green-600 dark:text-green-400 font-medium">Note: Installments that are already paid cannot be edited.</span>}
-          </p>
-        </div>
+        {/* Info alert when button clicked */}
+        {showMobileInfo && (
+          <div className="p-4 border rounded-lg bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800 flex-shrink-0 animate-in slide-in-from-top-2">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm text-muted-foreground flex-1">
+                You can customize the EMI amount for each installment. The default EMI amount is shown for all installments.
+                This is useful if you want to pay different amounts for different installments.
+                {loan && <span className="block mt-2 text-green-600 dark:text-green-400 font-medium">Note: Installments that are already paid cannot be edited.</span>}
+              </p>
+              <button
+                onClick={() => setShowMobileInfo(false)}
+                className="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
-        {/* Search and Stats */}
+        {/* Info button when search is not shown */}
+        {customEMIs?.length <= 10 && (
+          <div className="flex justify-start sm:justify-end flex-shrink-0">
+            <button
+              onClick={() => setShowMobileInfo(!showMobileInfo)}
+              className="flex-shrink-0 h-9 w-9 flex items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all animate-pulse"
+              aria-label="Show information"
+            >
+              <Info className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Search Bar */}
         {customEMIs?.length > 10 && (
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between flex-shrink-0">
-            <div className="w-full sm:w-64">
+          <div className="flex items-center gap-2 justify-between flex-shrink-0">
+            <div className="flex items-center gap-2 flex-1">
+              {/* Mobile: Info button on left with glowing effect */}
+              <button
+                onClick={() => setShowMobileInfo(!showMobileInfo)}
+                className="sm:hidden flex-shrink-0 h-9 w-9 flex items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all animate-pulse"
+                aria-label="Show information"
+              >
+                <Info className="h-4 w-4" />
+              </button>
               <Input
                 type="text"
-                placeholder="Search by installment # or amount..."
+                placeholder="Search by #, amount or date (dd/MM/yy)..."
                 value={emiSearchTerm}
                 onChange={(e) => {
                   setEmiSearchTerm(e.target.value)
                   setCurrentPage(1) // Reset to first page on search
                 }}
-                className="h-9"
+                className="h-9 flex-1"
               />
             </div>
-            <div className="flex gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">Total:</span>
-                <span className="font-medium ml-1">{customEMIs.length} installments</span>
-              </div>
-              {emiSearchTerm && (
-                <div>
-                  <span className="text-muted-foreground">Showing:</span>
-                  <span className="font-medium ml-1">{filteredEMIs.length}</span>
-                </div>
-              )}
-            </div>
+            {/* Desktop: Info button on right with glowing effect */}
+            <button
+              onClick={() => setShowMobileInfo(!showMobileInfo)}
+              className="hidden sm:flex flex-shrink-0 h-9 w-9 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all animate-pulse"
+              aria-label="Show information"
+            >
+              <Info className="h-4 w-4" />
+            </button>
           </div>
         )}
 
@@ -1189,26 +1304,53 @@ export function AddLoanModal({ open, onOpenChange, onSuccess, loan }: AddLoanMod
             {paginatedEMIs.length > 0 && paginatedEMIs.map((emi) => {
               const actualIndex = customEMIs.findIndex(e => e.installmentNumber === emi.installmentNumber)
               const isPaid = emi.isPaid || false
+              const formattedDueDate = emi.dueDate.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: '2-digit' })
+
+              // Color scheme for due date pill
+              const pillBgColor = isPaid
+                ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700'
+                : 'bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-700'
+
+              const pillTextColor = isPaid
+                ? 'text-green-700 dark:text-green-300'
+                : 'text-orange-700 dark:text-orange-300'
+
               return (
-                <div key={emi.installmentNumber} className={`flex items-center gap-3 p-3 border rounded-lg ${isPaid ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800' : 'bg-white dark:bg-gray-900'}`}>
-                  <div className="flex-shrink-0 w-24">
-                    <Label className={`text-xs ${isPaid ? 'text-green-600 dark:text-green-400 font-medium' : 'text-muted-foreground'}`}>
-                      Installment {emi.installmentNumber}
-                      {isPaid && <span className="block text-[10px]">PAID</span>}
+                <div key={emi.installmentNumber} className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-2.5 sm:p-3 border rounded-lg ${isPaid ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800' : 'bg-white dark:bg-gray-900'}`}>
+                  {/* Mobile: Installment # and Amount row | Desktop: Just Installment # */}
+                  <div className="flex items-center justify-between sm:justify-start sm:flex-shrink-0">
+                    <Label className={`text-xs font-semibold whitespace-nowrap ${isPaid ? 'text-green-600 dark:text-green-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                      Installment #{emi.installmentNumber}
+                      {isPaid && <span className="ml-2 text-[10px] font-medium text-green-600 dark:text-green-400">PAID</span>}
                     </Label>
+                    {/* Mobile: Amount on the right */}
+                    <div className={`sm:hidden flex-shrink-0 text-right text-xs font-semibold ${isPaid ? 'text-green-600 dark:text-green-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                      ₹{Number(emi.amount).toLocaleString()}
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={emi.amount}
-                      onChange={(e) => updateCustomEMI(actualIndex, e.target.value)}
-                      className="h-9"
-                      disabled={isPaid}
-                    />
-                  </div>
-                  <div className={`flex-shrink-0 w-20 text-right text-sm ${isPaid ? 'text-green-600 dark:text-green-400 font-medium' : 'text-muted-foreground'}`}>
-                    ₹{Number(emi.amount).toLocaleString()}
+
+                  {/* Input and due date row */}
+                  <div className="flex items-center gap-2 sm:gap-3 sm:flex-1">
+                    <div className="flex-1 min-w-0">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={emi.amount}
+                        onChange={(e) => updateCustomEMI(actualIndex, e.target.value)}
+                        className="h-9"
+                        disabled={isPaid}
+                      />
+                    </div>
+                    {/* Due date pill - visible on all screen sizes */}
+                    <div className={`flex-shrink-0 px-2.5 py-1.5 rounded-full border flex items-center ${pillBgColor}`}>
+                      <span className={`text-xs font-semibold whitespace-nowrap ${pillTextColor}`}>
+                        {formattedDueDate}
+                      </span>
+                    </div>
+                    {/* Desktop: Amount on the right */}
+                    <div className={`hidden sm:block flex-shrink-0 w-20 md:w-24 text-right text-xs sm:text-sm ${isPaid ? 'text-green-600 dark:text-green-400 font-medium' : 'text-muted-foreground'}`}>
+                      ₹{Number(emi.amount).toLocaleString()}
+                    </div>
                   </div>
                 </div>
               )
@@ -1352,7 +1494,7 @@ export function AddLoanModal({ open, onOpenChange, onSuccess, loan }: AddLoanMod
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
-              className="flex-shrink-0"
+              className="hidden sm:flex flex-shrink-0"
             >
               Cancel
             </Button>

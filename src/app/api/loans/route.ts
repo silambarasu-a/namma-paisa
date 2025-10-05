@@ -115,13 +115,38 @@ export async function GET() {
       ],
     })
 
-    // Calculate remaining tenure and transform the response
+    // Calculate remaining tenure and check for current month EMIs
     const transformedLoans = await Promise.all(loans.map(async (loan) => {
       // Count ALL unpaid EMIs for accurate remaining tenure
       const remainingTenure = await prisma.eMI.count({
         where: {
           loanId: loan.id,
           isPaid: false,
+        }
+      })
+
+      // Check if loan has any EMI due in current month (paid or unpaid)
+      const hasCurrentMonthDue = await prisma.eMI.count({
+        where: {
+          loanId: loan.id,
+          dueDate: {
+            gte: currentMonthStart,
+            lte: currentMonthEnd,
+          }
+        }
+      }) > 0
+
+      // Get the earliest unpaid EMI due date for sorting
+      const earliestUnpaidEmi = await prisma.eMI.findFirst({
+        where: {
+          loanId: loan.id,
+          isPaid: false,
+        },
+        orderBy: {
+          dueDate: 'asc',
+        },
+        select: {
+          dueDate: true,
         }
       })
 
@@ -133,6 +158,8 @@ export async function GET() {
         currentOutstanding: Number(loan.currentOutstanding),
         totalPaid: Number(loan.totalPaid),
         remainingTenure,
+        hasCurrentMonthDue,
+        earliestDueDate: earliestUnpaidEmi?.dueDate || null,
         emis: loan.emis.map(emi => ({
           ...emi,
           emiAmount: Number(emi.emiAmount),
@@ -152,13 +179,33 @@ export async function GET() {
       }
     }))
 
-    // Sort by remaining tenure (loans closing first)
+    // Sort by: 1) Active loans first, 2) Current month due, 3) Due date (ascending), 4) Principal amount (ascending)
     transformedLoans.sort((a, b) => {
-      // Closed loans at the end
-      if (a.isClosed && !b.isClosed) return 1
-      if (!a.isClosed && b.isClosed) return -1
-      // For active loans, sort by remaining tenure (ascending)
-      return a.remainingTenure - b.remainingTenure
+      // Active loans first, closed loans at the end
+      if (a.isActive && !a.isClosed && (b.isClosed || !b.isActive)) return -1
+      if ((a.isClosed || !a.isActive) && b.isActive && !b.isClosed) return 1
+
+      // For active loans, prioritize those with current month dues
+      if (a.isActive && !a.isClosed && b.isActive && !b.isClosed) {
+        if (a.hasCurrentMonthDue && !b.hasCurrentMonthDue) return -1
+        if (!a.hasCurrentMonthDue && b.hasCurrentMonthDue) return 1
+
+        // If both have or don't have current month dues, sort by earliest due date (ascending)
+        if (a.earliestDueDate && b.earliestDueDate) {
+          const dateDiff = new Date(a.earliestDueDate).getTime() - new Date(b.earliestDueDate).getTime()
+          if (dateDiff !== 0) return dateDiff
+        } else if (a.earliestDueDate && !b.earliestDueDate) {
+          return -1 // Loans with due dates come first
+        } else if (!a.earliestDueDate && b.earliestDueDate) {
+          return 1
+        }
+
+        // If same due date or both have no due dates, sort by principal amount (ascending)
+        return a.principalAmount - b.principalAmount
+      }
+
+      // For closed/inactive loans, sort by principal amount
+      return a.principalAmount - b.principalAmount
     })
 
     return NextResponse.json(transformedLoans, {
