@@ -14,7 +14,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LogOut, User, Mail, Menu } from "lucide-react"
 import Link from "next/link"
-import { Role, ROLE_LABELS } from "@/constants"
+import { Logo } from "@/components/icons/logo"
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -34,8 +34,10 @@ export function Header({ onMenuClick }: HeaderProps) {
     .toUpperCase() || session.user.email?.[0]?.toUpperCase() || "U"
 
   return (
-    <header className="sticky top-0 z-20 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-      <div className="flex items-center justify-between h-16 px-3 md:px-8">
+    <header className="fixed top-4 left-4 right-4 z-30 bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-2xl rounded-3xl overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-blue-500/10 pointer-events-none"></div>
+      <div className="absolute inset-0 backdrop-blur-3xl"></div>
+      <div className="relative flex items-center justify-between h-16 px-3 md:px-8">
         <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
           {/* Mobile menu button */}
           <Button
@@ -47,13 +49,17 @@ export function Header({ onMenuClick }: HeaderProps) {
             <Menu className="h-5 w-5" />
           </Button>
 
-          <div className="min-w-0 hidden sm:block">
-            <h2 className="text-sm md:text-lg font-semibold text-gray-900 dark:text-white truncate">
-              Welcome back, {session.user.name?.split(" ")[0] || "User"}
-            </h2>
-            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 truncate">
-              {session.user.roles.includes(Role.SUPER_ADMIN) ? ROLE_LABELS[Role.SUPER_ADMIN] : ROLE_LABELS[Role.CUSTOMER]}
-            </p>
+          {/* Logo and Namma Paisa - Always visible on desktop */}
+          <div className="flex items-center gap-2 md:gap-3">
+            <Logo className="h-7 w-7 md:h-10 md:w-10" />
+            <div className="flex flex-col">
+              <h1 className="text-sm md:text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                Namma Paisa
+              </h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400 hidden lg:block">
+                Personal Finance Manager
+              </p>
+            </div>
           </div>
         </div>
 

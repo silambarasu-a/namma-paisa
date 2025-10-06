@@ -37,14 +37,12 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="flex flex-1 overflow-x-hidden">
+      <Header onMenuClick={() => setIsSidebarOpen(true)} />
+      <div className="flex flex-1 pt-20">
         <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-        <div className="flex flex-col flex-1 min-w-0">
-          <Header onMenuClick={() => setIsSidebarOpen(true)} />
-          <main className="p-4 md:p-8 flex-1 overflow-x-hidden">
-            {children}
-          </main>
-        </div>
+        <main className="p-4 md:p-8 flex-1 min-w-0 lg:ml-[22rem]">
+          {children}
+        </main>
       </div>
       <Footer />
     </div>

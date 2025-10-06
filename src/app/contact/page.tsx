@@ -95,13 +95,18 @@ export default function ContactPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
-      <header className="border-b border-gray-200 dark:border-gray-800">
-        <nav className="container mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
+      <header className="fixed top-4 left-4 right-4 z-30 bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-2xl rounded-3xl overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-blue-500/10 pointer-events-none"></div>
+        <div className="absolute inset-0 backdrop-blur-3xl"></div>
+        <nav className="relative container mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center space-x-2">
-            <Logo className="h-7 w-7 sm:h-8 sm:w-8" />
-            <span className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
-              Namma Paisa
-            </span>
+            <Logo className="h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10" />
+            <div className="flex flex-col">
+              <span className="text-sm sm:text-lg md:text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                Namma Paisa
+              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 hidden lg:block">Personal Finance Manager</span>
+            </div>
           </Link>
           <div className="flex items-center gap-2">
             <ThemeToggle />
@@ -116,7 +121,7 @@ export default function ContactPage() {
       </header>
 
       {/* Contact Content */}
-      <section className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 md:py-20">
+      <section className="container mx-auto px-4 sm:px-6 pb-8 sm:pb-12 md:pb-20 pt-28 sm:pt-32">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8 sm:mb-10 md:mb-12">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4">Get in Touch</h1>

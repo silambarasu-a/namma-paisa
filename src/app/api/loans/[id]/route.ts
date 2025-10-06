@@ -165,11 +165,22 @@ export async function PUT(
         id,
         userId: session.user.id,
       },
+      include: {
+        emis: true,
+      },
     })
 
     if (!existingLoan) {
       return NextResponse.json({ error: "Loan not found" }, { status: 404 })
     }
+
+    // Check if payment schedule has changed
+    const scheduleChanged = JSON.stringify(existingLoan.paymentSchedule) !== JSON.stringify(body.paymentSchedule)
+    const frequencyChanged = existingLoan.emiFrequency !== body.emiFrequency
+    const startDateChanged = existingLoan.startDate.toISOString() !== new Date(body.startDate).toISOString()
+
+    // If payment schedule, frequency, or start date changed, regenerate unpaid EMIs
+    const shouldRegenerateEMIs = scheduleChanged || frequencyChanged || startDateChanged
 
     // Delete existing gold items if updating a gold loan
     if (body.goldItems) {
@@ -178,8 +189,18 @@ export async function PUT(
       })
     }
 
+    // If we need to regenerate EMIs, delete only unpaid EMIs
+    if (shouldRegenerateEMIs) {
+      await prisma.eMI.deleteMany({
+        where: {
+          loanId: id,
+          isPaid: false,
+        },
+      })
+    }
+
     // Update the loan
-    const updatedLoan = await prisma.loan.update({
+    await prisma.loan.update({
       where: { id },
       data: {
         loanType: body.loanType,
@@ -220,7 +241,153 @@ export async function PUT(
       },
     })
 
-    return NextResponse.json(updatedLoan)
+    // If we need to regenerate EMIs, create new unpaid EMIs
+    if (shouldRegenerateEMIs) {
+      // Count how many EMIs were paid
+      const paidEmisCount = existingLoan.emis.filter(emi => emi.isPaid).length
+      const remainingEMIs = body.tenure - paidEmisCount
+
+      if (remainingEMIs > 0) {
+        const startDate = new Date(body.startDate)
+        const startYear = startDate.getFullYear()
+        const newEmis = []
+
+        // Create a map of custom EMI amounts if provided
+        const customEMIMap = new Map<number, number>()
+        if (body.customEMIs && body.customEMIs.length > 0) {
+          body.customEMIs.forEach((emi: { installmentNumber: number; amount: number }) => {
+            customEMIMap.set(emi.installmentNumber, emi.amount)
+          })
+        }
+
+        // Helper function to calculate months between payments based on frequency
+        const getMonthsIncrement = (frequency: string): number => {
+          switch (frequency) {
+            case "MONTHLY":
+              return 1
+            case "QUARTERLY":
+              return 3
+            case "HALF_YEARLY":
+              return 6
+            case "ANNUALLY":
+              return 12
+            case "CUSTOM":
+              return 1
+            default:
+              return 1
+          }
+        }
+
+        if (body.emiFrequency === "MONTHLY") {
+          // For monthly, start from the next unpaid installment
+          for (let i = paidEmisCount; i < body.tenure; i++) {
+            const dueDate = new Date(startDate)
+            dueDate.setMonth(dueDate.getMonth() + i)
+
+            const customEMIAmount: number = customEMIMap.get(i + 1) || body.emiAmount
+
+            newEmis.push({
+              emiAmount: customEMIAmount,
+              dueDate,
+              isPaid: false,
+            })
+          }
+        } else if (body.paymentSchedule && body.paymentSchedule.dates.length > 0) {
+          const { dates } = body.paymentSchedule
+          const monthsIncrement = getMonthsIncrement(body.emiFrequency)
+
+          let totalPayments: number
+          if (body.emiFrequency === "CUSTOM") {
+            totalPayments = Math.ceil(body.tenure / dates.length)
+          } else {
+            totalPayments = Math.ceil(body.tenure / monthsIncrement)
+          }
+
+          // Calculate the first occurrence of each schedule date on or after startDate
+          const scheduleWithFirstOccurrence = dates.map((scheduleDate: { month: number; day: number }) => {
+            let firstOccurrence = new Date(startYear, scheduleDate.month - 1, scheduleDate.day)
+
+            if (firstOccurrence < startDate) {
+              firstOccurrence = new Date(startYear + 1, scheduleDate.month - 1, scheduleDate.day)
+            }
+
+            return { scheduleDate, firstOccurrence }
+          })
+
+          scheduleWithFirstOccurrence.sort((a: { scheduleDate: { month: number; day: number }; firstOccurrence: Date }, b: { scheduleDate: { month: number; day: number }; firstOccurrence: Date }) => a.firstOccurrence.getTime() - b.firstOccurrence.getTime())
+
+          let emisGenerated = 0
+
+          // Generate EMIs for each year, starting from where we left off
+          for (let year = 0; year < Math.ceil(totalPayments / dates.length) + 1 && emisGenerated < remainingEMIs; year++) {
+            for (const { firstOccurrence } of scheduleWithFirstOccurrence) {
+              if (emisGenerated >= remainingEMIs) break
+
+              const dueDate = new Date(firstOccurrence)
+              dueDate.setFullYear(firstOccurrence.getFullYear() + year)
+
+              const customEMIAmount: number = customEMIMap.get(paidEmisCount + emisGenerated + 1) || body.emiAmount
+
+              newEmis.push({
+                emiAmount: customEMIAmount,
+                dueDate,
+                isPaid: false,
+              })
+
+              emisGenerated++
+            }
+          }
+        } else {
+          // Fallback for other frequencies without payment schedule
+          const monthsIncrement = getMonthsIncrement(body.emiFrequency)
+
+          for (let i = paidEmisCount; i < body.tenure; i++) {
+            const dueDate = new Date(startDate)
+            dueDate.setMonth(dueDate.getMonth() + (i * monthsIncrement))
+
+            const customEMIAmount: number = customEMIMap.get(i + 1) || body.emiAmount
+
+            newEmis.push({
+              emiAmount: customEMIAmount,
+              dueDate,
+              isPaid: false,
+            })
+          }
+        }
+
+        console.log('EMI Regeneration Debug:', {
+          paidEmisCount,
+          remainingEMIs,
+          newEmisLength: newEmis.length,
+          tenure: body.tenure,
+          frequency: body.emiFrequency,
+          hasPaymentSchedule: !!body.paymentSchedule
+        })
+
+        // Create new unpaid EMIs
+        if (newEmis.length > 0) {
+          await prisma.eMI.createMany({
+            data: newEmis.map(emi => ({
+              ...emi,
+              loanId: id,
+            })),
+          })
+        }
+      }
+    }
+
+    // Fetch the final updated loan with all EMIs
+    const finalLoan = await prisma.loan.findUnique({
+      where: { id },
+      include: {
+        emis: {
+          orderBy: { dueDate: "asc" },
+        },
+        goldItems: true,
+      },
+    })
+
+    return NextResponse.json(finalLoan)
   } catch (error) {
     console.error("Error updating loan:", error)
     return NextResponse.json(

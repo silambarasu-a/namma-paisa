@@ -175,24 +175,16 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
       {/* Desktop Sidebar */}
       <div
         className={cn(
-          "hidden lg:flex lg:sticky lg:top-0 lg:h-screen lg:w-64 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-700/50 shadow-xl",
+          "hidden lg:flex lg:fixed lg:left-4 lg:top-24 lg:h-[calc(100vh-7rem)] lg:w-80 bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-2xl rounded-3xl z-10",
           className
         )}
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none"></div>
-        <div className="relative flex flex-col h-full w-full">
-          <div className="flex items-center justify-center gap-3 h-16 px-4 border-b border-gray-200/50 dark:border-gray-700/50">
-            <Logo className="h-10 w-10" />
-            <div className="flex flex-col leading-tight">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
-                Namma Paisa
-              </h1>
-            </div>
-          </div>
-
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-blue-500/10 pointer-events-none rounded-3xl"></div>
+        <div className="absolute inset-0 backdrop-blur-3xl rounded-3xl"></div>
+        <div className="relative flex flex-col h-full w-full overflow-hidden">
           {/* Role Switcher for Super Admins with Customer Role */}
           {isSuperAdmin && hasCustomerRole && (
-            <div className="px-4 py-4 border-b border-gray-200/50 dark:border-gray-700/50">
+            <div className="px-6 py-4 border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0">
               <div className="relative overflow-hidden flex items-center justify-between space-x-3 p-3 bg-gradient-to-br from-blue-50/80 via-indigo-50/60 to-white/60 dark:from-blue-900/20 dark:via-indigo-900/10 dark:to-gray-800/60 backdrop-blur-sm rounded-lg border border-blue-200/50 dark:border-blue-700/50 shadow-lg">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none rounded-lg"></div>
                 <div className="relative flex items-center space-x-2">
@@ -226,7 +218,7 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
             </div>
           )}
 
-          <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+          <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto overflow-x-hidden hover:overflow-y-auto scrollbar-thin scrollbar-thumb-purple-500/20 scrollbar-track-transparent hover:scrollbar-thumb-purple-500/40">
             {allNavigation.map((item) => (
               <div key={item.name}>
                 <Link
