@@ -343,7 +343,7 @@ export async function POST(request: Request) {
 
       // Calculate the first occurrence of each schedule date on or after minFirstEmiDate
       const scheduleWithFirstOccurrence = dates.map(scheduleDate => {
-        let firstOccurrence = new Date(startYear, scheduleDate.month - 1, scheduleDate.day)
+        const firstOccurrence = new Date(startYear, scheduleDate.month - 1, scheduleDate.day)
 
         // Keep moving to next year until we find a date >= minFirstEmiDate
         while (firstOccurrence < minFirstEmiDate) {
