@@ -2,7 +2,6 @@
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -463,100 +462,120 @@ export default function ExpensesPage() {
       {isLoadingSummary ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <Card key={i}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-              </CardHeader>
-              <CardContent>
-                <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2" />
-                <div className="h-3 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-              </CardContent>
-            </Card>
+            <div key={i} className="relative overflow-hidden rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 p-5">
+              <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4" />
+              <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2" />
+              <div className="h-3 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            </div>
           ))}
         </div>
       ) : summary && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">₹{summary.totalExpenses.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">{summary.count} expenses</p>
-            </CardContent>
-          </Card>
+          {/* Total Expenses Card */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50/80 via-indigo-50/60 to-white/60 dark:from-blue-900/20 dark:via-indigo-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-blue-200/50 dark:border-blue-700/50 shadow-xl hover:shadow-2xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none"></div>
+            <div className="relative p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-blue-100/80 dark:bg-blue-900/40 rounded-xl backdrop-blur-sm border border-blue-200/50 dark:border-blue-700/50">
+                  <DollarSign className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Expenses</p>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">₹{summary.totalExpenses.toLocaleString()}</div>
+                </div>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{summary.count} expenses</p>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Needs</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">₹{summary.needsTotal.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
+          {/* Needs Card */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50/80 via-emerald-50/60 to-white/60 dark:from-green-900/20 dark:via-emerald-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-green-200/50 dark:border-green-700/50 shadow-xl hover:shadow-2xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5 pointer-events-none"></div>
+            <div className="relative p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-green-100/80 dark:bg-green-900/40 rounded-xl backdrop-blur-sm border border-green-200/50 dark:border-green-700/50">
+                  <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Needs</p>
+                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">₹{summary.needsTotal.toLocaleString()}</div>
+                </div>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
                 {summary.totalExpenses > 0 ? ((summary.needsTotal / summary.totalExpenses) * 100).toFixed(1) : 0}% of total
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avoid</CardTitle>
-              <TrendingDown className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">₹{summary.avoidTotal.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
+          {/* Avoid Card */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-50/80 via-rose-50/60 to-white/60 dark:from-red-900/20 dark:via-rose-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-red-200/50 dark:border-red-700/50 shadow-xl hover:shadow-2xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-rose-500/5 pointer-events-none"></div>
+            <div className="relative p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-red-100/80 dark:bg-red-900/40 rounded-xl backdrop-blur-sm border border-red-200/50 dark:border-red-700/50">
+                  <TrendingDown className="h-6 w-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Avoid</p>
+                  <div className="text-2xl font-bold text-red-600 dark:text-red-400">₹{summary.avoidTotal.toLocaleString()}</div>
+                </div>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
                 {summary.totalExpenses > 0 ? ((summary.avoidTotal / summary.totalExpenses) * 100).toFixed(1) : 0}% of total
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Unexpected</CardTitle>
-              <Receipt className="h-4 w-4 text-orange-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">₹{summary.unexpectedTotal.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
+          {/* Unexpected Card */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-50/80 via-amber-50/60 to-white/60 dark:from-orange-900/20 dark:via-amber-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-orange-200/50 dark:border-orange-700/50 shadow-xl hover:shadow-2xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-amber-500/5 pointer-events-none"></div>
+            <div className="relative p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-orange-100/80 dark:bg-orange-900/40 rounded-xl backdrop-blur-sm border border-orange-200/50 dark:border-orange-700/50">
+                  <Receipt className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Unexpected</p>
+                  <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">₹{summary.unexpectedTotal.toLocaleString()}</div>
+                </div>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
                 {summary.totalExpenses > 0 ? ((summary.unexpectedTotal / summary.totalExpenses) * 100).toFixed(1) : 0}% of total
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Available vs Actual Comparison */}
       {isLoadingBudget ? (
-        <Card className="border-l-4 border-l-blue-500">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
+        <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 border-l-4 border-l-blue-500">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none"></div>
+          <div className="relative p-6">
+            <div className="flex items-center space-x-2 mb-4">
               <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              <span>Budget vs Actual Spending</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+              <span className="text-xl font-semibold">Budget vs Actual Spending</span>
+            </div>
             <div className="space-y-6">
               <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
               <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
               <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : available && summary && (
-        <Card className="border-l-4 border-l-blue-500">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              <span>Budget vs Actual Spending</span>
-            </CardTitle>
-            <CardDescription>
-              Track your spending against allocated budgets by category
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 border-l-4 border-l-blue-500 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none"></div>
+          <div className="relative p-6">
+            <div className="mb-4">
+              <div className="flex items-center space-x-2 mb-1">
+                <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <span className="text-xl font-semibold text-gray-900 dark:text-white">Budget vs Actual Spending</span>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Track your spending against allocated budgets by category
+              </p>
+            </div>
             <div className="space-y-6">
               {/* Total Expenses vs Available */}
               <div className="p-4 bg-gradient-to-r from-blue-50 to-white dark:from-blue-900/20 dark:to-gray-900 rounded-lg border-2 border-blue-200 dark:border-blue-800">
@@ -724,17 +743,18 @@ export default function ExpensesPage() {
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Expense List */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none"></div>
+        <div className="relative p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
-              <CardTitle>Expense List</CardTitle>
-              <CardDescription>All expenses for selected month</CardDescription>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Expense List</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">All expenses for selected month</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Select value={filter} onValueChange={setFilter}>
@@ -770,8 +790,6 @@ export default function ExpensesPage() {
               </Button>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
           {isLoadingExpenses ? (
             <div className="space-y-3">
               {[1, 2, 3, 4, 5].map((i) => (
@@ -896,40 +914,45 @@ export default function ExpensesPage() {
               </Table>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Expense</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this expense? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteExpense} className="bg-red-600 hover:bg-red-700">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
+        <AlertDialogContent className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
+          <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-orange-500/5 pointer-events-none rounded-lg"></div>
+          <div className="relative">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Expense</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this expense? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteExpense} className="bg-red-600 hover:bg-red-700">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Add/Edit Expense Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <Receipt className="h-5 w-5" />
-              <span>{isEditing ? "Edit Expense" : "Add New Expense"}</span>
-            </DialogTitle>
-            <DialogDescription>
-              {isEditing ? "Update expense details" : "Record a new expense with category classification"}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-3 px-1">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto sm:max-w-[600px] bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none rounded-lg"></div>
+          <div className="relative">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <Receipt className="h-5 w-5" />
+                <span>{isEditing ? "Edit Expense" : "Add New Expense"}</span>
+              </DialogTitle>
+              <DialogDescription>
+                {isEditing ? "Update expense details" : "Record a new expense with category classification"}
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-3 px-1">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <div className="space-y-1.5">
                 <Label htmlFor="dialog-date" className="text-sm">Date *</Label>
@@ -1126,15 +1149,16 @@ export default function ExpensesPage() {
               )}
             </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={closeDialog}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : isEditing ? "Update" : "Add"} Expense
-              </Button>
-            </DialogFooter>
-          </form>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={closeDialog}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Saving..." : isEditing ? "Update" : "Add"} Expense
+                </Button>
+              </DialogFooter>
+            </form>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

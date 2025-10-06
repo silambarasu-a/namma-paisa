@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -185,17 +184,18 @@ export default function HoldingsPage() {
       {holdings.length > 0 && (
         <>
           {/* Portfolio Overview */}
-          <Card className="border-l-4 border-l-blue-500">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <PieChart className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                <span>Portfolio Overview</span>
-              </CardTitle>
-              <CardDescription>
-                Complete profit & loss summary of your investment portfolio
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50/80 via-purple-50/60 to-white/60 dark:from-blue-900/20 dark:via-purple-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-blue-200/50 dark:border-blue-700/50 shadow-xl hover:shadow-2xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none"></div>
+            <div className="relative p-6">
+              <div className="mb-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1 flex items-center space-x-2">
+                  <PieChart className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <span>Portfolio Overview</span>
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Complete profit & loss summary of your investment portfolio
+                </p>
+              </div>
               <div className="space-y-6">
                 {/* Main P&L Display */}
                 <div className="p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-white dark:from-blue-900/20 dark:to-gray-900 rounded-lg border-2 border-blue-200 dark:border-blue-800">
@@ -332,20 +332,21 @@ export default function HoldingsPage() {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </>
       )}
 
       {/* Holdings Detail Table */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
+      <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none"></div>
+        <div className="relative p-6">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <CardTitle>Holdings Detail</CardTitle>
-              <CardDescription>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Holdings Detail</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Detailed view of all your investment holdings with real-time P&L
-              </CardDescription>
+              </p>
             </div>
             {holdings.length > 0 && (
               <Badge variant="secondary" className="text-sm">
@@ -353,8 +354,6 @@ export default function HoldingsPage() {
               </Badge>
             )}
           </div>
-        </CardHeader>
-        <CardContent>
           {holdings.length > 0 ? (
             <div className="rounded-md border overflow-hidden">
               <Table>
@@ -495,8 +494,8 @@ export default function HoldingsPage() {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <AddHoldingDialog
         open={isDialogOpen}

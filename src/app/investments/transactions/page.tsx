@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -342,11 +341,13 @@ export default function TransactionsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col gap-4 p-4 border rounded-lg bg-card">
-        <div className="flex items-center gap-2">
-          <Filter className="h-5 w-5 text-muted-foreground" />
-          <h3 className="font-semibold">Filters</h3>
-        </div>
+      <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none"></div>
+        <div className="relative flex flex-col gap-4 p-4">
+          <div className="flex items-center gap-2">
+            <Filter className="h-5 w-5 text-muted-foreground" />
+            <h3 className="font-semibold">Filters</h3>
+          </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
             <SelectTrigger className="w-full">
@@ -400,104 +401,137 @@ export default function TransactionsPage() {
             </SelectContent>
           </Select>
         </div>
+        </div>
       </div>
 
       {/* Summary Cards */}
       {transactions.length > 0 && (
         <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-          <Card className="border-l-4 border-l-blue-500">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Total Invested</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                ₹{grandTotal.toLocaleString()}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50/80 via-indigo-50/60 to-white/60 dark:from-blue-900/20 dark:via-indigo-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-blue-200/50 dark:border-blue-700/50 shadow-xl hover:shadow-2xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none"></div>
+            <div className="relative p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-blue-100/80 dark:bg-blue-900/40 rounded-xl backdrop-blur-sm border border-blue-200/50 dark:border-blue-700/50">
+                  <Receipt className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Invested</p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    ₹{grandTotal.toLocaleString()}
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground">
                 {transactions.length} transactions
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">One-Time</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                ₹{totals.ONE_TIME_PURCHASE.toLocaleString()}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50/80 via-emerald-50/60 to-white/60 dark:from-green-900/20 dark:via-emerald-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-green-200/50 dark:border-green-700/50 shadow-xl hover:shadow-2xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5 pointer-events-none"></div>
+            <div className="relative p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-green-100/80 dark:bg-green-900/40 rounded-xl backdrop-blur-sm border border-green-200/50 dark:border-green-700/50">
+                  <Receipt className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">One-Time</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    ₹{totals.ONE_TIME_PURCHASE.toLocaleString()}
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground">
                 Manual purchases
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">SIP Executions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                ₹{totals.SIP_EXECUTION.toLocaleString()}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-50/80 via-amber-50/60 to-white/60 dark:from-orange-900/20 dark:via-amber-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-orange-200/50 dark:border-orange-700/50 shadow-xl hover:shadow-2xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-amber-500/5 pointer-events-none"></div>
+            <div className="relative p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-orange-100/80 dark:bg-orange-900/40 rounded-xl backdrop-blur-sm border border-orange-200/50 dark:border-orange-700/50">
+                  <Receipt className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">SIP Executions</p>
+                  <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                    ₹{totals.SIP_EXECUTION.toLocaleString()}
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground">
                 Auto-invested
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Manual Entries</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-                ₹{totals.MANUAL_ENTRY.toLocaleString()}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-50/80 via-slate-50/60 to-white/60 dark:from-gray-900/20 dark:via-slate-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-500/5 via-transparent to-slate-500/5 pointer-events-none"></div>
+            <div className="relative p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-gray-100/80 dark:bg-gray-900/40 rounded-xl backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50">
+                  <Receipt className="h-6 w-6 text-gray-600 dark:text-gray-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Manual Entries</p>
+                  <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">
+                    ₹{totals.MANUAL_ENTRY.toLocaleString()}
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground">
                 Existing holdings
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Edits</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                ₹{totals.MANUAL_EDIT.toLocaleString()}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-yellow-50/80 via-amber-50/60 to-white/60 dark:from-yellow-900/20 dark:via-amber-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-yellow-200/50 dark:border-yellow-700/50 shadow-xl hover:shadow-2xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-transparent to-amber-500/5 pointer-events-none"></div>
+            <div className="relative p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-yellow-100/80 dark:bg-yellow-900/40 rounded-xl backdrop-blur-sm border border-yellow-200/50 dark:border-yellow-700/50">
+                  <Receipt className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Edits</p>
+                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                    ₹{totals.MANUAL_EDIT.toLocaleString()}
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground">
                 Modifications
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Transactions Table */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Receipt className="h-5 w-5" />
-                All Transactions
-              </CardTitle>
-              <CardDescription>
-                Detailed transaction history for {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
-              </CardDescription>
+      <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-indigo-500/5 pointer-events-none"></div>
+        <div className="relative">
+          <div className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white">
+                  <Receipt className="h-5 w-5" />
+                  All Transactions
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  Detailed transaction history for {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
+                </p>
+              </div>
+              {transactions.length > 0 && (
+                <Badge variant="secondary" className="text-sm bg-purple-100/80 dark:bg-purple-900/40 backdrop-blur-sm border border-purple-200/50 dark:border-purple-700/50">
+                  {transactions.length} {transactions.length === 1 ? 'Transaction' : 'Transactions'}
+                </Badge>
+              )}
             </div>
-            {transactions.length > 0 && (
-              <Badge variant="secondary" className="text-sm">
-                {transactions.length} {transactions.length === 1 ? 'Transaction' : 'Transactions'}
-              </Badge>
-            )}
           </div>
-        </CardHeader>
-        <CardContent>
+          <div className="px-6 pb-6">
           {transactions.length > 0 ? (
             <div className="overflow-x-auto rounded-md border">
               <Table>
@@ -603,18 +637,21 @@ export default function TransactionsPage() {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+        </div>
+      </div>
 
       {/* Edit Transaction Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Transaction</DialogTitle>
-            <DialogDescription>
-              Update transaction details. Changes will be reflected in holdings.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="max-w-md bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none rounded-lg"></div>
+          <div className="relative">
+            <DialogHeader>
+              <DialogTitle>Edit Transaction</DialogTitle>
+              <DialogDescription>
+                Update transaction details. Changes will be reflected in holdings.
+              </DialogDescription>
+            </DialogHeader>
           {editingTransaction && (
             <form onSubmit={handleUpdateTransaction}>
               <div className="space-y-4">
@@ -737,18 +774,21 @@ export default function TransactionsPage() {
               </DialogFooter>
             </form>
           )}
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this transaction? This action cannot be undone.
-              {deletingTransaction && (
-                <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-md space-y-1 text-sm">
+        <AlertDialogContent className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
+          <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-rose-500/5 pointer-events-none rounded-lg"></div>
+          <div className="relative">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this transaction? This action cannot be undone.
+                {deletingTransaction && (
+                  <div className="mt-4 p-3 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-md space-y-1 text-sm border border-gray-200/50 dark:border-gray-700/50">
                   <div><strong>Symbol:</strong> {deletingTransaction.symbol}</div>
                   <div><strong>Quantity:</strong> {deletingTransaction.qty.toLocaleString()}</div>
                   <div><strong>Price:</strong> {deletingTransaction.currency === "USD" ? "$" : "₹"}{deletingTransaction.price.toLocaleString()}</div>
@@ -770,6 +810,7 @@ export default function TransactionsPage() {
               {isSaving ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
     </div>

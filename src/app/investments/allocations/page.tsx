@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -169,10 +168,13 @@ export default function AllocationsPage() {
       </div>
 
       {/* Info Card */}
-      <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/20">
-        <CardContent className="pt-6">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50/80 via-cyan-50/60 to-white/60 dark:from-blue-900/20 dark:via-cyan-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-blue-200/50 dark:border-blue-700/50 shadow-xl hover:shadow-2xl transition-all">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-cyan-500/5 pointer-events-none"></div>
+        <div className="relative p-6">
           <div className="flex items-start space-x-3">
-            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+            <div className="p-3 bg-blue-100/80 dark:bg-blue-900/40 rounded-xl backdrop-blur-sm border border-blue-200/50 dark:border-blue-700/50">
+              <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
             <div className="text-sm text-gray-700 dark:text-gray-300">
               <p className="font-semibold mb-1">How allocations work:</p>
               <ul className="list-disc list-inside space-y-1 text-xs">
@@ -183,21 +185,23 @@ export default function AllocationsPage() {
               </ul>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Allocations */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Settings className="h-5 w-5" />
-            <span>Configure Allocations</span>
-          </CardTitle>
-          <CardDescription>
-            Enable and configure each investment bucket individually
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none"></div>
+        <div className="relative p-6">
+          <div className="mb-6">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1 flex items-center space-x-2">
+              <Settings className="h-5 w-5" />
+              <span>Configure Allocations</span>
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Enable and configure each investment bucket individually
+            </p>
+          </div>
+          <div className="space-y-6">
           {INVESTMENT_BUCKETS.map((bucket) => {
             const alloc = allocations[bucket.id]
             return (
@@ -299,39 +303,55 @@ export default function AllocationsPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               {/* Percentage Summary */}
               {totalPercent > 0 && (
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">Total Percentage Allocated:</span>
-                    <span className={`text-xl font-bold ${totalPercent > 100 ? "text-red-600" : "text-blue-600"}`}>
-                      {totalPercent.toFixed(1)}%
-                    </span>
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50/80 via-indigo-50/60 to-white/60 dark:from-blue-900/20 dark:via-indigo-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-blue-200/50 dark:border-blue-700/50 shadow-xl hover:shadow-2xl transition-all">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none"></div>
+                  <div className="relative p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-3 bg-blue-100/80 dark:bg-blue-900/40 rounded-xl backdrop-blur-sm border border-blue-200/50 dark:border-blue-700/50">
+                        <Percent className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Total Percentage</p>
+                        <p className={`text-2xl font-bold ${totalPercent > 100 ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400"}`}>
+                          {totalPercent.toFixed(1)}%
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">Remaining:</span>
+                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        {remainingPercent.toFixed(1)}%
+                      </span>
+                    </div>
+                    {totalPercent > 100 && (
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                        ⚠️ Total exceeds 100%. Please adjust the percentages.
+                      </p>
+                    )}
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground">Remaining:</span>
-                    <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                      {remainingPercent.toFixed(1)}%
-                    </span>
-                  </div>
-                  {totalPercent > 100 && (
-                    <p className="text-xs text-red-600 mt-2">
-                      ⚠️ Total exceeds 100%. Please adjust the percentages.
-                    </p>
-                  )}
                 </div>
               )}
 
               {/* Amount Summary */}
               {totalAmount > 0 && (
-                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Total Custom Amount:</span>
-                    <span className="text-xl font-bold text-green-600">
-                      ₹{totalAmount.toLocaleString()}
-                    </span>
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50/80 via-emerald-50/60 to-white/60 dark:from-green-900/20 dark:via-emerald-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-green-200/50 dark:border-green-700/50 shadow-xl hover:shadow-2xl transition-all">
+                  <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5 pointer-events-none"></div>
+                  <div className="relative p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-3 bg-green-100/80 dark:bg-green-900/40 rounded-xl backdrop-blur-sm border border-green-200/50 dark:border-green-700/50">
+                        <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Custom Amount</p>
+                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                          ₹{totalAmount.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      This will be deducted first from available investment amount
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    This will be deducted first from available investment amount
-                  </p>
                 </div>
               )}
             </div>
@@ -355,8 +375,9 @@ export default function AllocationsPage() {
               Cancel
             </Button>
           </div>
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -176,128 +175,128 @@ export default function ExpenseReportsPage() {
         <>
           {/* Summary Cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Total Expenses</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{summary.totalExpenses}</div>
-                <p className="text-xs text-muted-foreground">{getMonthLabel()}</p>
-              </CardContent>
-            </Card>
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50/80 via-indigo-50/60 to-white/60 dark:from-blue-900/20 dark:via-indigo-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-blue-200/50 dark:border-blue-700/50 shadow-xl hover:shadow-2xl transition-all">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none"></div>
+              <div className="relative p-5">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Total Expenses</p>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{summary.totalExpenses}</div>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{getMonthLabel()}</p>
+              </div>
+            </div>
 
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Total Amount</CardDescription>
-              </CardHeader>
-              <CardContent>
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-50/80 via-rose-50/60 to-white/60 dark:from-red-900/20 dark:via-rose-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-red-200/50 dark:border-red-700/50 shadow-xl hover:shadow-2xl transition-all">
+              <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-rose-500/5 pointer-events-none"></div>
+              <div className="relative p-5">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Total Amount</p>
                 <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                   ₹{summary.totalAmount.toLocaleString()}
                 </div>
-                <p className="text-xs text-muted-foreground">{getMonthLabel()}</p>
-              </CardContent>
-            </Card>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{getMonthLabel()}</p>
+              </div>
+            </div>
 
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Expected Expenses</CardDescription>
-              </CardHeader>
-              <CardContent>
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50/80 via-cyan-50/60 to-white/60 dark:from-blue-900/20 dark:via-cyan-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-blue-200/50 dark:border-blue-700/50 shadow-xl hover:shadow-2xl transition-all">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-cyan-500/5 pointer-events-none"></div>
+              <div className="relative p-5">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Expected Expenses</p>
                 <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                   ₹{summary.expectedAmount.toLocaleString()}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
                   {summary.expectedCount} expenses
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Unexpected Expenses</CardDescription>
-              </CardHeader>
-              <CardContent>
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-50/80 via-amber-50/60 to-white/60 dark:from-orange-900/20 dark:via-amber-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-orange-200/50 dark:border-orange-700/50 shadow-xl hover:shadow-2xl transition-all">
+              <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-amber-500/5 pointer-events-none"></div>
+              <div className="relative p-5">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Unexpected Expenses</p>
                 <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                   ₹{summary.unexpectedAmount.toLocaleString()}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
                   {summary.unexpectedCount} expenses
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
           {/* Needs vs Avoid Analysis */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <BarChart className="h-5 w-5" />
-                <span>Needs vs Avoid Analysis</span>
-              </CardTitle>
-              <CardDescription>Expense breakdown by needs and avoid categories (partial-needs are split)</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Total Needs</span>
-                  <span className="text-sm font-bold text-green-600 dark:text-green-400">
-                    ₹{summary.totalNeedsAmount.toLocaleString()}
-                  </span>
+          <div className="relative overflow-hidden rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-red-500/5 pointer-events-none"></div>
+            <div className="relative p-6">
+              <div className="mb-4">
+                <div className="flex items-center space-x-2 mb-1">
+                  <BarChart className="h-5 w-5 text-gray-900 dark:text-white" />
+                  <span className="text-xl font-semibold text-gray-900 dark:text-white">Needs vs Avoid Analysis</span>
                 </div>
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-green-500"
-                    style={{
-                      width: `${summary.totalAmount > 0 ? (summary.totalNeedsAmount / summary.totalAmount) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {summary.totalAmount > 0
-                    ? ((summary.totalNeedsAmount / summary.totalAmount) * 100).toFixed(1)
-                    : 0}% of total expenses
-                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Expense breakdown by needs and avoid categories (partial-needs are split)</p>
               </div>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Total Needs</span>
+                    <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                      ₹{summary.totalNeedsAmount.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-green-500"
+                      style={{
+                        width: `${summary.totalAmount > 0 ? (summary.totalNeedsAmount / summary.totalAmount) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {summary.totalAmount > 0
+                      ? ((summary.totalNeedsAmount / summary.totalAmount) * 100).toFixed(1)
+                      : 0}% of total expenses
+                  </p>
+                </div>
 
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Total Avoid</span>
-                  <span className="text-sm font-bold text-red-600 dark:text-red-400">
-                    ₹{summary.totalAvoidAmount.toLocaleString()}
-                  </span>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Total Avoid</span>
+                    <span className="text-sm font-bold text-red-600 dark:text-red-400">
+                      ₹{summary.totalAvoidAmount.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-red-500"
+                      style={{
+                        width: `${summary.totalAmount > 0 ? (summary.totalAvoidAmount / summary.totalAmount) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {summary.totalAmount > 0
+                      ? ((summary.totalAvoidAmount / summary.totalAmount) * 100).toFixed(1)
+                      : 0}% of total expenses
+                  </p>
                 </div>
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-red-500"
-                    style={{
-                      width: `${summary.totalAmount > 0 ? (summary.totalAvoidAmount / summary.totalAmount) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {summary.totalAmount > 0
-                    ? ((summary.totalAvoidAmount / summary.totalAmount) * 100).toFixed(1)
-                    : 0}% of total expenses
-                </p>
-              </div>
 
-              <div className="pt-4 border-t">
-                <p className="text-xs text-muted-foreground">
-                  Note: Partial-needs expenses are split proportionally between needs and avoid categories based on the allocation you specified when creating the expense.
-                </p>
+                <div className="pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
+                  <p className="text-xs text-muted-foreground">
+                    Note: Partial-needs expenses are split proportionally between needs and avoid categories based on the allocation you specified when creating the expense.
+                  </p>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Expense List */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Expense Details</CardTitle>
-              <CardDescription>All expenses for {getMonthLabel()}</CardDescription>
-            </CardHeader>
-            <CardContent>
+          <div className="relative overflow-hidden rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none"></div>
+            <div className="relative p-6">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Expense Details</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">All expenses for {getMonthLabel()}</p>
+              </div>
               {expenses.length > 0 ? (
-                <div className="overflow-x-auto rounded-md border">
+                <div className="overflow-x-auto rounded-md border border-gray-200/50 dark:border-gray-700/50">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -352,8 +351,8 @@ export default function ExpenseReportsPage() {
                   No expenses found for this period
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </>
       )}
     </div>

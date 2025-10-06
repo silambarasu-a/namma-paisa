@@ -175,12 +175,13 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
       {/* Desktop Sidebar */}
       <div
         className={cn(
-          "hidden lg:flex lg:sticky lg:top-0 lg:h-screen lg:w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800",
+          "hidden lg:flex lg:sticky lg:top-0 lg:h-screen lg:w-64 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-700/50 shadow-xl",
           className
         )}
       >
-        <div className="flex flex-col h-full w-full">
-          <div className="flex items-center justify-center gap-3 h-16 px-4 border-b border-gray-200 dark:border-gray-800">
+        <div className="absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none"></div>
+        <div className="relative flex flex-col h-full w-full">
+          <div className="flex items-center justify-center gap-3 h-16 px-4 border-b border-gray-200/50 dark:border-gray-700/50">
             <Logo className="h-10 w-10" />
             <div className="flex flex-col leading-tight">
               <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
@@ -191,9 +192,10 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
 
           {/* Role Switcher for Super Admins with Customer Role */}
           {isSuperAdmin && hasCustomerRole && (
-            <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-800">
-              <div className="flex items-center justify-between space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div className="flex items-center space-x-2">
+            <div className="px-4 py-4 border-b border-gray-200/50 dark:border-gray-700/50">
+              <div className="relative overflow-hidden flex items-center justify-between space-x-3 p-3 bg-gradient-to-br from-blue-50/80 via-indigo-50/60 to-white/60 dark:from-blue-900/20 dark:via-indigo-900/10 dark:to-gray-800/60 backdrop-blur-sm rounded-lg border border-blue-200/50 dark:border-blue-700/50 shadow-lg">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none rounded-lg"></div>
+                <div className="relative flex items-center space-x-2">
                   <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   <Label
                     htmlFor="view-mode"
@@ -206,8 +208,9 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
                   id="view-mode"
                   checked={viewMode === "admin"}
                   onCheckedChange={handleViewModeChange}
+                  className="relative"
                 />
-                <div className="flex items-center space-x-2">
+                <div className="relative flex items-center space-x-2">
                   <Shield className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                   <Label
                     htmlFor="view-mode"
@@ -229,10 +232,10 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                    "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all",
                     isActive(item.href)
-                      ? "bg-primary text-primary-foreground"
-                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-white/60 dark:hover:bg-gray-800/60 hover:backdrop-blur-sm hover:shadow-md"
                   )}
                 >
                   <item.icon className="w-5 h-5 mr-3" />
@@ -247,10 +250,10 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
                         key={child.name}
                         href={child.href}
                         className={cn(
-                          "flex items-center px-3 py-2 text-sm rounded-md transition-colors",
+                          "flex items-center px-3 py-2 text-sm rounded-lg transition-all",
                           isActive(child.href)
-                            ? "bg-primary/20 text-primary"
-                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            ? "bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/40 dark:to-pink-900/40 text-purple-700 dark:text-purple-300 font-medium shadow-sm"
+                            : "text-gray-600 dark:text-gray-400 hover:bg-white/60 dark:hover:bg-gray-800/60 hover:backdrop-blur-sm hover:shadow-sm"
                         )}
                       >
                         <child.icon className="w-4 h-4 mr-3" />
@@ -268,7 +271,7 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
       {/* Mobile Bottom Sheet */}
       <div
         className={cn(
-          "lg:hidden fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl border-t border-gray-200 dark:border-gray-800",
+          "lg:hidden fixed inset-x-0 bottom-0 z-50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-t-3xl shadow-2xl border-t border-gray-200/50 dark:border-gray-700/50",
           isOpen ? "translate-y-0" : "translate-y-full",
           isDragging ? "transition-none" : "transition-transform duration-300 ease-out"
         )}
@@ -281,18 +284,19 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
         onMouseMove={handleDragMove}
         onMouseUp={handleDragEnd}
       >
-        <div className="flex flex-col h-full">
+        <div className="absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none rounded-t-3xl"></div>
+        <div className="relative flex flex-col h-full">
           {/* Handle Bar */}
           <div
-            className="flex items-center justify-center py-3 border-b border-gray-200 dark:border-gray-800 cursor-grab active:cursor-grabbing"
+            className="flex items-center justify-center py-3 border-b border-gray-200/50 dark:border-gray-700/50 cursor-grab active:cursor-grabbing"
             onTouchStart={handleDragStart}
             onMouseDown={handleDragStart}
           >
-            <div className="w-12 h-1 rounded-full bg-gray-300 dark:bg-gray-700"></div>
+            <div className="w-12 h-1 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 dark:from-purple-500 dark:to-pink-500 shadow-lg"></div>
           </div>
 
           {/* Header with Logo and Close Button */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/50 dark:border-gray-700/50">
             <div className="flex items-center gap-3">
               <Logo className="h-8 w-8" />
               <h1 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
@@ -311,9 +315,10 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
 
           {/* Role Switcher for Super Admins with Customer Role */}
           {isSuperAdmin && hasCustomerRole && (
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gradient-to-r from-gray-50/50 to-transparent dark:from-gray-800/50">
-              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-2">
+            <div className="px-6 py-4 border-b border-gray-200/50 dark:border-gray-700/50">
+              <div className="relative overflow-hidden flex items-center justify-between p-3 bg-gradient-to-br from-blue-50/80 via-indigo-50/60 to-white/60 dark:from-blue-900/20 dark:via-indigo-900/10 dark:to-gray-800/60 backdrop-blur-sm rounded-xl shadow-lg border border-blue-200/50 dark:border-blue-700/50">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none rounded-xl"></div>
+                <div className="relative flex items-center gap-2">
                   <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   <span className="text-sm font-medium">Customer</span>
                 </div>
@@ -321,8 +326,9 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
                   id="view-mode-mobile"
                   checked={viewMode === "admin"}
                   onCheckedChange={handleViewModeChange}
+                  className="relative"
                 />
-                <div className="flex items-center gap-2">
+                <div className="relative flex items-center gap-2">
                   <Shield className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                   <span className="text-sm font-medium">Admin</span>
                 </div>
@@ -339,8 +345,8 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
                   className={cn(
                     "flex items-center gap-3 px-4 py-3 text-base font-medium rounded-xl transition-all",
                     isActive(item.href)
-                      ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg"
-                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95"
+                      ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-white/60 dark:hover:bg-gray-800/60 hover:backdrop-blur-sm hover:shadow-md active:scale-95"
                   )}
                   onClick={closeSidebar}
                 >
@@ -358,8 +364,8 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
                         className={cn(
                           "flex items-center gap-3 px-4 py-2.5 text-sm rounded-lg transition-all",
                           isActive(child.href)
-                            ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium"
-                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95"
+                            ? "bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/40 dark:to-pink-900/40 text-purple-700 dark:text-purple-300 font-medium shadow-sm"
+                            : "text-gray-600 dark:text-gray-400 hover:bg-white/60 dark:hover:bg-gray-800/60 hover:backdrop-blur-sm hover:shadow-sm active:scale-95"
                         )}
                         onClick={closeSidebar}
                       >
@@ -378,7 +384,7 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
       {/* Overlay */}
       {isOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+          className="lg:hidden fixed inset-0 z-40 bg-black/30 backdrop-blur-md"
           onClick={closeSidebar}
         />
       )}
