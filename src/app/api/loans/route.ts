@@ -311,26 +311,39 @@ export async function POST(request: Request) {
         totalPayments = Math.ceil(finalTenure / monthsIncrement)
       }
 
+      // Calculate the first occurrence of each schedule date on or after startDate
+      const scheduleWithFirstOccurrence = dates.map(scheduleDate => {
+        let firstOccurrence = new Date(startYear, scheduleDate.month - 1, scheduleDate.day)
+
+        // If this date is before startDate, move to next year
+        if (firstOccurrence < startDate) {
+          firstOccurrence = new Date(startYear + 1, scheduleDate.month - 1, scheduleDate.day)
+        }
+
+        return { scheduleDate, firstOccurrence }
+      })
+
+      // Sort by first occurrence to maintain chronological order
+      scheduleWithFirstOccurrence.sort((a, b) => a.firstOccurrence.getTime() - b.firstOccurrence.getTime())
+
       // Generate EMIs for each year
       for (let year = 0; year < Math.ceil(totalPayments / dates.length) + 1; year++) {
-        for (const scheduleDate of dates) {
-          const dueDate = new Date(startYear + year, scheduleDate.month - 1, scheduleDate.day)
+        for (const { firstOccurrence } of scheduleWithFirstOccurrence) {
+          const dueDate = new Date(firstOccurrence)
+          dueDate.setFullYear(firstOccurrence.getFullYear() + year)
 
-          // Only add if the due date is on or after the start date
-          if (dueDate >= startDate) {
-            // Use custom EMI amount if available, otherwise use calculated amount
-            const customEMIAmount: number = customEMIMap.get(emis.length + 1) || finalEMIAmount
+          // Use custom EMI amount if available, otherwise use calculated amount
+          const customEMIAmount: number = customEMIMap.get(emis.length + 1) || finalEMIAmount
 
-            emis.push({
-              emiAmount: customEMIAmount,
-              dueDate,
-              isPaid: false,
-            })
+          emis.push({
+            emiAmount: customEMIAmount,
+            dueDate,
+            isPaid: false,
+          })
 
-            // Stop when we have enough payments
-            if (emis.length >= totalPayments) {
-              break
-            }
+          // Stop when we have enough payments
+          if (emis.length >= totalPayments) {
+            break
           }
         }
 
