@@ -10,24 +10,10 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import { Search, Loader2 } from "lucide-react"
+import { INVESTMENT_BUCKETS } from "@/constants"
+import type { SearchResult } from "@/types"
 
-const BUCKETS = [
-  { id: "MUTUAL_FUND", label: "Mutual Funds" },
-  { id: "IND_STOCK", label: "Indian Stocks" },
-  { id: "US_STOCK", label: "US Stocks" },
-  { id: "CRYPTO", label: "Cryptocurrency" },
-  { id: "EMERGENCY_FUND", label: "Emergency Fund" },
-]
-
-interface SearchResult {
-  symbol?: string
-  id?: string
-  name: string
-  category?: string
-  exchange?: string
-  sector?: string
-  amc?: string
-}
+const BUCKETS = INVESTMENT_BUCKETS
 
 interface AddHoldingDialogProps {
   open: boolean
@@ -49,6 +35,7 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
   const [avgCost, setAvgCost] = useState("")
   const [currentPrice, setCurrentPrice] = useState("")
   const [currency, setCurrency] = useState("INR")
+  const [usdInrRate, setUsdInrRate] = useState<number | null>(null)
   const [isManual, setIsManual] = useState(false)
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0])
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -71,6 +58,7 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
       setAvgCost("")
       setCurrentPrice("")
       setCurrency("INR")
+      setUsdInrRate(null)
       setIsManual(false)
       setPurchaseDate(new Date().toISOString().split('T')[0])
       initialCurrencySet.current = false
@@ -103,12 +91,26 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  // Auto-set currency based on bucket
+  // Auto-set currency based on bucket and fetch USD-INR rate
   useEffect(() => {
     if (bucket === "US_STOCK") {
       setCurrency("USD")
+      // Fetch current USD-INR exchange rate
+      const fetchExchangeRate = async () => {
+        try {
+          const response = await fetch("/api/exchange-rate?from=USD&to=INR")
+          if (response.ok) {
+            const data = await response.json()
+            setUsdInrRate(data.rate)
+          }
+        } catch (error) {
+          console.error("Error fetching exchange rate:", error)
+        }
+      }
+      fetchExchangeRate()
     } else {
       setCurrency("INR")
+      setUsdInrRate(null)
     }
   }, [bucket])
 
@@ -264,6 +266,7 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
         avgCost: parseFloat(avgCost),
         currentPrice: currentPrice ? parseFloat(currentPrice) : null,
         currency,
+        usdInrRate: bucket === "US_STOCK" && currency === "USD" ? usdInrRate : undefined,
         isManual,
         purchaseDate: isManual ? undefined : purchaseDate,
       }
@@ -315,7 +318,9 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none rounded-lg"></div>
+        <div className="relative">
         <DialogHeader>
           <DialogTitle>Add New Holding</DialogTitle>
           <DialogDescription>
@@ -360,6 +365,11 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
                   <SelectItem value="USD">USD ($)</SelectItem>
                 </SelectContent>
               </Select>
+              {bucket === "US_STOCK" && usdInrRate && (
+                <p className="text-xs text-muted-foreground">
+                  Current rate: $1 = ₹{usdInrRate.toFixed(2)}
+                </p>
+              )}
             </div>
           </div>
 
@@ -420,12 +430,12 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
 
                 {/* Search Results Dropdown */}
                 {showResults && searchResults.length > 0 && (
-                  <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                  <div className="absolute z-50 w-full mt-1 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-lg shadow-xl max-h-64 overflow-y-auto">
                     {searchResults.map((result, idx) => (
                       <div
                         key={idx}
                         onMouseDown={(e) => handleSelectResult(result, e)}
-                        className="px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-0"
+                        className="px-4 py-3 hover:bg-blue-50/80 dark:hover:bg-blue-900/20 cursor-pointer border-b border-gray-100/50 dark:border-gray-700/50 last:border-0"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -455,7 +465,7 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
                 )}
 
                 {showResults && searchQuery.length >= 2 && searchResults.length === 0 && !isSearching && (
-                  <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4">
+                  <div className="absolute z-50 w-full mt-1 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-lg shadow-xl p-4">
                     <p className="text-sm text-muted-foreground text-center">
                       No results found. Try a different search term.
                     </p>
@@ -469,8 +479,9 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
           )}
 
           {symbol && name && (
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="flex items-center justify-between">
+            <div className="relative overflow-hidden p-4 bg-gradient-to-br from-blue-50/80 via-cyan-50/60 to-white/60 dark:from-blue-900/20 dark:via-cyan-900/10 dark:to-gray-800/60 backdrop-blur-xl rounded-lg border border-blue-200/50 dark:border-blue-700/50 shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-cyan-500/5 pointer-events-none rounded-lg"></div>
+              <div className="relative flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
                     Selected: {symbol}
@@ -654,6 +665,7 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
             </Button>
           </div>
         </form>
+        </div>
       </DialogContent>
     </Dialog>
   )

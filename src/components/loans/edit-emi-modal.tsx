@@ -147,7 +147,9 @@ export function EditEmiModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
+        <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-amber-500/5 pointer-events-none rounded-lg"></div>
+        <div className="relative">
         <DialogHeader>
           <DialogTitle>Edit EMI Payment</DialogTitle>
           <DialogDescription>
@@ -297,6 +299,7 @@ export function EditEmiModal({
             </Button>
           </div>
         </form>
+        </div>
       </DialogContent>
     </Dialog>
   )

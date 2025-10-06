@@ -10,6 +10,8 @@ const sipUpdateSchema = z.object({
   endDate: z.string().optional().nullable(),
   isActive: z.boolean().optional(),
   description: z.string().optional(),
+  currency: z.enum(["INR", "USD"]).optional(),
+  amountInINR: z.boolean().optional(),
 })
 
 export async function PATCH(
@@ -33,12 +35,16 @@ export async function PATCH(
       endDate?: Date | null;
       isActive?: boolean;
       description?: string;
+      currency?: string;
+      amountInINR?: boolean;
     } = {}
 
     if (data.name !== undefined) updateData.name = data.name
     if (data.amount !== undefined) updateData.amount = data.amount
     if (data.isActive !== undefined) updateData.isActive = data.isActive
     if (data.description !== undefined) updateData.description = data.description
+    if (data.currency !== undefined) updateData.currency = data.currency
+    if (data.amountInINR !== undefined) updateData.amountInINR = data.amountInINR
     if (data.endDate !== undefined) {
       updateData.endDate = data.endDate ? new Date(data.endDate) : null
     }

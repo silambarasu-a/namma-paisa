@@ -15,7 +15,7 @@ export type TransactionType =
 
 export type ExecutionStatus = "SUCCESS" | "FAILED" | "PENDING"
 
-export type SIPFrequency = "MONTHLY" | "YEARLY" | "CUSTOM"
+export type SIPFrequency = "DAILY" | "WEEKLY" | "MONTHLY" | "QUARTERLY" | "HALF_YEARLY" | "YEARLY" | "CUSTOM"
 
 // Transaction interface
 export interface Transaction {
@@ -28,9 +28,12 @@ export interface Transaction {
   qty: number
   price: number
   amount: number
+  currency: string
+  amountInr?: number | null
   transactionType: TransactionType
   purchaseDate: string
   description?: string | null
+  usdInrRate?: number | null
   createdAt: string
   updatedAt: string
 }
@@ -43,10 +46,13 @@ export interface SIPExecution {
   holdingId?: string | null
   executionDate: string
   amount: number
+  currency: string
+  amountInr?: number | null
   qty?: number | null
   price?: number | null
   status: ExecutionStatus
   errorMessage?: string | null
+  usdInrRate?: number | null
   createdAt: string
   updatedAt: string
 }
@@ -64,6 +70,8 @@ export interface SIP {
   description?: string | null
   bucket?: InvestmentBucket | null
   symbol?: string | null
+  currency: string
+  amountInINR: boolean
   createdAt: string
   updatedAt: string
 }
@@ -78,6 +86,7 @@ export interface Holding {
   avgCost: number
   currentPrice: number | null
   currency: string
+  usdInrRate?: number | null
   isManual: boolean
   createdAt: string
   updatedAt: string

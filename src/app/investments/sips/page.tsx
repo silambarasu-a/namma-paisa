@@ -1,12 +1,14 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Pencil, Trash2, TrendingUp, Calendar, IndianRupee } from "lucide-react"
+import { convertToMonthlyAmount, getFrequencyLabel } from "@/lib/frequency-utils"
+import type { SIPFrequency } from "@/types/investment"
+import { SIP_FREQUENCY_BADGE_COLORS } from "@/constants"
+import SIPDialog from "@/components/SIPDialog"
 import {
   Table,
   TableBody,
@@ -29,11 +31,13 @@ import { Switch } from "@/components/ui/switch"
 import type { SIP } from "@/types"
 
 export default function SIPsPage() {
-  const router = useRouter()
   const [sips, setSips] = useState<SIP[]>([])
   const [loading, setLoading] = useState(true)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create')
+  const [editingSipId, setEditingSipId] = useState<string | undefined>()
 
   const fetchSIPs = async () => {
     try {
@@ -94,23 +98,10 @@ export default function SIPsPage() {
     const activeSips = sips.filter((sip) => sip.isActive)
     const monthlyTotal = activeSips.reduce((sum, sip) => {
       const amount = Number(sip.amount)
-      if (sip.frequency === "MONTHLY" || sip.frequency === "CUSTOM") {
-        return sum + amount
-      } else if (sip.frequency === "YEARLY") {
-        return sum + amount / 12
-      }
-      return sum
+      return sum + convertToMonthlyAmount(amount, sip.frequency)
     }, 0)
 
-    const yearlyTotal = activeSips.reduce((sum, sip) => {
-      const amount = Number(sip.amount)
-      if (sip.frequency === "MONTHLY" || sip.frequency === "CUSTOM") {
-        return sum + amount * 12
-      } else if (sip.frequency === "YEARLY") {
-        return sum + amount
-      }
-      return sum
-    }, 0)
+    const yearlyTotal = monthlyTotal * 12
 
     return { monthlyTotal, yearlyTotal }
   }
@@ -136,19 +127,14 @@ export default function SIPsPage() {
   const getFrequencyBadge = (frequency: string, customDay?: number | null) => {
     if (frequency === "CUSTOM" && customDay) {
       return (
-        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+        <Badge variant="outline" className={SIP_FREQUENCY_BADGE_COLORS.CUSTOM}>
           Custom (Day {customDay})
         </Badge>
       )
     }
-    const colors = {
-      MONTHLY: "bg-blue-50 text-blue-700 border-blue-200",
-      YEARLY: "bg-green-50 text-green-700 border-green-200",
-      CUSTOM: "bg-purple-50 text-purple-700 border-purple-200",
-    }
     return (
-      <Badge variant="outline" className={colors[frequency as keyof typeof colors]}>
-        {frequency === "MONTHLY" ? "Monthly" : frequency === "YEARLY" ? "Yearly" : "Custom"}
+      <Badge variant="outline" className={SIP_FREQUENCY_BADGE_COLORS[frequency as SIPFrequency] || SIP_FREQUENCY_BADGE_COLORS.MONTHLY}>
+        {getFrequencyLabel(frequency as SIPFrequency)}
       </Badge>
     )
   }
@@ -180,7 +166,11 @@ export default function SIPsPage() {
             </p>
           </div>
           <Button
-            onClick={() => router.push("/investments/sips/new")}
+            onClick={() => {
+              setDialogMode('create')
+              setEditingSipId(undefined)
+              setDialogOpen(true)
+            }}
             className="bg-white text-blue-600 hover:bg-blue-50 w-full sm:w-auto"
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -191,79 +181,94 @@ export default function SIPsPage() {
 
       {/* Summary Cards */}
       <div className="grid gap-6 md:grid-cols-3 -mt-12">
-        <Card className="shadow-lg hover:shadow-xl transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Active SIPs</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-              <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50/80 via-indigo-50/60 to-white/60 dark:from-blue-900/20 dark:via-indigo-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-blue-200/50 dark:border-blue-700/50 shadow-xl hover:shadow-2xl transition-all">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none"></div>
+          <div className="relative p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-3 bg-blue-100/80 dark:bg-blue-900/40 rounded-xl backdrop-blur-sm border border-blue-200/50 dark:border-blue-700/50">
+                <TrendingUp className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Total Active SIPs</p>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {sips.filter((sip) => sip.isActive).length}
+                </p>
+              </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {sips.filter((sip) => sip.isActive).length}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               {sips.length - sips.filter((sip) => sip.isActive).length} inactive
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="shadow-lg hover:shadow-xl transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Commitment</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-              <IndianRupee className="h-5 w-5 text-green-600 dark:text-green-400" />
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50/80 via-emerald-50/60 to-white/60 dark:from-green-900/20 dark:via-emerald-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-green-200/50 dark:border-green-700/50 shadow-xl hover:shadow-2xl transition-all">
+          <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5 pointer-events-none"></div>
+          <div className="relative p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-3 bg-green-100/80 dark:bg-green-900/40 rounded-xl backdrop-blur-sm border border-green-200/50 dark:border-green-700/50">
+                <IndianRupee className="h-6 w-6 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Monthly Commitment</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  {formatCurrency(monthlyTotal)}
+                </p>
+              </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {formatCurrency(monthlyTotal)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">Active SIPs only</p>
-          </CardContent>
-        </Card>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Active SIPs only</p>
+          </div>
+        </div>
 
-        <Card className="shadow-lg hover:shadow-xl transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Yearly Commitment</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-              <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-50/80 via-violet-50/60 to-white/60 dark:from-purple-900/20 dark:via-violet-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-purple-200/50 dark:border-purple-700/50 shadow-xl hover:shadow-2xl transition-all">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-violet-500/5 pointer-events-none"></div>
+          <div className="relative p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-3 bg-purple-100/80 dark:bg-purple-900/40 rounded-xl backdrop-blur-sm border border-purple-200/50 dark:border-purple-700/50">
+                <Calendar className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Yearly Commitment</p>
+                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                  {formatCurrency(yearlyTotal)}
+                </p>
+              </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              {formatCurrency(yearlyTotal)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">Active SIPs only</p>
-          </CardContent>
-        </Card>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Active SIPs only</p>
+          </div>
+        </div>
       </div>
 
       {/* SIPs Table */}
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle>Your SIPs</CardTitle>
-          <CardDescription>
+      <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-all duration-200">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none"></div>
+        <div className="relative p-6">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Your SIPs</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
             {sips.length === 0
               ? "No SIPs found. Start by adding your first SIP."
               : `Showing ${sips.length} SIP${sips.length > 1 ? "s" : ""}`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </p>
           {sips.length === 0 ? (
             <div className="text-center py-12">
-              <TrendingUp className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
-              <h3 className="mt-4 text-lg font-semibold">No SIPs yet</h3>
-              <p className="text-muted-foreground mt-2">
+              <TrendingUp className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600 opacity-50" />
+              <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">No SIPs yet</h3>
+              <p className="text-gray-600 dark:text-gray-400 mt-2">
                 Get started by creating your first systematic investment plan.
               </p>
-              <Button onClick={() => router.push("/investments/sips/new")} className="mt-4">
+              <Button
+                onClick={() => {
+                  setDialogMode('create')
+                  setEditingSipId(undefined)
+                  setDialogOpen(true)
+                }}
+                className="mt-4"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Add New SIP
               </Button>
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border border-gray-200/50 dark:border-gray-700/50">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -320,7 +325,11 @@ export default function SIPsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => router.push(`/investments/sips/${sip.id}/edit`)}
+                            onClick={() => {
+                              setDialogMode('edit')
+                              setEditingSipId(sip.id)
+                              setDialogOpen(true)
+                            }}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -340,29 +349,43 @@ export default function SIPsPage() {
               </Table>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the SIP from your account.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteId && handleDelete(deleteId)}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
+        <AlertDialogContent className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
+          <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-orange-500/5 pointer-events-none rounded-lg"></div>
+          <div className="relative">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the SIP from your account.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteId && handleDelete(deleteId)}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* SIP Dialog */}
+      <SIPDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        mode={dialogMode}
+        sipId={editingSipId}
+        onSuccess={() => {
+          fetchSIPs()
+        }}
+      />
     </div>
   )
 }

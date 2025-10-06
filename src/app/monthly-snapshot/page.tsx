@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { formatDate } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
@@ -152,11 +151,9 @@ export default function MonthlySnapshotPage() {
         </div>
 
         {/* Month/Year Selector */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Select Month</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="backdrop-blur-md bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-blue-500/10 dark:from-blue-500/20 dark:via-purple-500/20 dark:to-blue-500/20 border border-blue-500/20 rounded-lg shadow-lg">
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Select Month</h3>
             <div className="flex gap-4">
               <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
                 <SelectTrigger className="w-[200px]">
@@ -184,11 +181,11 @@ export default function MonthlySnapshotPage() {
                 </SelectContent>
               </Select>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="p-6 text-center space-y-4">
+        <div className="backdrop-blur-md bg-gradient-to-br from-red-500/10 via-orange-500/10 to-red-500/10 dark:from-red-500/20 dark:via-orange-500/20 dark:to-red-500/20 border border-red-500/20 rounded-lg shadow-lg">
+          <div className="p-6 text-center space-y-4">
             <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
             <div>
               <p className="text-lg font-semibold mb-2">No data available for {MONTHS[selectedMonth - 1]} {selectedYear}</p>
@@ -196,8 +193,8 @@ export default function MonthlySnapshotPage() {
                 Unable to load snapshot data
               </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     )
   }
@@ -216,13 +213,13 @@ export default function MonthlySnapshotPage() {
       </div>
 
       {/* Month/Year Selector */}
-      <Card>
-        <CardHeader>
+      <div className="backdrop-blur-md bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-blue-500/10 dark:from-blue-500/20 dark:via-purple-500/20 dark:to-blue-500/20 border border-blue-500/20 rounded-lg shadow-lg">
+        <div className="p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <div className="flex items-center space-x-2">
                 <Calendar className="h-5 w-5" />
-                <CardTitle>Select Period</CardTitle>
+                <h3 className="text-lg font-semibold">Select Period</h3>
               </div>
               <div className="flex gap-2 sm:gap-3">
                 <Select
@@ -269,66 +266,58 @@ export default function MonthlySnapshotPage() {
               </Badge>
             )}
           </div>
-        </CardHeader>
-      </Card>
+        </div>
+      </div>
 
       {/* Summary Cards */}
       <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Income</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="backdrop-blur-md bg-gradient-to-br from-green-500/10 via-emerald-500/10 to-green-500/10 dark:from-green-500/20 dark:via-emerald-500/20 dark:to-green-500/20 border border-green-500/20 rounded-lg shadow-lg border-l-4 border-l-green-500">
+          <div className="p-6">
+            <h3 className="text-sm font-medium mb-3">Income</h3>
             <div className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">
               {formatAmount(snapshot.salary)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Gross income</p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="border-l-4 border-l-blue-500">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Available (with carry forward)</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="backdrop-blur-md bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-blue-500/10 dark:from-blue-500/20 dark:via-purple-500/20 dark:to-blue-500/20 border border-blue-500/20 rounded-lg shadow-lg border-l-4 border-l-blue-500">
+          <div className="p-6">
+            <h3 className="text-sm font-medium mb-3">Available (with carry forward)</h3>
             <div className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
               {formatAmount(totalAvailableWithCarryForward, true)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               After deductions {snapshot.previousSurplus > 0 ? `+ ${formatAmount(snapshot.previousSurplus)} carried forward` : ''}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className={`border-l-4 ${snapshot.surplusAmount >= 0 ? 'border-l-emerald-500' : 'border-l-red-500'} sm:col-span-2 lg:col-span-1`}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center space-x-2">
+        <div className={`backdrop-blur-md bg-gradient-to-br ${snapshot.surplusAmount >= 0 ? 'from-emerald-500/10 via-green-500/10 to-emerald-500/10 dark:from-emerald-500/20 dark:via-green-500/20 dark:to-emerald-500/20 border-emerald-500/20 border-l-emerald-500' : 'from-red-500/10 via-rose-500/10 to-red-500/10 dark:from-red-500/20 dark:via-rose-500/20 dark:to-red-500/20 border-red-500/20 border-l-red-500'} border rounded-lg shadow-lg border-l-4 sm:col-span-2 lg:col-span-1`}>
+          <div className="p-6">
+            <h3 className="text-sm font-medium flex items-center space-x-2 mb-3">
               <span>Month Surplus</span>
               {snapshot.surplusAmount >= 0 ? (
                 <TrendingUp className="h-4 w-4 text-emerald-600" />
               ) : (
                 <TrendingDown className="h-4 w-4 text-red-600" />
               )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
             <div className={`text-xl sm:text-2xl font-bold ${snapshot.surplusAmount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
               {snapshot.surplusAmount === 0 ? '-' : `${snapshot.surplusAmount >= 0 ? '+' : ''}₹${Math.abs(snapshot.surplusAmount).toLocaleString()}`}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Available - Spent
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Expenses & Investments Breakdown */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Spending Summary</CardTitle>
-          <CardDescription>Complete breakdown of monthly spending</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="backdrop-blur-md bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-blue-500/10 dark:from-blue-500/20 dark:via-purple-500/20 dark:to-blue-500/20 border border-blue-500/20 rounded-lg shadow-lg">
+        <div className="p-6">
+          <h3 className="text-lg font-semibold mb-2">Spending Summary</h3>
+          <p className="text-sm text-muted-foreground mb-6">Complete breakdown of monthly spending</p>
           <div className="space-y-4">
             <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
@@ -389,17 +378,15 @@ export default function MonthlySnapshotPage() {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Loan Tracking - Only show if there are loans */}
       {snapshot.loansData && snapshot.loansData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Loan EMI Tracking</CardTitle>
-            <CardDescription>EMI payment status for {MONTHS[selectedMonth - 1]} {selectedYear}</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="backdrop-blur-md bg-gradient-to-br from-orange-500/10 via-amber-500/10 to-orange-500/10 dark:from-orange-500/20 dark:via-amber-500/20 dark:to-orange-500/20 border border-orange-500/20 rounded-lg shadow-lg">
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-2">Loan EMI Tracking</h3>
+            <p className="text-sm text-muted-foreground mb-6">EMI payment status for {MONTHS[selectedMonth - 1]} {selectedYear}</p>
             <div className="space-y-3">
               {snapshot.loansData.map((loan) => (
                 <div
@@ -467,23 +454,23 @@ export default function MonthlySnapshotPage() {
                 </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Investment Details - Only show if investments were made */}
       {(snapshot.investmentsMade ?? 0) > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="backdrop-blur-md bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-blue-500/10 dark:from-blue-500/20 dark:via-purple-500/20 dark:to-blue-500/20 border border-blue-500/20 rounded-lg shadow-lg">
+          <div className="p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div>
-                <CardTitle className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
                   <Receipt className="h-5 w-5" />
                   Investment Activity
-                </CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
+                </h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Breakdown of all investments made this month
-                </CardDescription>
+                </p>
               </div>
               <Button
                 variant="outline"
@@ -494,8 +481,6 @@ export default function MonthlySnapshotPage() {
                 View Full History
               </Button>
             </div>
-          </CardHeader>
-          <CardContent>
             <div className="space-y-4">
               <div className="p-3 sm:p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg border-2 border-indigo-200 dark:border-indigo-800">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -566,23 +551,21 @@ export default function MonthlySnapshotPage() {
                 </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Actions */}
       {!snapshot.isClosed && (
-        <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+        <div className="backdrop-blur-md bg-gradient-to-br from-orange-500/10 via-yellow-500/10 to-orange-500/10 dark:from-orange-500/20 dark:via-yellow-500/20 dark:to-orange-500/20 border border-orange-500/20 rounded-lg shadow-lg">
+          <div className="p-6">
+            <h3 className="text-base sm:text-lg font-semibold flex items-center space-x-2 mb-2">
               <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0" />
               <span>Close & Save This Month</span>
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
+            </h3>
+            <p className="text-xs sm:text-sm text-muted-foreground mb-4">
               Closing will save the snapshot, lock all data, and carry forward the surplus to next month. Currently viewing preview data.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </p>
             <Button
               onClick={() => setShowCloseDialog(true)}
               className="w-full"
@@ -591,21 +574,21 @@ export default function MonthlySnapshotPage() {
               <Lock className="h-4 w-4 mr-2 flex-shrink-0" />
               <span>Close & Save {MONTHS[selectedMonth - 1]} {selectedYear}</span>
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {snapshot.isClosed && snapshot.closedAt && (
-        <Card className="border-green-200 bg-green-50 dark:bg-green-900/20">
-          <CardContent className="p-6">
+        <div className="backdrop-blur-md bg-gradient-to-br from-green-500/10 via-emerald-500/10 to-green-500/10 dark:from-green-500/20 dark:via-emerald-500/20 dark:to-green-500/20 border border-green-500/20 rounded-lg shadow-lg">
+          <div className="p-6">
             <div className="flex items-center space-x-2 text-green-600 dark:text-green-400">
               <CheckCircle className="h-5 w-5" />
               <p className="font-semibold">
                 Month closed on {formatDate(snapshot.closedAt)}
               </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Close Month Dialog */}

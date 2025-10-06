@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth"
 import { NextResponse } from "next/server"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { convertToMonthlyAmount } from "@/lib/frequency-utils"
 
 export async function GET(
   request: Request,
@@ -112,10 +113,7 @@ export async function GET(
     // Calculate total existing SIP amount in this bucket (monthly equivalent)
     let totalExistingSIPAmount = 0
     for (const sip of existingSIPs) {
-      let sipMonthlyAmount = Number(sip.amount)
-      if (sip.frequency === "YEARLY") {
-        sipMonthlyAmount = sipMonthlyAmount / 12
-      }
+      const sipMonthlyAmount = convertToMonthlyAmount(Number(sip.amount), sip.frequency)
       totalExistingSIPAmount += sipMonthlyAmount
     }
 

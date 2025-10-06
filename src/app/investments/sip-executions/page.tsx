@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -79,7 +78,23 @@ export default function SIPExecutionsPage() {
 
     executions.forEach((exec) => {
       totals[exec.status].count += 1
-      totals[exec.status].amount += exec.amount
+      // Use amountInr if available (for USD SIPs), otherwise use amount (for INR)
+      let amountInInr: number
+      if (exec.currency === "USD") {
+        // For USD executions, use amountInr if available, otherwise convert using usdInrRate
+        if (exec.amountInr) {
+          amountInInr = Number(exec.amountInr)
+        } else if (exec.usdInrRate) {
+          amountInInr = Number(exec.amount) * Number(exec.usdInrRate)
+        } else {
+          // Fallback: skip this execution if we can't convert to INR
+          amountInInr = 0
+        }
+      } else {
+        // For INR executions, use amount directly
+        amountInInr = Number(exec.amount)
+      }
+      totals[exec.status].amount += amountInInr
     })
 
     return totals
@@ -148,11 +163,13 @@ export default function SIPExecutionsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col gap-4 p-4 border rounded-lg bg-card">
-        <div className="flex items-center gap-2">
-          <Filter className="h-5 w-5 text-muted-foreground" />
-          <h3 className="font-semibold">Filters</h3>
-        </div>
+      <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none"></div>
+        <div className="relative flex flex-col gap-4 p-4">
+          <div className="flex items-center gap-2">
+            <Filter className="h-5 w-5 text-muted-foreground" />
+            <h3 className="font-semibold">Filters</h3>
+          </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
             <SelectTrigger className="w-full">
@@ -193,99 +210,117 @@ export default function SIPExecutionsPage() {
             </SelectContent>
           </Select>
         </div>
+        </div>
       </div>
 
       {/* Summary Cards */}
       {executions.length > 0 && (
         <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 md:grid-cols-4">
-          <Card className="border-l-4 border-l-blue-500">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Total Attempted</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                ₹{grandTotal.toLocaleString()}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50/80 via-indigo-50/60 to-white/60 dark:from-blue-900/20 dark:via-indigo-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-blue-200/50 dark:border-blue-700/50 shadow-xl hover:shadow-2xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none"></div>
+            <div className="relative p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-blue-100/80 dark:bg-blue-900/40 rounded-xl backdrop-blur-sm border border-blue-200/50 dark:border-blue-700/50">
+                  <TrendingUp className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Attempted</p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    ₹{grandTotal.toLocaleString()}
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground">
                 {executions.length} executions
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card className="border-l-4 border-l-green-500">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                Success
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                ₹{totals.SUCCESS.amount.toLocaleString()}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50/80 via-emerald-50/60 to-white/60 dark:from-green-900/20 dark:via-emerald-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-green-200/50 dark:border-green-700/50 shadow-xl hover:shadow-2xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5 pointer-events-none"></div>
+            <div className="relative p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-green-100/80 dark:bg-green-900/40 rounded-xl backdrop-blur-sm border border-green-200/50 dark:border-green-700/50">
+                  <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Success</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    ₹{totals.SUCCESS.amount.toLocaleString()}
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground">
                 {totals.SUCCESS.count} successful
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card className="border-l-4 border-l-red-500">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" />
-                Failed
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                ₹{totals.FAILED.amount.toLocaleString()}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-50/80 via-rose-50/60 to-white/60 dark:from-red-900/20 dark:via-rose-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-red-200/50 dark:border-red-700/50 shadow-xl hover:shadow-2xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-rose-500/5 pointer-events-none"></div>
+            <div className="relative p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-red-100/80 dark:bg-red-900/40 rounded-xl backdrop-blur-sm border border-red-200/50 dark:border-red-700/50">
+                  <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Failed</p>
+                  <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                    ₹{totals.FAILED.amount.toLocaleString()}
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground">
                 {totals.FAILED.count} failed
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card className="border-l-4 border-l-yellow-500">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Pending
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                ₹{totals.PENDING.amount.toLocaleString()}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-yellow-50/80 via-amber-50/60 to-white/60 dark:from-yellow-900/20 dark:via-amber-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-yellow-200/50 dark:border-yellow-700/50 shadow-xl hover:shadow-2xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-transparent to-amber-500/5 pointer-events-none"></div>
+            <div className="relative p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-yellow-100/80 dark:bg-yellow-900/40 rounded-xl backdrop-blur-sm border border-yellow-200/50 dark:border-yellow-700/50">
+                  <Clock className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Pending</p>
+                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                    ₹{totals.PENDING.amount.toLocaleString()}
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground">
                 {totals.PENDING.count} pending
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Executions Table */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                All SIP Executions
-              </CardTitle>
-              <CardDescription>
-                Execution history for {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
-              </CardDescription>
+      <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-indigo-500/5 pointer-events-none"></div>
+        <div className="relative">
+          <div className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white">
+                  <TrendingUp className="h-5 w-5" />
+                  All SIP Executions
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  Execution history for {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
+                </p>
+              </div>
+              {executions.length > 0 && (
+                <Badge variant="secondary" className="text-sm bg-purple-100/80 dark:bg-purple-900/40 backdrop-blur-sm border border-purple-200/50 dark:border-purple-700/50">
+                  {executions.length} {executions.length === 1 ? 'Execution' : 'Executions'}
+                </Badge>
+              )}
             </div>
-            {executions.length > 0 && (
-              <Badge variant="secondary" className="text-sm">
-                {executions.length} {executions.length === 1 ? 'Execution' : 'Executions'}
-              </Badge>
-            )}
           </div>
-        </CardHeader>
-        <CardContent>
+          <div className="px-6 pb-6">
           {executions.length > 0 ? (
             <div className="overflow-x-auto rounded-md border">
               <Table>
@@ -296,6 +331,7 @@ export default function SIPExecutionsPage() {
                     <TableHead className="font-semibold">Bucket</TableHead>
                     <TableHead className="font-semibold">Symbol</TableHead>
                     <TableHead className="text-right font-semibold">Amount</TableHead>
+                    <TableHead className="text-right font-semibold">Amount (INR)</TableHead>
                     <TableHead className="text-right font-semibold">Quantity</TableHead>
                     <TableHead className="text-right font-semibold">Price</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
@@ -329,13 +365,21 @@ export default function SIPExecutionsPage() {
                         {exec.sip.symbol || "-"}
                       </TableCell>
                       <TableCell className="text-right font-semibold">
-                        ₹{exec.amount.toLocaleString()}
+                        {exec.currency === "USD" ? "$" : "₹"}{exec.amount.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {exec.amountInr ? `₹${exec.amountInr.toLocaleString()}` : "-"}
+                        {exec.usdInrRate && exec.currency === "USD" && (
+                          <div className="text-xs text-muted-foreground">
+                            @ ₹{exec.usdInrRate.toLocaleString()}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         {exec.qty ? exec.qty.toLocaleString(undefined, { maximumFractionDigits: 9 }) : "-"}
                       </TableCell>
                       <TableCell className="text-right">
-                        {exec.price ? `₹${exec.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "-"}
+                        {exec.price ? `${exec.currency === "USD" ? "$" : "₹"}${exec.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "-"}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -368,8 +412,9 @@ export default function SIPExecutionsPage() {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+        </div>
+      </div>
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { calculateFinancialSummary } from "@/lib/budget-utils"
+import { getAmountForMonth } from "@/lib/frequency-utils"
 
 // Get current month snapshot - returns saved snapshot or calculates preview
 export async function GET(request: Request) {
@@ -250,16 +251,14 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
   let totalSIPs = 0
   sips.forEach((sip) => {
     const sipAmount = Number(sip.amount)
-    if (sip.frequency === "MONTHLY") {
-      totalSIPs += sipAmount
-    } else if (sip.frequency === "YEARLY") {
-      const sipStartDate = new Date(sip.startDate)
-      if (sipStartDate.getMonth() === month - 1) {
-        totalSIPs += sipAmount
-      }
-    } else if (sip.frequency === "CUSTOM" && sip.customDay) {
-      totalSIPs += sipAmount
-    }
+    const amountForMonth = getAmountForMonth(
+      sipAmount,
+      sip.frequency,
+      new Date(sip.startDate),
+      month - 1, // month - 1 because getAmountForMonth expects 0-based month
+      year
+    )
+    totalSIPs += amountForMonth
   })
 
   // Get expenses for this month

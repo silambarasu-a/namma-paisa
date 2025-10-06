@@ -7,7 +7,6 @@ import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Badge } from "@/components/ui/badge"
@@ -221,16 +220,17 @@ export default function TaxConfiguration() {
       </div>
 
       {!currentSalary && (
-        <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20">
-          <CardHeader>
-            <CardTitle className="text-yellow-800 dark:text-yellow-200">
+        <div className="relative overflow-hidden rounded-xl bg-yellow-50/80 dark:bg-yellow-900/20 backdrop-blur-lg border border-yellow-200/50 dark:border-yellow-700/50 hover:shadow-xl transition-all duration-200">
+          <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-transparent to-orange-500/5 pointer-events-none"></div>
+          <div className="relative p-6">
+            <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
               No Salary Information
-            </CardTitle>
-            <CardDescription className="text-yellow-700 dark:text-yellow-300">
+            </h3>
+            <p className="text-sm text-yellow-700 dark:text-yellow-300">
               Please set your monthly salary in the Profile section before configuring tax settings.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+            </p>
+          </div>
+        </div>
       )}
 
       <Tabs defaultValue="settings" className="space-y-4">
@@ -240,14 +240,15 @@ export default function TaxConfiguration() {
         </TabsList>
 
         <TabsContent value="settings">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tax Calculation Mode</CardTitle>
-              <CardDescription>
+          <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 border-l-4 border-l-orange-500">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-amber-500/5 pointer-events-none"></div>
+            <div className="relative p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Tax Calculation Mode
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
                 Choose how you want to calculate your tax deductions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </p>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* Tax Mode Selection with Radio Buttons */}
                 <div className="space-y-4">
@@ -382,8 +383,8 @@ export default function TaxConfiguration() {
                   {isLoading ? "Updating..." : "Update Tax Settings"}
                 </Button>
               </form>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="projections">
@@ -391,12 +392,15 @@ export default function TaxConfiguration() {
             {currentSalary && (
               <>
                 {/* Current Settings Summary */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Current Tax Configuration</CardTitle>
-                    <CardDescription>Your active tax settings</CardDescription>
-                  </CardHeader>
-                  <CardContent>
+                <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 border-l-4 border-l-blue-500">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none"></div>
+                  <div className="relative p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      Current Tax Configuration
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                      Your active tax settings
+                    </p>
                     <div className="flex items-center space-x-4">
                       <Badge variant="outline" className="text-sm">
                         {taxSetting?.mode || "Not configured"}
@@ -414,63 +418,64 @@ export default function TaxConfiguration() {
                         </div>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
 
                 {/* Monthly Projections */}
                 <div className="grid gap-4 md:grid-cols-3">
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Monthly Tax</CardTitle>
-                      <Calculator className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">₹{monthlyTax.toLocaleString()}</div>
-                      <p className="text-xs text-muted-foreground">
+                  <div className="p-3 sm:p-4 bg-gradient-to-br from-red-50/90 to-red-100/70 dark:from-red-900/30 dark:to-red-800/20 backdrop-blur-sm rounded-xl border-2 border-red-200 dark:border-red-700 hover:shadow-lg transition-all">
+                    <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white">Monthly Tax</h3>
+                      <Calculator className="h-4 w-4 text-red-600 dark:text-red-400" />
+                    </div>
+                    <div className="pt-2">
+                      <div className="text-2xl font-bold text-gray-900 dark:text-white">₹{monthlyTax.toLocaleString()}</div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                         {currentSalary && monthlyTax > 0 ?
                           `${((monthlyTax / currentSalary.monthly) * 100).toFixed(1)}% of monthly salary` :
                           "Tax not configured"
                         }
                       </p>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
 
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Annual Tax</CardTitle>
-                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">₹{annualTax.toLocaleString()}</div>
-                      <p className="text-xs text-muted-foreground">
+                  <div className="p-3 sm:p-4 bg-gradient-to-br from-purple-50/90 to-purple-100/70 dark:from-purple-900/30 dark:to-purple-800/20 backdrop-blur-sm rounded-xl border-2 border-purple-200 dark:border-purple-700 hover:shadow-lg transition-all">
+                    <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white">Annual Tax</h3>
+                      <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div className="pt-2">
+                      <div className="text-2xl font-bold text-gray-900 dark:text-white">₹{annualTax.toLocaleString()}</div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                         Yearly tax projection
                       </p>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
 
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Net After Tax</CardTitle>
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">₹{netAfterTax.toLocaleString()}</div>
-                      <p className="text-xs text-muted-foreground">
+                  <div className="p-3 sm:p-4 bg-gradient-to-br from-green-50/90 to-green-100/70 dark:from-green-900/30 dark:to-green-800/20 backdrop-blur-sm rounded-xl border-2 border-green-200 dark:border-green-700 hover:shadow-lg transition-all">
+                    <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white">Net After Tax</h3>
+                      <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div className="pt-2">
+                      <div className="text-2xl font-bold text-gray-900 dark:text-white">₹{netAfterTax.toLocaleString()}</div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                         Available for investments & expenses
                       </p>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Tax Breakdown */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Tax Breakdown</CardTitle>
-                    <CardDescription>
+                <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 border-l-4 border-l-purple-500">
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none"></div>
+                  <div className="relative p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      Tax Breakdown
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
                       Detailed view of your tax calculations
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
+                    </p>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                         <div>
@@ -508,21 +513,22 @@ export default function TaxConfiguration() {
                         <div className="text-lg font-bold">₹{netAfterTax.toLocaleString()}</div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </>
             )}
 
             {!currentSalary && (
-              <Card>
-                <CardContent className="text-center py-8">
+              <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none"></div>
+                <div className="relative text-center py-8 px-6">
                   <Calculator className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Salary Data</h3>
+                  <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">No Salary Data</h3>
                   <p className="text-gray-600 dark:text-gray-400">
                     Set up your monthly salary in the Profile section to view tax projections.
                   </p>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )}
           </div>
         </TabsContent>

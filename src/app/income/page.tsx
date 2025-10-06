@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatDate } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -299,14 +298,15 @@ export default function IncomePage() {
         <TabsContent value="additional" className="space-y-6">
 
       {/* Filter */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <CalendarIcon className="h-5 w-5" />
-            <span>Filter by Period</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none"></div>
+        <div className="relative p-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold flex items-center space-x-2">
+              <CalendarIcon className="h-5 w-5" />
+              <span>Filter by Period</span>
+            </h3>
+          </div>
           <div className="flex flex-col gap-4 sm:flex-row">
             <div className="flex-1">
               <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
@@ -340,17 +340,23 @@ export default function IncomePage() {
               </Select>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Summary Cards */}
       <div className="grid gap-4 sm:gap-6 md:grid-cols-3">
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Monthly Salary</CardTitle>
-            <CardDescription>Current base salary</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50/80 via-emerald-50/60 to-white/60 dark:from-green-900/20 dark:via-emerald-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-green-200/50 dark:border-green-700/50 shadow-xl hover:shadow-2xl transition-all">
+          <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5 pointer-events-none"></div>
+          <div className="relative p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-3 bg-green-100/80 dark:bg-green-900/40 rounded-xl backdrop-blur-sm border border-green-200/50 dark:border-green-700/50">
+                <Briefcase className="h-6 w-6 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Monthly Salary</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-500">Current base salary</p>
+              </div>
+            </div>
             <div className="text-2xl font-bold text-green-600 dark:text-green-400">
               ₹{(salary?.monthly || 0).toLocaleString()}
             </div>
@@ -359,49 +365,62 @@ export default function IncomePage() {
                 Effective from {formatDate(salary.effectiveFrom)}
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="border-l-4 border-l-blue-500">
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Additional Income</CardTitle>
-            <CardDescription>This month</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50/80 via-cyan-50/60 to-white/60 dark:from-blue-900/20 dark:via-cyan-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-blue-200/50 dark:border-blue-700/50 shadow-xl hover:shadow-2xl transition-all">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-cyan-500/5 pointer-events-none"></div>
+          <div className="relative p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-3 bg-blue-100/80 dark:bg-blue-900/40 rounded-xl backdrop-blur-sm border border-blue-200/50 dark:border-blue-700/50">
+                <TrendingUp className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Additional Income</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-500">This month</p>
+              </div>
+            </div>
             <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
               ₹{totalIncome.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {incomes.length} {incomes.length === 1 ? 'entry' : 'entries'}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="border-l-4 border-l-purple-500">
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Total Income</CardTitle>
-            <CardDescription>Salary + Additional</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-50/80 via-violet-50/60 to-white/60 dark:from-purple-900/20 dark:via-violet-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-purple-200/50 dark:border-purple-700/50 shadow-xl hover:shadow-2xl transition-all">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-violet-500/5 pointer-events-none"></div>
+          <div className="relative p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-3 bg-purple-100/80 dark:bg-purple-900/40 rounded-xl backdrop-blur-sm border border-purple-200/50 dark:border-purple-700/50">
+                <DollarSign className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Income</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-500">Salary + Additional</p>
+              </div>
+            </div>
             <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
               ₹{monthlyTotal.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               For {new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long', year: 'numeric' })}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Income List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Additional Income Records</CardTitle>
-          <CardDescription>
-            Custom income entries for {new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long', year: 'numeric' })}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-teal-500/5 pointer-events-none"></div>
+        <div className="relative p-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold">Additional Income Records</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Custom income entries for {new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long', year: 'numeric' })}
+            </p>
+          </div>
           {isLoading ? (
             <div className="text-center py-8">Loading...</div>
           ) : incomes.length === 0 ? (
@@ -471,43 +490,50 @@ export default function IncomePage() {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
         </TabsContent>
 
         <TabsContent value="salary" className="space-y-6">
 
           {/* Current Salary Card */}
-          <Card className="border-l-4 border-l-green-500">
-            <CardHeader>
-              <CardTitle>Current Monthly Salary</CardTitle>
-              <CardDescription>
-                {salary ? `Effective from ${new Date(salary.effectiveFrom).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'No salary record found'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50/80 via-emerald-50/60 to-white/60 dark:from-green-900/20 dark:via-emerald-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-green-200/50 dark:border-green-700/50 shadow-xl hover:shadow-2xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5 pointer-events-none"></div>
+            <div className="relative p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-green-100/80 dark:bg-green-900/40 rounded-xl backdrop-blur-sm border border-green-200/50 dark:border-green-700/50">
+                  <Briefcase className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">Current Monthly Salary</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {salary ? `Effective from ${new Date(salary.effectiveFrom).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'No salary record found'}
+                  </p>
+                </div>
+              </div>
               <div className="text-3xl font-bold text-green-600 dark:text-green-400">
                 ₹{salary ? Number(salary.monthly).toLocaleString() : '0'}
               </div>
               <p className="text-sm text-muted-foreground mt-2">
                 Monthly take-home
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Salary History */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <History className="h-5 w-5" />
-                <span>Salary History</span>
-              </CardTitle>
-              <CardDescription>
-                Track your salary changes over time
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none"></div>
+            <div className="relative p-6">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold flex items-center space-x-2">
+                  <History className="h-5 w-5" />
+                  <span>Salary History</span>
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Track your salary changes over time
+                </p>
+              </div>
               {isLoading ? (
                 <div className="text-center py-8">Loading...</div>
               ) : salaryHistory.length === 0 ? (
@@ -562,14 +588,16 @@ export default function IncomePage() {
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
 
       {/* Add/Edit Income Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
+          <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5 pointer-events-none rounded-lg"></div>
+          <div className="relative">
           <DialogHeader>
             <DialogTitle>{isEditing ? "Edit" : "Add"} Income</DialogTitle>
             <DialogDescription>
@@ -664,12 +692,15 @@ export default function IncomePage() {
               <Button type="submit">{isEditing ? "Update" : "Add"} Income</Button>
             </DialogFooter>
           </form>
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* Update Salary Dialog */}
       <Dialog open={isSalaryDialogOpen} onOpenChange={setIsSalaryDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
+          <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5 pointer-events-none rounded-lg"></div>
+          <div className="relative">
           <DialogHeader>
             <DialogTitle>Update Monthly Salary</DialogTitle>
             <DialogDescription>
@@ -719,12 +750,15 @@ export default function IncomePage() {
               <Button type="submit">Update Salary</Button>
             </DialogFooter>
           </form>
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* Delete Income Confirmation Dialog */}
       <AlertDialog open={deleteIncomeDialogOpen} onOpenChange={setDeleteIncomeDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
+          <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-orange-500/5 pointer-events-none rounded-lg"></div>
+          <div className="relative">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Income</AlertDialogTitle>
             <AlertDialogDescription>
@@ -737,12 +771,15 @@ export default function IncomePage() {
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Delete Salary Confirmation Dialog */}
       <AlertDialog open={deleteSalaryDialogOpen} onOpenChange={setDeleteSalaryDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
+          <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-orange-500/5 pointer-events-none rounded-lg"></div>
+          <div className="relative">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Salary Entry</AlertDialogTitle>
             <AlertDialogDescription>
@@ -755,6 +792,7 @@ export default function IncomePage() {
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
     </div>

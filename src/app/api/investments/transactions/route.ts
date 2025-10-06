@@ -62,6 +62,8 @@ export async function GET(request: Request) {
       qty: Number(txn.qty),
       price: Number(txn.price),
       amount: Number(txn.amount),
+      amountInr: txn.amountInr ? Number(txn.amountInr) : null,
+      usdInrRate: txn.usdInrRate ? Number(txn.usdInrRate) : null,
       purchaseDate: txn.purchaseDate.toISOString(),
       createdAt: txn.createdAt.toISOString(),
       updatedAt: txn.updatedAt.toISOString(),

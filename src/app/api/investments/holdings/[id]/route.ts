@@ -96,6 +96,26 @@ export async function PATCH(
     if ((data.qty !== undefined || data.avgCost !== undefined) && !existingHolding.isManual) {
       const newQty = data.qty ?? Number(existingHolding.qty)
       const newAvgCost = data.avgCost ?? Number(existingHolding.avgCost)
+      const transactionAmount = newQty * newAvgCost
+      const transactionCurrency = data.currency ?? updatedHolding.currency
+
+      // Fetch USD/INR rate if currency is USD and rate not available
+      let usdInrRate: number | null = null
+      let amountInr: number | null = null
+      if (transactionCurrency === "USD") {
+        try {
+          const rateResponse = await fetch("https://api.exchangerate-api.com/v4/latest/USD")
+          if (rateResponse.ok) {
+            const rateData = await rateResponse.json()
+            usdInrRate = rateData?.rates?.INR || null
+            if (usdInrRate) {
+              amountInr = transactionAmount * usdInrRate
+            }
+          }
+        } catch (error) {
+          console.error("Failed to fetch USD/INR rate:", error)
+        }
+      }
 
       await prisma.transaction.create({
         data: {
@@ -106,10 +126,13 @@ export async function PATCH(
           name: updatedHolding.name,
           qty: newQty,
           price: newAvgCost,
-          amount: newQty * newAvgCost,
+          amount: transactionAmount,
+          currency: transactionCurrency,
+          amountInr: amountInr,
           transactionType: "MANUAL_EDIT",
           purchaseDate: new Date(),
           description: "Holding manually edited",
+          usdInrRate: usdInrRate,
         },
       })
     }

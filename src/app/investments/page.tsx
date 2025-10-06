@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { TrendingUp, Wallet, Settings, PlusCircle, Eye, AlertCircle, Calendar, BarChart3, Receipt } from "lucide-react"
@@ -231,17 +230,18 @@ export default function InvestmentsPage() {
       </div>
 
       {/* Available Investment Amount - Similar to Expenses Page */}
-      <Card className="border-l-4 border-l-blue-500">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            <span>Investment Allocation Overview</span>
-          </CardTitle>
-          <CardDescription>
-            Track your investment allocations and available surplus
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 border-l-4 border-l-blue-500">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none"></div>
+        <div className="relative p-6">
+          <div className="mb-6">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1 flex items-center space-x-2">
+              <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <span>Investment Allocation Overview</span>
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Track your investment allocations and available surplus
+            </p>
+          </div>
           <div className="space-y-6">
             {/* Investment Overview Cards */}
             {calculateData && (
@@ -443,14 +443,15 @@ export default function InvestmentsPage() {
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
 
       {/* Allocation Status */}
       {!hasAllocations && (
-        <Card className="border-l-4 border-l-orange-500 bg-orange-50 dark:bg-orange-900/10">
-          <CardContent className="pt-6">
+        <div className="relative overflow-hidden rounded-xl bg-orange-50/80 dark:bg-orange-900/20 backdrop-blur-lg border border-orange-200/50 dark:border-orange-700/50 hover:shadow-xl transition-all duration-200 border-l-4 border-l-orange-500">
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-red-500/5 pointer-events-none"></div>
+          <div className="relative p-6">
             <div className="flex items-start space-x-3">
               <AlertCircle className="h-6 w-6 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
@@ -470,8 +471,8 @@ export default function InvestmentsPage() {
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Investment Buckets */}
@@ -496,21 +497,22 @@ export default function InvestmentsPage() {
               const amount = calculateBucketAmount(allocation)
               const bucketSIPs = calculateData?.sipsByBucket?.[allocation.bucket]
               return (
-                <Card key={allocation.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">
-                        {BUCKET_LABELS[allocation.bucket] || allocation.bucket}
-                      </CardTitle>
-                      <Badge className={BUCKET_COLORS[allocation.bucket]}>
-                        {allocation.allocationType === "PERCENTAGE"
-                          ? `${Number(allocation.percent || 0).toFixed(1)}%`
-                          : `₹${Number(allocation.customAmount || 0).toLocaleString()}`
-                        }
-                      </Badge>
+                <div key={allocation.id} className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none"></div>
+                  <div className="relative p-6">
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                          {BUCKET_LABELS[allocation.bucket] || allocation.bucket}
+                        </h3>
+                        <Badge className={BUCKET_COLORS[allocation.bucket]}>
+                          {allocation.allocationType === "PERCENTAGE"
+                            ? `${Number(allocation.percent || 0).toFixed(1)}%`
+                            : `₹${Number(allocation.customAmount || 0).toLocaleString()}`
+                          }
+                        </Badge>
+                      </div>
                     </div>
-                  </CardHeader>
-                  <CardContent>
                     <div className="space-y-3">
                       {/* Total Allocation */}
                       <div>
@@ -580,8 +582,8 @@ export default function InvestmentsPage() {
                         </Link>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               )
             })}
           </div>
@@ -590,17 +592,18 @@ export default function InvestmentsPage() {
 
       {/* Upcoming SIPs */}
       {calculateData?.allSips && calculateData.allSips.filter(s => s.isUpcoming).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-              Upcoming SIPs
-            </CardTitle>
-            <CardDescription>
-              SIPs starting in the future (sorted by start date)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-yellow-500/5 pointer-events-none"></div>
+          <div className="relative p-6">
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                Upcoming SIPs
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                SIPs starting in the future (sorted by start date)
+              </p>
+            </div>
             <div className="space-y-3">
               {calculateData.allSips
                 .filter(s => s.isUpcoming)
@@ -630,23 +633,24 @@ export default function InvestmentsPage() {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Holdings Summary */}
       {holdings && holdings.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              Current Holdings Summary
-            </CardTitle>
-            <CardDescription>
-              Total invested value across all buckets
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none"></div>
+          <div className="relative p-6">
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                Current Holdings Summary
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Total invested value across all buckets
+              </p>
+            </div>
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
               {Object.entries(
                 holdings.reduce((acc, holding) => {
@@ -693,17 +697,18 @@ export default function InvestmentsPage() {
                 )
               })}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Manage your investment portfolio</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none"></div>
+        <div className="relative p-6">
+          <div className="mb-6">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Quick Actions</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Manage your investment portfolio</p>
+          </div>
           <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             <Button
               onClick={() => router.push("/investments/holdings")}
@@ -754,8 +759,8 @@ export default function InvestmentsPage() {
               Transaction History
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

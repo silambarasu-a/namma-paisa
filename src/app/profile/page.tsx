@@ -5,7 +5,6 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
@@ -111,7 +110,7 @@ export default function Profile() {
     .toUpperCase() || session.user.email?.[0]?.toUpperCase() || "U"
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
           Profile Settings
@@ -121,20 +120,23 @@ export default function Profile() {
         </p>
       </div>
 
-      <div className="flex items-center space-x-4 p-6 bg-white dark:bg-gray-800 rounded-lg border">
-        <Avatar className="h-20 w-20">
-          <AvatarImage src={session.user.image || ""} />
-          <AvatarFallback className="text-lg">{initials}</AvatarFallback>
-        </Avatar>
-        <div>
-          <h2 className="text-xl font-semibold">{session.user.name}</h2>
-          <p className="text-gray-600 dark:text-gray-400">{session.user.email}</p>
-          <div className="flex gap-1 mt-1">
-            {session.user.roles.map((role) => (
-              <Badge key={role} className={getRoleBadgeColor(role as Role)}>
-                {ROLE_LABELS[role as Role]}
-              </Badge>
-            ))}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50/80 via-indigo-50/60 to-white/60 dark:from-blue-900/20 dark:via-indigo-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-blue-200/50 dark:border-blue-700/50 shadow-xl hover:shadow-2xl transition-all">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none"></div>
+        <div className="relative flex items-center space-x-4 p-6">
+          <Avatar className="h-20 w-20">
+            <AvatarImage src={session.user.image || ""} />
+            <AvatarFallback className="text-lg">{initials}</AvatarFallback>
+          </Avatar>
+          <div>
+            <h2 className="text-xl font-semibold">{session.user.name}</h2>
+            <p className="text-gray-600 dark:text-gray-400">{session.user.email}</p>
+            <div className="flex gap-1 mt-1">
+              {session.user.roles.map((role) => (
+                <Badge key={role} className={getRoleBadgeColor(role as Role)}>
+                  {ROLE_LABELS[role as Role]}
+                </Badge>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -146,14 +148,15 @@ export default function Profile() {
         </TabsList>
 
         <TabsContent value="profile">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>
-                Update your personal information
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-all duration-200">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none"></div>
+            <div className="relative p-6">
+              <div className="mb-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Profile Information</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  Update your personal information
+                </p>
+              </div>
               <form onSubmit={handleProfileUpdate} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
@@ -180,19 +183,20 @@ export default function Profile() {
                   {isLoading ? "Updating..." : "Update Profile"}
                 </Button>
               </form>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="password">
-          <Card>
-            <CardHeader>
-              <CardTitle>Change Password</CardTitle>
-              <CardDescription>
-                Update your account password
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-all duration-200">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-amber-500/5 pointer-events-none"></div>
+            <div className="relative p-6">
+              <div className="mb-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Change Password</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  Update your account password
+                </p>
+              </div>
               <form onSubmit={handlePasswordChange} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="currentPassword">Current Password</Label>
@@ -228,8 +232,8 @@ export default function Profile() {
                   {isLoading ? "Changing..." : "Change Password"}
                 </Button>
               </form>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

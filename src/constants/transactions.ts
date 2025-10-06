@@ -47,14 +47,33 @@ export const EXECUTION_STATUS_COLORS: Record<ExecutionStatus, string> = {
 
 // SIP frequency options
 export const SIP_FREQUENCIES: readonly SelectOption<SIPFrequency>[] = [
+  { value: "DAILY", label: "Daily" },
+  { value: "WEEKLY", label: "Weekly" },
   { value: "MONTHLY", label: "Monthly" },
+  { value: "QUARTERLY", label: "Quarterly" },
+  { value: "HALF_YEARLY", label: "Half-Yearly" },
   { value: "YEARLY", label: "Yearly" },
   { value: "CUSTOM", label: "Custom" },
 ] as const
 
 // SIP frequency labels mapping
 export const SIP_FREQUENCY_LABELS: Record<SIPFrequency, string> = {
+  DAILY: "Daily",
+  WEEKLY: "Weekly",
   MONTHLY: "Monthly",
+  QUARTERLY: "Quarterly",
+  HALF_YEARLY: "Half-Yearly",
   YEARLY: "Yearly",
   CUSTOM: "Custom",
+}
+
+// SIP frequency badge colors (for UI display)
+export const SIP_FREQUENCY_BADGE_COLORS: Record<SIPFrequency, string> = {
+  DAILY: "bg-orange-50 text-orange-700 border-orange-200",
+  WEEKLY: "bg-cyan-50 text-cyan-700 border-cyan-200",
+  MONTHLY: "bg-blue-50 text-blue-700 border-blue-200",
+  QUARTERLY: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  HALF_YEARLY: "bg-violet-50 text-violet-700 border-violet-200",
+  YEARLY: "bg-green-50 text-green-700 border-green-200",
+  CUSTOM: "bg-purple-50 text-purple-700 border-purple-200",
 }

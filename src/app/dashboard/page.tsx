@@ -10,6 +10,7 @@ import { calculateFinancialSummary } from "@/lib/budget-utils"
 import { SalaryFlowPipeline } from "@/components/dashboard/salary-flow-pipeline"
 import { RecentExpenses } from "@/components/dashboard/recent-expenses"
 import { UpcomingEMI } from "@/components/dashboard/upcoming-emi"
+import { getAmountForMonth } from "@/lib/frequency-utils"
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -108,18 +109,14 @@ async function getActiveSIPs(userId: string, month: number, year: number) {
   let totalSIPAmount = 0
   sips.forEach((sip) => {
     const sipAmount = Number(sip.amount)
-    if (sip.frequency === "MONTHLY") {
-      totalSIPAmount += sipAmount
-    } else if (sip.frequency === "YEARLY") {
-      const startDate = new Date(sip.startDate)
-      if (startDate.getMonth() === startOfMonth.getMonth()) {
-        totalSIPAmount += sipAmount
-      }
-    } else if (sip.frequency === "CUSTOM" && sip.customDay) {
-      // For custom frequency, just add the amount regardless of the day
-      // since it occurs within this month
-      totalSIPAmount += sipAmount
-    }
+    const amountForThisMonth = getAmountForMonth(
+      sipAmount,
+      sip.frequency,
+      new Date(sip.startDate),
+      month - 1, // month is 1-12, getAmountForMonth expects 0-11
+      year
+    )
+    totalSIPAmount += amountForThisMonth
   })
 
   // Convert Decimal to number for client components

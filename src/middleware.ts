@@ -4,7 +4,19 @@ import { Role } from "@/constants"
 
 export default withAuth(
   function middleware(req) {
-    const roles = req.nextauth.token?.roles as string[] || []
+    const token = req.nextauth.token
+    const roles = token?.roles as string[] || []
+
+    // Redirect authenticated users away from signin/signup pages only
+    const authPagesToRedirect = ["/auth/signin", "/auth/signup"]
+    if (authPagesToRedirect.includes(req.nextUrl.pathname) && token) {
+      // Super admins without customer role go to admin
+      if (roles.includes(Role.SUPER_ADMIN) && !roles.includes(Role.CUSTOMER)) {
+        return NextResponse.redirect(new URL("/admin", req.url))
+      }
+      // Everyone else goes to dashboard
+      return NextResponse.redirect(new URL("/dashboard", req.url))
+    }
 
     // Check if accessing admin routes
     if (req.nextUrl.pathname.startsWith("/admin")) {
