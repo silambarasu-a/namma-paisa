@@ -175,13 +175,13 @@ export function Sidebar({ className, isOpen = false, setIsOpen }: SidebarProps) 
       {/* Desktop Sidebar */}
       <div
         className={cn(
-          "hidden lg:flex lg:fixed lg:left-4 lg:top-24 lg:h-[calc(100vh-7rem)] lg:w-80 bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-2xl rounded-3xl z-10",
+          "hidden lg:flex lg:fixed lg:left-4 lg:top-24 lg:h-[calc(100vh-7rem)] lg:w-80 bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-2xl rounded-3xl z-10 overflow-hidden",
           className
         )}
       >
         <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-blue-500/10 pointer-events-none rounded-3xl"></div>
         <div className="absolute inset-0 backdrop-blur-3xl rounded-3xl"></div>
-        <div className="relative flex flex-col h-full w-full overflow-hidden">
+        <div className="relative flex flex-col h-full w-full">
           {/* Role Switcher for Super Admins with Customer Role */}
           {isSuperAdmin && hasCustomerRole && (
             <div className="px-6 py-4 border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0">

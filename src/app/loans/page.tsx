@@ -181,8 +181,22 @@ export default function LoansPage() {
     const currentMonthEmi = loan.emis.find(emi => {
       const emiDate = new Date(emi.dueDate)
       return emiDate.getMonth() === currentMonth &&
-             emiDate.getFullYear() === currentYear &&
-             !emi.isPaid
+             emiDate.getFullYear() === currentYear
+    })
+
+    return sum + (currentMonthEmi ? currentMonthEmi.emiAmount : 0)
+  }, 0)
+
+  const currentMonthPaidEMITotal = loans.reduce((sum, loan) => {
+    if (loan.isClosed || !loan.isActive) return sum
+    const now = new Date()
+    const currentMonth = now.getMonth()
+    const currentYear = now.getFullYear()
+
+    const currentMonthEmi = loan.emis.find(emi => {
+      const emiDate = new Date(emi.dueDate)
+      return emiDate.getMonth() === currentMonth &&
+             emiDate.getFullYear() === currentYear && emi.isPaid
     })
 
     return sum + (currentMonthEmi ? currentMonthEmi.emiAmount : 0)
@@ -254,15 +268,16 @@ export default function LoansPage() {
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50/80 via-emerald-50/60 to-white/60 dark:from-green-900/20 dark:via-emerald-900/10 dark:to-gray-800/60 backdrop-blur-xl border border-green-200/50 dark:border-green-700/50 shadow-xl hover:shadow-2xl transition-all">
             <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5 pointer-events-none"></div>
             <div className="relative p-5">
-              <div className="flex items-center gap-3 mb-3">
+              <div className="flex items-center gap-3">
                 <div className="p-3 bg-green-100/80 dark:bg-green-900/40 rounded-xl backdrop-blur-sm border border-green-200/50 dark:border-green-700/50">
                   <Calendar className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Current Month EMI</p>
                   <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    ₹{currentMonthEMITotal.toLocaleString()}
+                  ₹{currentMonthEMITotal.toLocaleString()}
                   </p>
+                  <span className="text-xs text-muted-foreground mt-1">₹{currentMonthPaidEMITotal.toLocaleString()} (Paid)</span>
                 </div>
               </div>
             </div>
