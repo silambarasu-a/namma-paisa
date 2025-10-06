@@ -140,28 +140,32 @@ export default function LoansPage() {
 
   const getCurrentAndUpcomingEMIs = (emis: EMI[]) => {
     const now = new Date()
-    const currentMonth = now.getMonth()
-    const currentYear = now.getFullYear()
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
 
-    // Get EMIs for current month (paid or unpaid) and upcoming unpaid EMIs
-    const currentMonthEmis = emis.filter(emi => {
+    // Get overdue unpaid EMIs (from previous months)
+    const overdueEmis = emis.filter(emi => {
       const emiDate = new Date(emi.dueDate)
-      return emiDate.getMonth() === currentMonth && emiDate.getFullYear() === currentYear
+      return !emi.isPaid && emiDate < currentMonthStart
     })
 
+    // Get EMIs for current month (paid or unpaid)
+    const currentMonthEmis = emis.filter(emi => {
+      const emiDate = new Date(emi.dueDate)
+      return emiDate >= currentMonthStart && emiDate <= currentMonthEnd
+    })
+
+    // Get upcoming unpaid EMIs (future months)
     const upcomingUnpaidEmis = emis.filter(emi => {
       const emiDate = new Date(emi.dueDate)
-      return !emi.isPaid && (
-        emiDate.getMonth() > currentMonth ||
-        emiDate.getFullYear() > currentYear
-      )
+      return !emi.isPaid && emiDate > currentMonthEnd
     }).slice(0, 3) // Show 3 upcoming unpaid EMIs
 
-    // Combine current month EMIs and upcoming EMIs, remove duplicates
-    const combined = [...currentMonthEmis, ...upcomingUnpaidEmis]
+    // Combine overdue + current month + upcoming EMIs, remove duplicates
+    const combined = [...overdueEmis, ...currentMonthEmis, ...upcomingUnpaidEmis]
     const unique = Array.from(new Map(combined.map(emi => [emi.id, emi])).values())
 
-    return unique.slice(0, 4) // Limit to 4 total
+    return unique
   }
 
   // Calculate summary statistics
@@ -323,44 +327,57 @@ export default function LoansPage() {
                     <div className="hidden md:flex items-center gap-2 flex-shrink-0">
                       {(() => {
                         const now = new Date()
-                        const currentMonth = now.getMonth()
-                        const currentYear = now.getFullYear()
+                        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+                        const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
 
-                        // First, check for current month EMI
-                        const currentMonthEmi = loan.emis?.find(emi => {
+                        // First priority: Check for overdue unpaid EMIs
+                        const overdueEmi = loan.emis?.find(emi => {
                           const emiDate = new Date(emi.dueDate)
-                          return emiDate.getMonth() === currentMonth && emiDate.getFullYear() === currentYear
+                          return !emi.isPaid && emiDate < currentMonthStart
                         })
 
-                        // If no current month EMI, get the next upcoming unpaid EMI
-                        const upcomingEmi = !currentMonthEmi ? loan.emis?.find(emi => {
+                        // Second priority: Check for current month EMI
+                        const currentMonthEmi = !overdueEmi ? loan.emis?.find(emi => {
                           const emiDate = new Date(emi.dueDate)
-                          return !emi.isPaid && emiDate > now
+                          return emiDate >= currentMonthStart && emiDate <= currentMonthEnd
                         }) : null
 
-                        const displayEmi = currentMonthEmi || upcomingEmi
+                        // Third priority: Get the next upcoming unpaid EMI
+                        const upcomingEmi = !overdueEmi && !currentMonthEmi ? loan.emis?.find(emi => {
+                          const emiDate = new Date(emi.dueDate)
+                          return !emi.isPaid && emiDate > currentMonthEnd
+                        }) : null
+
+                        const displayEmi = overdueEmi || currentMonthEmi || upcomingEmi
+                        const isOverdue = !!overdueEmi
                         const isCurrentMonth = !!currentMonthEmi
                         const isPaid = displayEmi?.isPaid || false
                         const dueDate = displayEmi ? format(new Date(displayEmi.dueDate), "dd/MM/yy") : ""
 
-                        // Color scheme: green for paid, orange for current month unpaid, blue for upcoming
-                        const bgColor = isPaid
-                          ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700'
-                          : isCurrentMonth
-                            ? 'bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-700'
-                            : 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700'
+                        // Color scheme: red for overdue, green for paid, orange for current month unpaid, blue for upcoming
+                        const bgColor = isOverdue
+                          ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700'
+                          : isPaid
+                            ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700'
+                            : isCurrentMonth
+                              ? 'bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-700'
+                              : 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700'
 
-                        const textColor = isPaid
-                          ? 'text-green-700 dark:text-green-300'
-                          : isCurrentMonth
-                            ? 'text-orange-700 dark:text-orange-300'
-                            : 'text-blue-700 dark:text-blue-300'
+                        const textColor = isOverdue
+                          ? 'text-red-700 dark:text-red-300'
+                          : isPaid
+                            ? 'text-green-700 dark:text-green-300'
+                            : isCurrentMonth
+                              ? 'text-orange-700 dark:text-orange-300'
+                              : 'text-blue-700 dark:text-blue-300'
 
-                        const dateColor = isPaid
-                          ? 'text-green-600 dark:text-green-400'
-                          : isCurrentMonth
-                            ? 'text-orange-600 dark:text-orange-400'
-                            : 'text-blue-600 dark:text-blue-400'
+                        const dateColor = isOverdue
+                          ? 'text-red-600 dark:text-red-400'
+                          : isPaid
+                            ? 'text-green-600 dark:text-green-400'
+                            : isCurrentMonth
+                              ? 'text-orange-600 dark:text-orange-400'
+                              : 'text-blue-600 dark:text-blue-400'
 
                         return (
                           <div className={`px-3 py-1.5 rounded-full ${bgColor} border`}>
@@ -397,44 +414,57 @@ export default function LoansPage() {
                   <div className="flex md:hidden items-center gap-2 mt-2 flex-wrap">
                     {(() => {
                       const now = new Date()
-                      const currentMonth = now.getMonth()
-                      const currentYear = now.getFullYear()
+                      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+                      const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
 
-                      // First, check for current month EMI
-                      const currentMonthEmi = loan.emis?.find(emi => {
+                      // First priority: Check for overdue unpaid EMIs
+                      const overdueEmi = loan.emis?.find(emi => {
                         const emiDate = new Date(emi.dueDate)
-                        return emiDate.getMonth() === currentMonth && emiDate.getFullYear() === currentYear
+                        return !emi.isPaid && emiDate < currentMonthStart
                       })
 
-                      // If no current month EMI, get the next upcoming unpaid EMI
-                      const upcomingEmi = !currentMonthEmi ? loan.emis?.find(emi => {
+                      // Second priority: Check for current month EMI
+                      const currentMonthEmi = !overdueEmi ? loan.emis?.find(emi => {
                         const emiDate = new Date(emi.dueDate)
-                        return !emi.isPaid && emiDate > now
+                        return emiDate >= currentMonthStart && emiDate <= currentMonthEnd
                       }) : null
 
-                      const displayEmi = currentMonthEmi || upcomingEmi
+                      // Third priority: Get the next upcoming unpaid EMI
+                      const upcomingEmi = !overdueEmi && !currentMonthEmi ? loan.emis?.find(emi => {
+                        const emiDate = new Date(emi.dueDate)
+                        return !emi.isPaid && emiDate > currentMonthEnd
+                      }) : null
+
+                      const displayEmi = overdueEmi || currentMonthEmi || upcomingEmi
+                      const isOverdue = !!overdueEmi
                       const isCurrentMonth = !!currentMonthEmi
                       const isPaid = displayEmi?.isPaid || false
                       const dueDate = displayEmi ? format(new Date(displayEmi.dueDate), "dd/MM/yy") : ""
 
-                      // Color scheme: green for paid, orange for current month unpaid, blue for upcoming
-                      const bgColor = isPaid
-                        ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700'
-                        : isCurrentMonth
-                          ? 'bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-700'
-                          : 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700'
+                      // Color scheme: red for overdue, green for paid, orange for current month unpaid, blue for upcoming
+                      const bgColor = isOverdue
+                        ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700'
+                        : isPaid
+                          ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700'
+                          : isCurrentMonth
+                            ? 'bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-700'
+                            : 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700'
 
-                      const textColor = isPaid
-                        ? 'text-green-700 dark:text-green-300'
-                        : isCurrentMonth
-                          ? 'text-orange-700 dark:text-orange-300'
-                          : 'text-blue-700 dark:text-blue-300'
+                      const textColor = isOverdue
+                        ? 'text-red-700 dark:text-red-300'
+                        : isPaid
+                          ? 'text-green-700 dark:text-green-300'
+                          : isCurrentMonth
+                            ? 'text-orange-700 dark:text-orange-300'
+                            : 'text-blue-700 dark:text-blue-300'
 
-                      const dateColor = isPaid
-                        ? 'text-green-600 dark:text-green-400'
-                        : isCurrentMonth
-                          ? 'text-orange-600 dark:text-orange-400'
-                          : 'text-blue-600 dark:text-blue-400'
+                      const dateColor = isOverdue
+                        ? 'text-red-600 dark:text-red-400'
+                        : isPaid
+                          ? 'text-green-600 dark:text-green-400'
+                          : isCurrentMonth
+                            ? 'text-orange-600 dark:text-orange-400'
+                            : 'text-blue-600 dark:text-blue-400'
 
                       return (
                         <div className={`px-2.5 py-1 rounded-full ${bgColor} border`}>
@@ -594,58 +624,117 @@ export default function LoansPage() {
                             Current & Upcoming EMIs
                           </h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-2">
-                            {currentAndUpcomingEmis.map((emi) => (
-                              <div
-                                key={emi.id}
-                                className={`flex items-center justify-between gap-3 p-2.5 rounded-lg border backdrop-blur-sm ${
-                                  emi.isPaid
-                                    ? 'bg-green-50/80 dark:bg-green-950/40 border-green-300/50 dark:border-green-700/50'
-                                    : 'bg-white/70 dark:bg-gray-800/70 border-gray-200/50 dark:border-gray-700/50'
-                                }`}
-                              >
-                                <div className="flex flex-col gap-1 min-w-0 flex-1">
-                                  <div className="flex items-center gap-1.5">
-                                    <IndianRupee className={`h-3.5 w-3.5 flex-shrink-0 ${emi.isPaid ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`} />
-                                    <span className={`text-xs font-semibold ${emi.isPaid ? 'text-green-700 dark:text-green-300' : 'text-gray-900 dark:text-white'}`}>
-                                      ₹{emi.emiAmount.toLocaleString()}
-                                    </span>
+                            {currentAndUpcomingEmis.map((emi) => {
+                              const now = new Date()
+                              const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+                              const emiDate = new Date(emi.dueDate)
+                              const isOverdue = !emi.isPaid && emiDate < currentMonthStart
+
+                              return (
+                                <div
+                                  key={emi.id}
+                                  className={`flex items-center justify-between gap-3 p-2.5 rounded-lg border backdrop-blur-sm ${
+                                    emi.isPaid
+                                      ? 'bg-green-50/80 dark:bg-green-950/40 border-green-300/50 dark:border-green-700/50'
+                                      : isOverdue
+                                        ? 'bg-red-50/80 dark:bg-red-950/40 border-red-300/50 dark:border-red-700/50'
+                                        : 'bg-white/70 dark:bg-gray-800/70 border-gray-200/50 dark:border-gray-700/50'
+                                  }`}
+                                >
+                                  <div className="flex flex-col gap-1 min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <IndianRupee className={`h-3.5 w-3.5 flex-shrink-0 ${
+                                        emi.isPaid
+                                          ? 'text-green-600 dark:text-green-400'
+                                          : isOverdue
+                                            ? 'text-red-600 dark:text-red-400'
+                                            : 'text-gray-500'
+                                      }`} />
+                                      <span className={`text-xs font-semibold ${
+                                        emi.isPaid
+                                          ? 'text-green-700 dark:text-green-300'
+                                          : isOverdue
+                                            ? 'text-red-700 dark:text-red-300'
+                                            : 'text-gray-900 dark:text-white'
+                                      }`}>
+                                        ₹{emi.emiAmount.toLocaleString()}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <Calendar className={`h-3.5 w-3.5 flex-shrink-0 ${
+                                        emi.isPaid
+                                          ? 'text-green-600 dark:text-green-400'
+                                          : isOverdue
+                                            ? 'text-red-600 dark:text-red-400'
+                                            : 'text-gray-500'
+                                      }`} />
+                                      <span className={`text-xs font-medium ${
+                                        emi.isPaid
+                                          ? 'text-green-700 dark:text-green-300'
+                                          : isOverdue
+                                            ? 'text-red-700 dark:text-red-300'
+                                            : 'text-gray-600 dark:text-gray-400'
+                                      }`}>
+                                        {format(new Date(emi.dueDate), "MMM dd, yyyy")}
+                                      </span>
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-1.5">
-                                    <Calendar className={`h-3.5 w-3.5 flex-shrink-0 ${emi.isPaid ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`} />
-                                    <span className={`text-xs ${emi.isPaid ? 'text-green-700 dark:text-green-300' : 'text-gray-600 dark:text-gray-400'}`}>
-                                      {format(new Date(emi.dueDate), "MMM dd, yyyy")}
-                                    </span>
-                                  </div>
+                                  {emi.isPaid ? (
+                                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-100/80 dark:bg-green-900/50 rounded-full border border-green-300/50 dark:border-green-700/50 backdrop-blur-sm flex-shrink-0">
+                                      <CheckCircle className="h-3 w-3 text-green-700 dark:text-green-300" />
+                                      <span className="text-xs font-semibold text-green-700 dark:text-green-300 whitespace-nowrap">
+                                        PAID
+                                      </span>
+                                    </div>
+                                  ) : isOverdue ? (
+                                    <div className="flex flex-col gap-1.5 flex-shrink-0">
+                                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-100/80 dark:bg-red-900/50 rounded-full border border-red-300/50 dark:border-red-700/50 backdrop-blur-sm">
+                                        <span className="text-xs font-semibold text-red-700 dark:text-red-300 whitespace-nowrap">
+                                          OVERDUE
+                                        </span>
+                                      </div>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-xs h-7 px-3 bg-red-50/80 hover:bg-red-100/80 dark:bg-red-900/30 dark:hover:bg-red-900/50 border-red-200/50 dark:border-red-700/50 backdrop-blur-sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          setPayEmiModal({
+                                            open: true,
+                                            loanId: loan.id,
+                                            emiId: emi.id,
+                                            emiAmount: emi.emiAmount,
+                                            dueDate: new Date(emi.dueDate),
+                                          })
+                                        }}
+                                      >
+                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                        Pay
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-xs h-8 px-3 bg-blue-50/80 hover:bg-blue-100/80 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 border-blue-200/50 dark:border-blue-700/50 backdrop-blur-sm flex-shrink-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setPayEmiModal({
+                                          open: true,
+                                          loanId: loan.id,
+                                          emiId: emi.id,
+                                          emiAmount: emi.emiAmount,
+                                          dueDate: new Date(emi.dueDate),
+                                        })
+                                      }}
+                                    >
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Pay
+                                    </Button>
+                                  )}
                                 </div>
-                                {emi.isPaid ? (
-                                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-100/80 dark:bg-green-900/50 rounded-full border border-green-300/50 dark:border-green-700/50 backdrop-blur-sm flex-shrink-0">
-                                    <CheckCircle className="h-3 w-3 text-green-700 dark:text-green-300" />
-                                    <span className="text-xs font-semibold text-green-700 dark:text-green-300 whitespace-nowrap">
-                                      PAID
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-xs h-8 px-3 bg-blue-50/80 hover:bg-blue-100/80 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 border-blue-200/50 dark:border-blue-700/50 backdrop-blur-sm flex-shrink-0"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      setPayEmiModal({
-                                        open: true,
-                                        loanId: loan.id,
-                                        emiId: emi.id,
-                                        emiAmount: emi.emiAmount,
-                                        dueDate: new Date(emi.dueDate),
-                                      })
-                                    }}
-                                  >
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                    Pay
-                                  </Button>
-                                )}
-                              </div>
-                            ))}
+                              )
+                            })}
                           </div>
                         </div>
                       )}

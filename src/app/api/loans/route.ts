@@ -87,26 +87,6 @@ export async function GET() {
         ],
       },
       include: {
-        emis: {
-          where: {
-            OR: [
-              // All unpaid EMIs
-              {
-                isPaid: false,
-              },
-              // Paid EMIs from current month
-              {
-                isPaid: true,
-                paidDate: {
-                  gte: currentMonthStart,
-                  lte: currentMonthEnd,
-                },
-              },
-            ],
-          },
-          orderBy: { dueDate: "asc" },
-          take: 3,
-        },
         goldItems: true,
       },
       orderBy: [
@@ -117,6 +97,52 @@ export async function GET() {
 
     // Calculate remaining tenure and check for current month EMIs
     const transformedLoans = await Promise.all(loans.map(async (loan) => {
+      // Fetch EMIs separately to ensure we get all overdue + current + upcoming
+      // 1. Get all overdue unpaid EMIs (from previous months)
+      const overdueEmis = await prisma.eMI.findMany({
+        where: {
+          loanId: loan.id,
+          isPaid: false,
+          dueDate: {
+            lt: currentMonthStart,
+          },
+        },
+        orderBy: { dueDate: "asc" },
+      })
+
+      // 2. Get current month EMIs (both paid and unpaid)
+      const currentMonthEmis = await prisma.eMI.findMany({
+        where: {
+          loanId: loan.id,
+          dueDate: {
+            gte: currentMonthStart,
+            lte: currentMonthEnd,
+          },
+        },
+        orderBy: { dueDate: "asc" },
+      })
+
+      // 3. Get next few upcoming EMIs (after current month, limit to 3)
+      const upcomingEmis = await prisma.eMI.findMany({
+        where: {
+          loanId: loan.id,
+          isPaid: false,
+          dueDate: {
+            gt: currentMonthEnd,
+          },
+        },
+        orderBy: { dueDate: "asc" },
+        take: 3,
+      })
+
+      // Combine all EMIs (overdue + current + upcoming) and remove duplicates
+      const allEmisMap = new Map()
+      ;[...overdueEmis, ...currentMonthEmis, ...upcomingEmis].forEach(emi => {
+        allEmisMap.set(emi.id, emi)
+      })
+      const combinedEmis = Array.from(allEmisMap.values()).sort((a, b) =>
+        a.dueDate.getTime() - b.dueDate.getTime()
+      )
       // Count ALL unpaid EMIs for accurate remaining tenure
       const remainingTenure = await prisma.eMI.count({
         where: {
@@ -160,7 +186,7 @@ export async function GET() {
         remainingTenure,
         hasCurrentMonthDue,
         earliestDueDate: earliestUnpaidEmi?.dueDate || null,
-        emis: loan.emis.map(emi => ({
+        emis: combinedEmis.map(emi => ({
           ...emi,
           emiAmount: Number(emi.emiAmount),
           paidAmount: emi.paidAmount ? Number(emi.paidAmount) : null,
