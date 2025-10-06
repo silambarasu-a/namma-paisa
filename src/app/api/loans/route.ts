@@ -337,13 +337,17 @@ export async function POST(request: Request) {
         totalPayments = Math.ceil(finalTenure / monthsIncrement)
       }
 
-      // Calculate the first occurrence of each schedule date on or after startDate
+      // Calculate minimum first EMI date (at least one frequency period after start date)
+      const minFirstEmiDate = new Date(startDate)
+      minFirstEmiDate.setMonth(minFirstEmiDate.getMonth() + monthsIncrement)
+
+      // Calculate the first occurrence of each schedule date on or after minFirstEmiDate
       const scheduleWithFirstOccurrence = dates.map(scheduleDate => {
         let firstOccurrence = new Date(startYear, scheduleDate.month - 1, scheduleDate.day)
 
-        // If this date is before startDate, move to next year
-        if (firstOccurrence < startDate) {
-          firstOccurrence = new Date(startYear + 1, scheduleDate.month - 1, scheduleDate.day)
+        // Keep moving to next year until we find a date >= minFirstEmiDate
+        while (firstOccurrence < minFirstEmiDate) {
+          firstOccurrence.setFullYear(firstOccurrence.getFullYear() + 1)
         }
 
         return { scheduleDate, firstOccurrence }

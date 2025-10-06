@@ -413,7 +413,7 @@ export function AddLoanModal({ open, onOpenChange, onSuccess, loan }: AddLoanMod
 
     if (emiFrequency === "MONTHLY") {
       // Monthly frequency: generate due dates for each month
-      for (let i = 1; i <= tenureValue; i++) {
+      for (let i = 0; i < tenureValue; i++) {
         const dueDate = new Date(start)
         dueDate.setMonth(dueDate.getMonth() + i)
         dueDates.push(dueDate)
@@ -436,13 +436,17 @@ export function AddLoanModal({ open, onOpenChange, onSuccess, loan }: AddLoanMod
         totalPayments = Math.ceil(tenureInMonths / monthsIncrement)
       }
 
+      // Calculate minimum first EMI date (at least one frequency period after start date)
+      const minFirstEmiDate = new Date(start)
+      minFirstEmiDate.setMonth(minFirstEmiDate.getMonth() + monthsIncrement)
+
       // Generate due dates for each year
       for (let year = 0; year < Math.ceil(totalPayments / paymentSchedule.length) + 2; year++) {
         for (const scheduleDate of paymentSchedule) {
           const dueDate = new Date(startYear + year, scheduleDate.month - 1, scheduleDate.day)
 
-          // Only add if the due date is after the start date (not on the start date)
-          if (dueDate > start) {
+          // Only add if the due date is on or after minFirstEmiDate
+          if (dueDate >= minFirstEmiDate) {
             dueDates.push(dueDate)
 
             // Stop when we have enough payments
@@ -464,7 +468,7 @@ export function AddLoanModal({ open, onOpenChange, onSuccess, loan }: AddLoanMod
 
       const totalPayments = Math.ceil(tenureInMonths / monthsIncrement)
 
-      for (let i = 1; i <= totalPayments; i++) {
+      for (let i = 0; i < totalPayments; i++) {
         const dueDate = new Date(start)
         dueDate.setMonth(dueDate.getMonth() + (i * monthsIncrement))
         dueDates.push(dueDate)

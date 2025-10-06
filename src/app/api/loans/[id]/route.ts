@@ -278,21 +278,7 @@ export async function PUT(
           }
         }
 
-        if (body.emiFrequency === "MONTHLY") {
-          // For monthly, start from the next unpaid installment
-          for (let i = paidEmisCount; i < body.tenure; i++) {
-            const dueDate = new Date(startDate)
-            dueDate.setMonth(dueDate.getMonth() + i)
-
-            const customEMIAmount: number = customEMIMap.get(i + 1) || body.emiAmount
-
-            newEmis.push({
-              emiAmount: customEMIAmount,
-              dueDate,
-              isPaid: false,
-            })
-          }
-        } else if (body.paymentSchedule && body.paymentSchedule.dates.length > 0) {
+        if (body.paymentSchedule && body.paymentSchedule.dates.length > 0) {
           const { dates } = body.paymentSchedule
           const monthsIncrement = getMonthsIncrement(body.emiFrequency)
 
@@ -303,12 +289,17 @@ export async function PUT(
             totalPayments = Math.ceil(body.tenure / monthsIncrement)
           }
 
-          // Calculate the first occurrence of each schedule date on or after startDate
+          // Calculate minimum first EMI date (at least one frequency period after start date)
+          const minFirstEmiDate = new Date(startDate)
+          minFirstEmiDate.setMonth(minFirstEmiDate.getMonth() + monthsIncrement)
+
+          // Calculate the first occurrence of each schedule date on or after minFirstEmiDate
           const scheduleWithFirstOccurrence = dates.map((scheduleDate: { month: number; day: number }) => {
             let firstOccurrence = new Date(startYear, scheduleDate.month - 1, scheduleDate.day)
 
-            if (firstOccurrence < startDate) {
-              firstOccurrence = new Date(startYear + 1, scheduleDate.month - 1, scheduleDate.day)
+            // Keep moving to next year until we find a date >= minFirstEmiDate
+            while (firstOccurrence < minFirstEmiDate) {
+              firstOccurrence.setFullYear(firstOccurrence.getFullYear() + 1)
             }
 
             return { scheduleDate, firstOccurrence }
@@ -316,40 +307,71 @@ export async function PUT(
 
           scheduleWithFirstOccurrence.sort((a: { scheduleDate: { month: number; day: number }; firstOccurrence: Date }, b: { scheduleDate: { month: number; day: number }; firstOccurrence: Date }) => a.firstOccurrence.getTime() - b.firstOccurrence.getTime())
 
+          // Generate ALL EMI dates for the full tenure first
+          const allEmiDates: Date[] = []
           let emisGenerated = 0
 
-          // Generate EMIs for each year, starting from where we left off
-          for (let year = 0; year < Math.ceil(totalPayments / dates.length) + 1 && emisGenerated < remainingEMIs; year++) {
+          for (let year = 0; year < Math.ceil(totalPayments / dates.length) + 1 && allEmiDates.length < body.tenure; year++) {
             for (const { firstOccurrence } of scheduleWithFirstOccurrence) {
-              if (emisGenerated >= remainingEMIs) break
+              if (allEmiDates.length >= body.tenure) break
 
               const dueDate = new Date(firstOccurrence)
               dueDate.setFullYear(firstOccurrence.getFullYear() + year)
 
-              const customEMIAmount: number = customEMIMap.get(paidEmisCount + emisGenerated + 1) || body.emiAmount
-
-              newEmis.push({
-                emiAmount: customEMIAmount,
-                dueDate,
-                isPaid: false,
-              })
-
-              emisGenerated++
+              allEmiDates.push(dueDate)
             }
           }
-        } else {
-          // Fallback for other frequencies without payment schedule
-          const monthsIncrement = getMonthsIncrement(body.emiFrequency)
 
-          for (let i = paidEmisCount; i < body.tenure; i++) {
-            const dueDate = new Date(startDate)
-            dueDate.setMonth(dueDate.getMonth() + (i * monthsIncrement))
-
+          // Now skip the first paidEmisCount dates and use the rest
+          for (let i = paidEmisCount; i < allEmiDates.length && emisGenerated < remainingEMIs; i++) {
             const customEMIAmount: number = customEMIMap.get(i + 1) || body.emiAmount
 
             newEmis.push({
               emiAmount: customEMIAmount,
-              dueDate,
+              dueDate: allEmiDates[i],
+              isPaid: false,
+            })
+
+            emisGenerated++
+          }
+        } else if (body.emiFrequency === "MONTHLY") {
+          // Monthly without payment schedule - generate all dates then skip paid ones
+          const allEmiDates: Date[] = []
+
+          for (let i = 0; i < body.tenure; i++) {
+            const dueDate = new Date(startDate)
+            dueDate.setMonth(dueDate.getMonth() + i)
+            allEmiDates.push(dueDate)
+          }
+
+          // Skip the first paidEmisCount dates and use the rest
+          for (let i = paidEmisCount; i < allEmiDates.length && i < body.tenure; i++) {
+            const customEMIAmount: number = customEMIMap.get(i + 1) || body.emiAmount
+
+            newEmis.push({
+              emiAmount: customEMIAmount,
+              dueDate: allEmiDates[i],
+              isPaid: false,
+            })
+          }
+        } else {
+          // Other frequencies without payment schedule - generate all dates then skip paid ones
+          const monthsIncrement = getMonthsIncrement(body.emiFrequency)
+          const allEmiDates: Date[] = []
+
+          for (let i = 0; i < body.tenure; i++) {
+            const dueDate = new Date(startDate)
+            dueDate.setMonth(dueDate.getMonth() + (i * monthsIncrement))
+            allEmiDates.push(dueDate)
+          }
+
+          // Skip the first paidEmisCount dates and use the rest
+          for (let i = paidEmisCount; i < allEmiDates.length && i < body.tenure; i++) {
+            const customEMIAmount: number = customEMIMap.get(i + 1) || body.emiAmount
+
+            newEmis.push({
+              emiAmount: customEMIAmount,
+              dueDate: allEmiDates[i],
               isPaid: false,
             })
           }
