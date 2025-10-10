@@ -507,6 +507,8 @@ model MonthlySnapshot {
   availableAmount   Decimal  @db.Decimal(12, 2) // afterTax - loans - SIPs
   spentAmount       Decimal  @db.Decimal(12, 2) // total expenses
   surplusAmount     Decimal  @db.Decimal(12, 2) // availableAmount - spentAmount
+  plannedSurplus    Decimal  @default(0) @db.Decimal(12, 2) // After scheduled EMI, planned SIPs, and expenses
+  cashRemaining     Decimal  @default(0) @db.Decimal(12, 2) // After all actual transactions
 
   // Carry Forward
   previousSurplus   Decimal  @db.Decimal(12, 2) // Surplus from previous month
@@ -516,6 +518,43 @@ model MonthlySnapshot {
 
   // Loan Tracking - JSON structure: [{ loanId, loanType, institution, emiAmount, isPaid, paidDate, dueDate, isClosed, closedAt }]
   loansData         Json?
+
+  // EMI Details
+  currentMonthEMIPaid       Decimal  @default(0) @db.Decimal(12, 2) // EMIs paid for current month
+  currentMonthEMIUnpaid     Decimal  @default(0) @db.Decimal(12, 2) // EMIs scheduled but not paid for current month
+  currentMonthEMIPaidCount  Int      @default(0) // Count of EMIs paid
+  currentMonthEMIUnpaidCount Int     @default(0) // Count of EMIs unpaid
+  additionalEMIPaid         Decimal  @default(0) @db.Decimal(12, 2) // EMIs paid for other months (old dues/advance)
+  additionalEMIPaidCount    Int      @default(0) // Count of additional EMI payments
+
+  // SIP & Investment Details
+  totalSIPInvested          Decimal  @default(0) @db.Decimal(12, 2) // Total SIP invested (planned amount)
+  sipExecutionsAmount       Decimal  @default(0) @db.Decimal(12, 2) // Actual SIP executions amount
+  sipExecutionsCount        Int      @default(0) // Count of successful SIP executions
+  oneTimeInvestments        Decimal  @default(0) @db.Decimal(12, 2) // One-time investment purchases
+  oneTimeInvestmentsCount   Int      @default(0) // Count of one-time purchases
+  additionalTransactions    Decimal  @default(0) @db.Decimal(12, 2) // One-time investments + additional EMI paid
+
+  // Investment Returns
+  monthOnMonthSIPProfit     Decimal  @default(0) @db.Decimal(12, 2) // Profit/loss for SIPs invested this month
+  monthOnMonthSIPProfitPct  Decimal  @default(0) @db.Decimal(5, 2) // Profit percentage for SIPs
+  currentMonthReturns       Decimal  @default(0) @db.Decimal(12, 2) // Returns on all current month investments
+  currentMonthReturnsPct    Decimal  @default(0) @db.Decimal(5, 2) // Returns percentage
+  overallPortfolioValue     Decimal  @default(0) @db.Decimal(12, 2) // Total portfolio value at month end
+  overallPortfolioPnL       Decimal  @default(0) @db.Decimal(12, 2) // Overall portfolio profit/loss
+  overallPortfolioPnLPct    Decimal  @default(0) @db.Decimal(5, 2) // Overall portfolio profit/loss percentage
+
+  // Budget Tracking
+  plannedExpenses           Decimal  @default(0) @db.Decimal(12, 2) // Budgeted expense amount
+  expectedBudget            Decimal  @default(0) @db.Decimal(12, 2) // Expected category budget
+  unexpectedBudget          Decimal  @default(0) @db.Decimal(12, 2) // Unexpected category budget
+  isUsingBudget             Boolean  @default(false) // Whether budget was configured
+
+  // Loan Lifecycle
+  loansAdded                Int      @default(0) // Count of new loans added this month
+  loansAddedData            Json?    // Details of new loans: [{ loanId, loanType, institution, principalAmount }]
+  loansClosed               Int      @default(0) // Count of loans closed this month
+  loansClosedData           Json?    // Details of closed loans: [{ loanId, loanType, institution, closedAt }]
 
   // Status
   isClosed          Boolean  @default(false) // Whether month is closed

@@ -348,6 +348,184 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
 
   const previousSurplus = previousSnapshot ? Number(previousSnapshot.surplusAmount) : 0
 
+  // ============ EMI DETAILS ============
+  // Get all paid EMIs in this month (by payment date)
+  const paidEMIs = await prisma.eMI.findMany({
+    where: {
+      loan: { userId },
+      isPaid: true,
+      paidDate: { gte: startDate, lt: endDate },
+    },
+  })
+
+  // Separate current month EMIs vs additional payments (old dues/advance)
+  const currentMonthEMIs = paidEMIs.filter(emi => {
+    const dueDate = new Date(emi.dueDate)
+    return dueDate >= startDate && dueDate < endDate
+  })
+
+  const additionalEMIs = paidEMIs.filter(emi => {
+    const dueDate = new Date(emi.dueDate)
+    return dueDate < startDate || dueDate >= endDate
+  })
+
+  const currentMonthEMIPaid = currentMonthEMIs.reduce((sum, emi) => sum + Number(emi.paidAmount || emi.emiAmount), 0)
+  const currentMonthEMIPaidCount = currentMonthEMIs.length
+  const additionalEMIPaid = additionalEMIs.reduce((sum, emi) => sum + Number(emi.paidAmount || emi.emiAmount), 0)
+  const additionalEMIPaidCount = additionalEMIs.length
+
+  // Get unpaid EMIs for current month (by due date)
+  const unpaidEMIs = await prisma.eMI.findMany({
+    where: {
+      loan: { userId },
+      isPaid: false,
+      dueDate: { gte: startDate, lt: endDate },
+    },
+  })
+
+  const currentMonthEMIUnpaid = unpaidEMIs.reduce((sum, emi) => sum + Number(emi.emiAmount), 0)
+  const currentMonthEMIUnpaidCount = unpaidEMIs.length
+
+  // ============ SIP & INVESTMENT DETAILS ============
+  // Get SIP executions for this month
+  const sipExecutions = await prisma.sIPExecution.findMany({
+    where: {
+      userId,
+      executionDate: { gte: startDate, lt: endDate },
+      status: "SUCCESS",
+    },
+  })
+
+  const sipExecutionsAmount = sipExecutions.reduce((sum, exec) => sum + Number(exec.amount), 0)
+  const sipExecutionsCount = sipExecutions.length
+
+  // Get one-time investment transactions for this month
+  const oneTimeTransactions = await prisma.transaction.findMany({
+    where: {
+      userId,
+      purchaseDate: { gte: startDate, lt: endDate },
+      transactionType: "ONE_TIME_PURCHASE",
+    },
+  })
+
+  const oneTimeInvestments = oneTimeTransactions.reduce((sum, txn) => {
+    // Use INR amount if available, otherwise use the transaction amount
+    return sum + Number(txn.amountInr || txn.amount)
+  }, 0)
+  const oneTimeInvestmentsCount = oneTimeTransactions.length
+
+  // Additional transactions (one-time + additional EMI paid)
+  const additionalTransactions = oneTimeInvestments + additionalEMIPaid
+
+  // ============ INVESTMENT RETURNS ============
+  // Get all transactions (SIP + one-time) made this month
+  const allMonthTransactions = await prisma.transaction.findMany({
+    where: {
+      userId,
+      purchaseDate: { gte: startDate, lt: endDate },
+      transactionType: { in: ["SIP_EXECUTION", "ONE_TIME_PURCHASE"] },
+    },
+    include: {
+      holding: true,
+    },
+  })
+
+  let totalInvestedThisMonth = 0
+  let totalCurrentValueThisMonth = 0
+
+  allMonthTransactions.forEach(txn => {
+    const qty = Number(txn.qty)
+    const buyPrice = Number(txn.price)
+    const currentPrice = txn.holding?.currentPrice ? Number(txn.holding.currentPrice) : buyPrice
+
+    totalInvestedThisMonth += qty * buyPrice
+    totalCurrentValueThisMonth += qty * currentPrice
+  })
+
+  const currentMonthReturns = totalCurrentValueThisMonth - totalInvestedThisMonth
+  const currentMonthReturnsPct = totalInvestedThisMonth > 0 ? (currentMonthReturns / totalInvestedThisMonth) * 100 : 0
+
+  // Calculate SIP-only returns
+  const sipOnlyTransactions = allMonthTransactions.filter(txn => txn.transactionType === "SIP_EXECUTION")
+  let sipInvestedThisMonth = 0
+  let sipCurrentValueThisMonth = 0
+
+  sipOnlyTransactions.forEach(txn => {
+    const qty = Number(txn.qty)
+    const buyPrice = Number(txn.price)
+    const currentPrice = txn.holding?.currentPrice ? Number(txn.holding.currentPrice) : buyPrice
+
+    sipInvestedThisMonth += qty * buyPrice
+    sipCurrentValueThisMonth += qty * currentPrice
+  })
+
+  const monthOnMonthSIPProfit = sipCurrentValueThisMonth - sipInvestedThisMonth
+  const monthOnMonthSIPProfitPct = sipInvestedThisMonth > 0 ? (monthOnMonthSIPProfit / sipInvestedThisMonth) * 100 : 0
+
+  // Overall portfolio value and P&L
+  const allHoldings = await prisma.holding.findMany({
+    where: { userId },
+  })
+
+  let overallPortfolioValue = 0
+  let overallPortfolioCost = 0
+
+  allHoldings.forEach(holding => {
+    const qty = Number(holding.qty)
+    const avgCost = Number(holding.avgCost)
+    const currentPrice = holding.currentPrice ? Number(holding.currentPrice) : avgCost
+
+    overallPortfolioCost += qty * avgCost
+    overallPortfolioValue += qty * currentPrice
+  })
+
+  const overallPortfolioPnL = overallPortfolioValue - overallPortfolioCost
+  const overallPortfolioPnLPct = overallPortfolioCost > 0 ? (overallPortfolioPnL / overallPortfolioCost) * 100 : 0
+
+  // ============ BUDGET TRACKING ============
+  const plannedExpenses = financialSummary.isUsingBudget
+    ? financialSummary.availableForExpenses
+    : 0
+  const expectedBudget = financialSummary.expectedBudget
+  const unexpectedBudget = financialSummary.unexpectedBudget
+  const isUsingBudget = financialSummary.isUsingBudget
+
+  // ============ LOAN LIFECYCLE ============
+  // Get loans added this month
+  const loansAdded = await prisma.loan.findMany({
+    where: {
+      userId,
+      createdAt: { gte: startDate, lt: endDate },
+    },
+  })
+
+  const loansAddedCount = loansAdded.length
+  const loansAddedData = loansAdded.map(loan => ({
+    loanId: loan.id,
+    loanType: loan.loanType,
+    institution: loan.institution,
+    principalAmount: Number(loan.principalAmount),
+    createdAt: loan.createdAt.toISOString(),
+  }))
+
+  // Get loans closed this month
+  const loansClosed = await prisma.loan.findMany({
+    where: {
+      userId,
+      isClosed: true,
+      closedAt: { gte: startDate, lt: endDate },
+    },
+  })
+
+  const loansClosedCount = loansClosed.length
+  const loansClosedData = loansClosed.map(loan => ({
+    loanId: loan.id,
+    loanType: loan.loanType,
+    institution: loan.institution,
+    closedAt: loan.closedAt?.toISOString() || null,
+  }))
+
+  // ============ SURPLUS CALCULATIONS ============
   // One-time purchases are now tracked through holdings, not separately
   const investmentsMade = 0
 
@@ -355,6 +533,23 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
   const availableAmount = financialSummary.availableSurplus
   const spentAmount = totalExpenses + investmentsMade
   const surplusAmount = availableAmount - spentAmount
+
+  // Planned surplus (after scheduled EMI, planned SIPs, and expenses)
+  const plannedSurplus = financialSummary.plannedSurplus
+
+  // Cash remaining (after all actual transactions)
+  // Start with income, deduct tax
+  const afterActualTax = salary - taxAmount
+
+  // Use actual paid EMIs instead of scheduled
+  const afterActualEMIs = afterActualTax - currentMonthEMIPaid
+
+  // For SIPs, use successful executions if available, otherwise use planned
+  const actualSIPAmount = sipExecutionsAmount > 0 ? sipExecutionsAmount : totalSIPs
+  const afterActualSIPs = afterActualEMIs - actualSIPAmount
+
+  // Deduct actual expenses and one-time investments
+  const cashRemaining = afterActualSIPs - totalExpenses - oneTimeInvestments
 
   return {
     salary,
@@ -370,8 +565,47 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
     availableAmount,
     spentAmount,
     surplusAmount,
+    plannedSurplus,
+    cashRemaining,
     previousSurplus,
     investmentsMade,
     loansData,
+
+    // EMI Details
+    currentMonthEMIPaid,
+    currentMonthEMIUnpaid,
+    currentMonthEMIPaidCount,
+    currentMonthEMIUnpaidCount,
+    additionalEMIPaid,
+    additionalEMIPaidCount,
+
+    // SIP & Investment Details
+    totalSIPInvested: totalSIPs,
+    sipExecutionsAmount,
+    sipExecutionsCount,
+    oneTimeInvestments,
+    oneTimeInvestmentsCount,
+    additionalTransactions,
+
+    // Investment Returns
+    monthOnMonthSIPProfit,
+    monthOnMonthSIPProfitPct,
+    currentMonthReturns,
+    currentMonthReturnsPct,
+    overallPortfolioValue,
+    overallPortfolioPnL,
+    overallPortfolioPnLPct,
+
+    // Budget Tracking
+    plannedExpenses,
+    expectedBudget,
+    unexpectedBudget,
+    isUsingBudget,
+
+    // Loan Lifecycle
+    loansAdded: loansAddedCount,
+    loansAddedData,
+    loansClosed: loansClosedCount,
+    loansClosedData,
   }
 }
