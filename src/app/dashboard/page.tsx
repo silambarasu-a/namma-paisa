@@ -3,13 +3,14 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { requireCustomerAccess } from "@/lib/authz"
 import { prisma } from "@/lib/prisma"
-import { IndianRupee, Receipt, Wallet, Repeat, TrendingUp } from "lucide-react"
+import { IndianRupee, Receipt, Wallet, Repeat, TrendingUp, ShoppingCart, CheckCircle, Banknote } from "lucide-react"
 import { DashboardFilter } from "@/components/dashboard/dashboard-filter"
 import { cn } from "@/lib/utils"
 import { calculateFinancialSummary } from "@/lib/budget-utils"
 import { SalaryFlowPipeline } from "@/components/dashboard/salary-flow-pipeline"
 import { RecentExpenses } from "@/components/dashboard/recent-expenses"
 import { UpcomingEMI } from "@/components/dashboard/upcoming-emi"
+import { InvestmentTracking } from "@/components/dashboard/investment-tracking"
 import { getAmountForMonth } from "@/lib/frequency-utils"
 
 export const metadata: Metadata = {
@@ -268,6 +269,169 @@ async function getRecentExpenses(userId: string, month: number, year: number) {
   return { expenses: serializedExpenses, totalExpenses }
 }
 
+async function getOneTimeTransactions(userId: string, month: number, year: number) {
+  const startDate = new Date(year, month - 1, 1)
+  const endDate = new Date(year, month, 0, 23, 59, 59, 999)
+
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      userId,
+      transactionType: "ONE_TIME_PURCHASE",
+      purchaseDate: {
+        gte: startDate,
+        lte: endDate,
+      },
+    },
+  })
+
+  const totalAmount = transactions.reduce((sum, txn) => sum + Number(txn.amount), 0)
+
+  return { count: transactions.length, totalAmount }
+}
+
+async function getSIPExecutions(userId: string, month: number, year: number) {
+  const startDate = new Date(year, month - 1, 1)
+  const endDate = new Date(year, month, 0, 23, 59, 59, 999)
+
+  const executions = await prisma.sIPExecution.findMany({
+    where: {
+      userId,
+      executionDate: {
+        gte: startDate,
+        lte: endDate,
+      },
+      status: "SUCCESS",
+    },
+  })
+
+  const totalExecuted = executions.reduce((sum, exec) => sum + Number(exec.amount), 0)
+
+  return { count: executions.length, totalAmount: totalExecuted }
+}
+
+async function getHoldingsValue(userId: string) {
+  const holdings = await prisma.holding.findMany({
+    where: { userId },
+  })
+
+  let totalCurrentValue = 0
+  let totalInvestment = 0
+
+  holdings.forEach(holding => {
+    const qty = Number(holding.qty)
+    const avgCost = Number(holding.avgCost)
+    const currentPrice = holding.currentPrice ? Number(holding.currentPrice) : avgCost
+
+    totalInvestment += qty * avgCost
+    totalCurrentValue += qty * currentPrice
+  })
+
+  const totalPL = totalCurrentValue - totalInvestment
+
+  return {
+    count: holdings.length,
+    totalInvestment,
+    totalCurrentValue,
+    totalPL,
+  }
+}
+
+async function getCurrentMonthReturns(userId: string, month: number, year: number) {
+  const startDate = new Date(year, month - 1, 1)
+  const endDate = new Date(year, month, 0, 23, 59, 59, 999)
+
+  // Get all transactions made in current month (SIPs + One-time)
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      userId,
+      purchaseDate: {
+        gte: startDate,
+        lte: endDate,
+      },
+    },
+    include: {
+      holding: true,
+    },
+  })
+
+  let totalInvested = 0
+  let totalCurrentValue = 0
+
+  transactions.forEach(txn => {
+    const qty = Number(txn.qty)
+    const buyPrice = Number(txn.price)
+    const currentPrice = txn.holding?.currentPrice ? Number(txn.holding.currentPrice) : buyPrice
+
+    totalInvested += qty * buyPrice
+    totalCurrentValue += qty * currentPrice
+  })
+
+  const monthReturns = totalCurrentValue - totalInvested
+  const monthReturnPercentage = totalInvested > 0 ? (monthReturns / totalInvested) * 100 : 0
+
+  return {
+    invested: totalInvested,
+    currentValue: totalCurrentValue,
+    returns: monthReturns,
+    returnPercentage: monthReturnPercentage,
+    transactionCount: transactions.length,
+  }
+}
+
+async function getPaidEMIs(userId: string, month: number, year: number) {
+  const startDate = new Date(year, month - 1, 1)
+  const endDate = new Date(year, month, 0, 23, 59, 59, 999)
+
+  // Get EMIs paid in this month
+  const paidEMIs = await prisma.eMI.findMany({
+    where: {
+      loan: {
+        userId,
+      },
+      isPaid: true,
+      paidDate: {
+        gte: startDate,
+        lte: endDate,
+      },
+    },
+  })
+
+  // Calculate total paid
+  const totalPaid = paidEMIs.reduce((sum, emi) => {
+    return sum + (emi.paidAmount ? Number(emi.paidAmount) : Number(emi.emiAmount))
+  }, 0)
+
+  // Separate current month EMIs vs additional payments
+  // Current month EMIs are those with dueDate in current month
+  const currentMonthEMIs = paidEMIs.filter(emi => {
+    const dueDate = new Date(emi.dueDate)
+    return dueDate >= startDate && dueDate <= endDate
+  })
+
+  const additionalEMIs = paidEMIs.filter(emi => {
+    const dueDate = new Date(emi.dueDate)
+    return dueDate < startDate || dueDate > endDate
+  })
+
+  // Calculate amounts
+  const currentMonthPaid = currentMonthEMIs.reduce((sum, emi) => {
+    return sum + (emi.paidAmount ? Number(emi.paidAmount) : Number(emi.emiAmount))
+  }, 0)
+
+  const additionalPaid = additionalEMIs.reduce((sum, emi) => {
+    return sum + (emi.paidAmount ? Number(emi.paidAmount) : Number(emi.emiAmount))
+  }, 0)
+
+  return {
+    count: paidEMIs.length,
+    totalPaid,
+    currentMonthPaid,
+    additionalPaid,
+    currentMonthCount: currentMonthEMIs.length,
+    additionalCount: additionalEMIs.length,
+  }
+}
+
 export default async function Dashboard({
   searchParams,
 }: {
@@ -282,7 +446,20 @@ export default async function Dashboard({
   const selectedYear = params.year ? parseInt(params.year) : new Date().getFullYear()
 
   // Fetch all data in parallel
-  const [salary, additionalIncome, sipsData, loansData, expensesData, allocations, budget] = await Promise.all([
+  const [
+    salary,
+    additionalIncome,
+    sipsData,
+    loansData,
+    expensesData,
+    allocations,
+    budget,
+    oneTimeTransactions,
+    sipExecutions,
+    holdingsData,
+    paidEMIs,
+    currentMonthReturns,
+  ] = await Promise.all([
     getSalary(userId, selectedMonth, selectedYear),
     getAdditionalIncome(userId, selectedMonth, selectedYear),
     getActiveSIPs(userId, selectedMonth, selectedYear),
@@ -290,6 +467,11 @@ export default async function Dashboard({
     getRecentExpenses(userId, selectedMonth, selectedYear),
     getInvestmentAllocations(userId),
     getExpenseBudget(userId),
+    getOneTimeTransactions(userId, selectedMonth, selectedYear),
+    getSIPExecutions(userId, selectedMonth, selectedYear),
+    getHoldingsValue(userId),
+    getPaidEMIs(userId, selectedMonth, selectedYear),
+    getCurrentMonthReturns(userId, selectedMonth, selectedYear),
   ])
 
   const totalIncome = salary + additionalIncome.totalIncome
@@ -303,7 +485,11 @@ export default async function Dashboard({
     sipsData.totalAmount,
     expensesData.totalExpenses,
     budget,
-    allocations
+    allocations,
+    oneTimeTransactions.totalAmount,
+    sipExecutions.totalAmount,
+    paidEMIs.totalPaid,
+    paidEMIs.additionalPaid
   )
 
   // Keep old variables for backwards compatibility
@@ -338,7 +524,7 @@ export default async function Dashboard({
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 -mt-12">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 -mt-12">
         <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
           <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5 pointer-events-none"></div>
           <div className="relative p-3 sm:p-4">
@@ -413,31 +599,120 @@ export default async function Dashboard({
           <div className={cn(
             "absolute inset-0 pointer-events-none",
             surplus >= 0
-              ? "bg-gradient-to-br from-emerald-500/5 via-transparent to-green-500/5"
+              ? "bg-gradient-to-br from-blue-500/5 via-transparent to-indigo-500/5"
               : "bg-gradient-to-br from-red-500/5 via-transparent to-rose-500/5"
           )}></div>
           <div className="relative p-3 sm:p-4">
             <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Surplus</div>
+              <div className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Planned Surplus</div>
               <div className={cn(
                 "h-8 w-8 sm:h-10 sm:w-10 rounded-full backdrop-blur-sm border flex items-center justify-center shrink-0",
                 surplus >= 0
-                  ? "bg-emerald-100/80 dark:bg-emerald-900/40 border-emerald-200/50 dark:border-emerald-700/50"
+                  ? "bg-blue-100/80 dark:bg-blue-900/40 border-blue-200/50 dark:border-blue-700/50"
                   : "bg-red-100/80 dark:bg-red-900/40 border-red-200/50 dark:border-red-700/50"
               )}>
                 <TrendingUp className={cn(
                   "h-4 w-4 sm:h-5 sm:w-5",
-                  surplus >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                  surplus >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"
                 )} />
               </div>
             </div>
             <div className={cn(
               "text-xl sm:text-2xl font-bold break-words",
-              surplus >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+              surplus >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"
             )}>
               {surplus >= 0 ? '+' : ''}₹{surplus.toLocaleString('en-IN')}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">After expenses</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              After EMI, SIPs & expenses
+            </p>
+          </div>
+        </div>
+
+        {/* One-Time Investments Card */}
+        {oneTimeTransactions.count > 0 && (
+          <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-violet-500/5 pointer-events-none"></div>
+            <div className="relative p-3 sm:p-4">
+              <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">One-Time Investments</div>
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-indigo-100/80 dark:bg-indigo-900/40 backdrop-blur-sm border border-indigo-200/50 dark:border-indigo-700/50 flex items-center justify-center shrink-0">
+                  <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600 dark:text-indigo-400" />
+                </div>
+              </div>
+              <div className="text-xl sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400 break-words">
+                ₹{oneTimeTransactions.totalAmount.toLocaleString('en-IN')}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {oneTimeTransactions.count} transaction{oneTimeTransactions.count !== 1 ? 's' : ''} this month
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Paid EMIs Card */}
+        {paidEMIs.count > 0 && (
+          <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+            <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 via-transparent to-green-500/5 pointer-events-none"></div>
+            <div className="relative p-3 sm:p-4">
+              <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">EMIs Paid</div>
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-teal-100/80 dark:bg-teal-900/40 backdrop-blur-sm border border-teal-200/50 dark:border-teal-700/50 flex items-center justify-center shrink-0">
+                  <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-teal-600 dark:text-teal-400" />
+                </div>
+              </div>
+              <div className="text-xl sm:text-2xl font-bold text-teal-600 dark:text-teal-400 break-words">
+                ₹{paidEMIs.totalPaid.toLocaleString('en-IN')}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {paidEMIs.currentMonthCount} current + {paidEMIs.additionalCount} extra
+              </p>
+              {paidEMIs.additionalPaid > 0 && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                  ₹{paidEMIs.additionalPaid.toLocaleString('en-IN')} old/advance
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Cash Remaining Card - Shows actual cash after ALL transactions */}
+        <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border-2 border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+          <div className={cn(
+            "absolute inset-0 pointer-events-none",
+            financialSummary.cashRemaining >= 0
+              ? "bg-gradient-to-br from-emerald-500/10 via-transparent to-green-500/10"
+              : "bg-gradient-to-br from-red-500/10 via-transparent to-rose-500/10"
+          )}></div>
+          <div className="relative p-3 sm:p-4">
+            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-200">Cash Remaining</div>
+              <div className={cn(
+                "h-8 w-8 sm:h-10 sm:w-10 rounded-full backdrop-blur-sm border-2 flex items-center justify-center shrink-0",
+                financialSummary.cashRemaining >= 0
+                  ? "bg-emerald-100/80 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-600"
+                  : "bg-red-100/80 dark:bg-red-900/40 border-red-300 dark:border-red-600"
+              )}>
+                <Banknote className={cn(
+                  "h-4 w-4 sm:h-5 sm:w-5",
+                  financialSummary.cashRemaining >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                )} />
+              </div>
+            </div>
+            <div className={cn(
+              "text-2xl sm:text-3xl font-bold break-words",
+              financialSummary.cashRemaining >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+            )}>
+              {financialSummary.cashRemaining >= 0 ? '+' : ''}₹{financialSummary.cashRemaining.toLocaleString('en-IN')}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Actual cash after all transactions
+            </p>
+            {financialSummary.additionalTransactions > 0 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                ⚡ ₹{financialSummary.additionalTransactions.toLocaleString('en-IN')} extra spent
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -475,9 +750,29 @@ export default async function Dashboard({
         allocations={allocations}
         hasAllocations={hasAllocations}
         expensesData={expensesData}
-        surplus={surplus}
         selectedMonth={selectedMonth}
         selectedYear={selectedYear}
+        oneTimeTransactions={oneTimeTransactions}
+        sipExecutions={sipExecutions}
+        paidEMIs={paidEMIs}
+      />
+
+      {/* Investment Tracking Section */}
+      <InvestmentTracking
+        holdingsData={holdingsData}
+        plannedInvestments={{
+          sips: sipsData.totalAmount,
+          sipCount: sipsData.count,
+        }}
+        actualInvestments={{
+          oneTime: oneTimeTransactions.totalAmount,
+          oneTimeCount: oneTimeTransactions.count,
+          sipExecutions: sipExecutions.totalAmount,
+          sipExecutionCount: sipExecutions.count,
+        }}
+        currentMonthReturns={currentMonthReturns}
+        monthName={monthName}
+        year={selectedYear}
       />
     </div>
   )

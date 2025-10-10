@@ -120,7 +120,11 @@ export function calculateFinancialSummary(
   sips: number,
   expenses: number,
   budget: ExpenseBudget | null,
-  allocations: InvestmentAllocation[] | null
+  allocations: InvestmentAllocation[] | null,
+  oneTimeInvestments: number = 0,
+  sipExecutions: number = 0,
+  paidEMIs: number = 0,
+  additionalEMIPaid: number = 0
 ) {
   const afterTax = income - tax
   const afterLoans = afterTax - loans
@@ -139,8 +143,33 @@ export function calculateFinancialSummary(
     expenses
   )
 
-  // Calculate remaining after actual expenses
-  const remainingAfterExpenses = availableSurplus - expenses
+  // Calculate total investments made (SIPs + one-time purchases + executed SIPs)
+  const totalInvestmentsMade = sips + oneTimeInvestments + sipExecutions
+
+  // PLANNED SURPLUS (after scheduled/planned deductions)
+  // This shows what's left after: Tax, Scheduled EMIs, Planned SIPs, and Expenses
+  const plannedSurplus = availableSurplus - expenses
+
+  // ACTUAL CASH REMAINING (after all actual transactions)
+  // This accounts for what actually happened vs what was planned
+  // Start with income and deduct ALL actual outflows:
+  const afterActualTax = income - tax
+
+  // Use actual paid EMIs instead of scheduled
+  const afterActualEMIs = afterActualTax - paidEMIs
+
+  // For SIPs, use successful executions if available, otherwise use planned
+  const actualSIPAmount = sipExecutions > 0 ? sipExecutions : sips
+  const afterActualSIPs = afterActualEMIs - actualSIPAmount
+
+  // Deduct actual expenses and one-time investments
+  const cashRemaining = afterActualSIPs - expenses - oneTimeInvestments
+
+  // Calculate what additional transactions were made beyond planned
+  // This includes:
+  // 1. One-time investments (always additional)
+  // 2. EMI payments for months OTHER than current month (old dues, advance payments)
+  const additionalTransactions = oneTimeInvestments + additionalEMIPaid
 
   return {
     income,
@@ -163,9 +192,18 @@ export function calculateFinancialSummary(
     availableForInvestment: investmentCalc.availableForInvestment,
     investmentAllocationBreakdown: investmentCalc.allocationBreakdown,
     isUsingAllocation: investmentCalc.isUsingAllocation,
+    totalInvestmentsMade,
+    oneTimeInvestments,
+    sipExecutions,
 
-    // Final surplus
-    remainingAfterExpenses,
-    surplus: remainingAfterExpenses,
+    // Loan payments
+    paidEMIs,
+    scheduledEMIs: loans,
+
+    // Two types of surplus
+    plannedSurplus,        // After scheduled EMI, planned SIPs, and expenses
+    cashRemaining,         // After all actual transactions (paid EMIs, executed SIPs, investments, etc.)
+    surplus: plannedSurplus,  // Keep this for backward compatibility
+    additionalTransactions,
   }
 }

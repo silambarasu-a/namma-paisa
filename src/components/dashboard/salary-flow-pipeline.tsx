@@ -18,6 +18,9 @@ interface FinancialSummary {
   availableForExpenses: number
   availableSurplus: number
   surplus: number
+  plannedSurplus: number
+  cashRemaining: number
+  additionalTransactions: number
   investmentAllocationBreakdown: InvestmentAllocation[]
   isUsingBudget: boolean
   expectedBudget?: number
@@ -50,9 +53,18 @@ interface SalaryFlowPipelineProps {
   allocations: Allocation[]
   hasAllocations: boolean
   expensesData: { totalExpenses: number }
-  surplus: number
   selectedMonth: number
   selectedYear: number
+  oneTimeTransactions: { count: number; totalAmount: number }
+  sipExecutions?: { count: number; totalAmount: number }
+  paidEMIs: {
+    count: number
+    totalPaid: number
+    currentMonthPaid: number
+    additionalPaid: number
+    currentMonthCount: number
+    additionalCount: number
+  }
 }
 
 export function SalaryFlowPipeline({
@@ -67,9 +79,10 @@ export function SalaryFlowPipeline({
   allocations,
   hasAllocations,
   expensesData,
-  surplus,
   selectedMonth,
   selectedYear,
+  oneTimeTransactions,
+  paidEMIs,
 }: SalaryFlowPipelineProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -105,15 +118,15 @@ export function SalaryFlowPipeline({
           </div>
           <div className={cn(
             "px-3 py-1.5 rounded-full border",
-            surplus >= 0
+            financialSummary.cashRemaining >= 0
               ? "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-700"
               : "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700"
           )}>
             <p className={cn(
               "text-xs font-semibold",
-              surplus >= 0 ? "text-emerald-700 dark:text-emerald-300" : "text-red-700 dark:text-red-300"
+              financialSummary.cashRemaining >= 0 ? "text-emerald-700 dark:text-emerald-300" : "text-red-700 dark:text-red-300"
             )}>
-              Surplus: {surplus >= 0 ? '+' : ''}₹{surplus.toLocaleString()}
+              Cash Left: {financialSummary.cashRemaining >= 0 ? '+' : ''}₹{financialSummary.cashRemaining.toLocaleString()}
             </p>
           </div>
         </div>
@@ -293,40 +306,128 @@ export function SalaryFlowPipeline({
               </div>
             </div>
 
-            {/* Final Surplus Card */}
+            {/* One-Time Investments Card */}
+            {oneTimeTransactions.count > 0 && (
+              <div className="flex flex-col p-3 sm:p-4 bg-gradient-to-br from-violet-50/90 to-violet-100/70 dark:from-violet-900/30 dark:to-violet-800/20 backdrop-blur-sm rounded-xl border-2 border-violet-200 dark:border-violet-700 hover:shadow-lg transition-all">
+                <div className="flex items-center justify-between mb-2">
+                  <Repeat className="h-5 w-5 sm:h-6 sm:w-6 text-violet-600 dark:text-violet-400" />
+                  <Badge variant="secondary" className="text-xs">{oneTimeTransactions.count} txn{oneTimeTransactions.count !== 1 ? 's' : ''}</Badge>
+                </div>
+                <h4 className="text-xs font-medium text-violet-700 dark:text-violet-300 mb-1">One-Time Investments</h4>
+                <p className="text-xl sm:text-2xl font-bold text-violet-600 dark:text-violet-400 mb-1">
+                  -₹{oneTimeTransactions.totalAmount.toLocaleString('en-IN')}
+                </p>
+                <div className="text-xs text-violet-600/80 dark:text-violet-400/80 mt-auto">
+                  <p>This month&apos;s purchases</p>
+                </div>
+              </div>
+            )}
+
+            {/* Paid EMIs Card */}
+            {paidEMIs.count > 0 && (
+              <div className="flex flex-col p-3 sm:p-4 bg-gradient-to-br from-teal-50/90 to-teal-100/70 dark:from-teal-900/30 dark:to-teal-800/20 backdrop-blur-sm rounded-xl border-2 border-teal-200 dark:border-teal-700 hover:shadow-lg transition-all">
+                <div className="flex items-center justify-between mb-2">
+                  <Wallet className="h-5 w-5 sm:h-6 sm:w-6 text-teal-600 dark:text-teal-400" />
+                  <Badge variant="secondary" className="text-xs bg-teal-100 dark:bg-teal-800">{paidEMIs.count} paid</Badge>
+                </div>
+                <h4 className="text-xs font-medium text-teal-700 dark:text-teal-300 mb-1">EMIs Paid</h4>
+                <p className="text-xl sm:text-2xl font-bold text-teal-600 dark:text-teal-400 mb-1">
+                  -₹{paidEMIs.totalPaid.toLocaleString('en-IN')}
+                </p>
+                <div className="text-xs text-teal-600/80 dark:text-teal-400/80 mt-auto">
+                  <div className="flex justify-between">
+                    <span>Current:</span>
+                    <span className="font-semibold">₹{paidEMIs.currentMonthPaid.toLocaleString('en-IN')}</span>
+                  </div>
+                  {paidEMIs.additionalPaid > 0 && (
+                    <div className="flex justify-between text-amber-600 dark:text-amber-400">
+                      <span>Extra:</span>
+                      <span className="font-semibold">₹{paidEMIs.additionalPaid.toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Planned Surplus Card */}
             <div className={cn(
               "flex flex-col p-3 sm:p-4 backdrop-blur-sm rounded-xl border-2 hover:shadow-lg transition-all",
-              surplus >= 0
-                ? "bg-gradient-to-br from-emerald-50/90 to-emerald-100/70 dark:from-emerald-900/30 dark:to-emerald-800/20 border-emerald-200 dark:border-emerald-700"
+              financialSummary.plannedSurplus >= 0
+                ? "bg-gradient-to-br from-blue-50/90 to-blue-100/70 dark:from-blue-900/30 dark:to-blue-800/20 border-blue-200 dark:border-blue-700"
                 : "bg-gradient-to-br from-red-50/90 to-red-100/70 dark:from-red-900/30 dark:to-red-800/20 border-red-200 dark:border-red-700"
             )}>
               <div className="flex items-center justify-between mb-2">
                 <TrendingUp className={cn(
                   "h-5 w-5 sm:h-6 sm:w-6",
-                  surplus >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                  financialSummary.plannedSurplus >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"
                 )} />
                 <Badge className={cn(
                   "text-xs",
-                  surplus >= 0 ? "bg-emerald-200 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-200" : "bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200"
+                  financialSummary.plannedSurplus >= 0 ? "bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200" : "bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200"
                 )}>
-                  {surplus >= 0 ? 'Positive' : 'Deficit'}
+                  Planned
                 </Badge>
               </div>
               <h4 className={cn(
                 "text-xs font-medium mb-1",
-                surplus >= 0 ? "text-emerald-700 dark:text-emerald-300" : "text-red-700 dark:text-red-300"
-              )}>Final Surplus</h4>
+                financialSummary.plannedSurplus >= 0 ? "text-blue-700 dark:text-blue-300" : "text-red-700 dark:text-red-300"
+              )}>Planned Surplus</h4>
               <p className={cn(
-                "text-xl sm:text-2xl font-bold mb-2",
-                surplus >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                "text-xl sm:text-2xl font-bold mb-1",
+                financialSummary.plannedSurplus >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"
               )}>
-                {surplus >= 0 ? '+' : ''}₹{surplus.toLocaleString('en-IN')}
+                {financialSummary.plannedSurplus >= 0 ? '+' : ''}₹{financialSummary.plannedSurplus.toLocaleString('en-IN')}
               </p>
               <div className={cn(
-                "text-xs",
-                surplus >= 0 ? "text-emerald-600/80 dark:text-emerald-400/80" : "text-red-600/80 dark:text-red-400/80"
+                "text-xs mt-auto",
+                financialSummary.plannedSurplus >= 0 ? "text-blue-600/80 dark:text-blue-400/80" : "text-red-600/80 dark:text-red-400/80"
               )}>
-                <p>After all deductions & expenses</p>
+                <p>After EMI, SIPs & expenses</p>
+              </div>
+            </div>
+
+            {/* Cash Remaining Card */}
+            <div className={cn(
+              "flex flex-col p-3 sm:p-4 backdrop-blur-sm rounded-xl border-2 hover:shadow-lg transition-all",
+              financialSummary.cashRemaining >= 0
+                ? "bg-gradient-to-br from-emerald-50/90 to-emerald-100/70 dark:from-emerald-900/30 dark:to-emerald-800/20 border-emerald-200 dark:border-emerald-700"
+                : "bg-gradient-to-br from-red-50/90 to-red-100/70 dark:from-red-900/30 dark:to-red-800/20 border-red-200 dark:border-red-700"
+            )}>
+              <div className="flex items-center justify-between mb-2">
+                <Wallet className={cn(
+                  "h-5 w-5 sm:h-6 sm:w-6",
+                  financialSummary.cashRemaining >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                )} />
+                <Badge className={cn(
+                  "text-xs",
+                  financialSummary.cashRemaining >= 0 ? "bg-emerald-200 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-200" : "bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200"
+                )}>
+                  Actual
+                </Badge>
+              </div>
+              <h4 className={cn(
+                "text-xs font-medium mb-1",
+                financialSummary.cashRemaining >= 0 ? "text-emerald-700 dark:text-emerald-300" : "text-red-700 dark:text-red-300"
+              )}>Cash Remaining</h4>
+              <p className={cn(
+                "text-xl sm:text-2xl font-bold mb-1",
+                financialSummary.cashRemaining >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+              )}>
+                {financialSummary.cashRemaining >= 0 ? '+' : ''}₹{financialSummary.cashRemaining.toLocaleString('en-IN')}
+              </p>
+              <div className={cn(
+                "text-xs mt-auto",
+                financialSummary.cashRemaining >= 0 ? "text-emerald-600/80 dark:text-emerald-400/80" : "text-red-600/80 dark:text-red-400/80"
+              )}>
+                <p className="mb-1">After ALL transactions</p>
+                {(oneTimeTransactions.count > 0 || paidEMIs.count > 0) && (
+                  <div className={cn(
+                    "text-[10px] pt-1 mt-1 border-t",
+                    financialSummary.cashRemaining >= 0 ? "border-emerald-200 dark:border-emerald-700" : "border-red-200 dark:border-red-700"
+                  )}>
+                    Includes{oneTimeTransactions.count > 0 && ' investments'}{oneTimeTransactions.count > 0 && paidEMIs.count > 0 && ' &'}{paidEMIs.count > 0 && ' paid EMIs'}
+                  </div>
+                )}
               </div>
             </div>
           </div>
