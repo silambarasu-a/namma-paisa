@@ -138,7 +138,9 @@ export default function TransactionsPage() {
   const handleAmountChange = (value: number) => {
     setEditAmount(value)
     if (editPrice > 0) {
-      setEditQty(parseFloat((value / editPrice).toFixed(6)))
+      // Use higher precision for US stocks
+      const precision = editingTransaction?.currency === "USD" ? 10 : 6
+      setEditQty(parseFloat((value / editPrice).toFixed(precision)))
     }
     if (editingTransaction?.currency === "USD" && editUsdInrRate) {
       setEditAmountInr(parseFloat((value * editUsdInrRate).toFixed(2)))
@@ -151,7 +153,9 @@ export default function TransactionsPage() {
       const newAmount = parseFloat((value / editUsdInrRate).toFixed(2))
       setEditAmount(newAmount)
       if (editPrice > 0) {
-        setEditQty(parseFloat((newAmount / editPrice).toFixed(6)))
+        // Use higher precision for US stocks
+        const precision = editingTransaction?.currency === "USD" ? 10 : 6
+        setEditQty(parseFloat((newAmount / editPrice).toFixed(precision)))
       }
     }
   }

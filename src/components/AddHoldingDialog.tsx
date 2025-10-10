@@ -43,6 +43,9 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
   const initialCurrencySet = useRef(false)
   const qtyInputRef = useRef<HTMLInputElement>(null)
 
+  // Track which field was last edited to determine calculation direction
+  const [lastEditedField, setLastEditedField] = useState<'qty' | 'buyPrice' | 'avgCost' | null>(null)
+
   // Reset form when dialog opens/closes
   useEffect(() => {
     if (!open) {
@@ -62,22 +65,34 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
       setIsManual(false)
       setPurchaseDate(new Date().toISOString().split('T')[0])
       initialCurrencySet.current = false
+      setLastEditedField(null)
     }
   }, [open])
 
-  // Auto-calculate avgCost from buyPrice and qty for fractional purchases
+  // Auto-calculate missing field from the other two for fractional purchases
   useEffect(() => {
-    if ((bucket === "CRYPTO" || bucket === "US_STOCK") && buyPrice && qty) {
-      const totalPrice = parseFloat(buyPrice)
-      const quantity = parseFloat(qty)
-      if (!isNaN(totalPrice) && !isNaN(quantity) && quantity > 0) {
-        const avgPrice = totalPrice / quantity
-        setAvgCost(avgPrice.toFixed(8)) // Use 8 decimals for precision
-      }
-    } else if ((bucket === "CRYPTO" || bucket === "US_STOCK") && !buyPrice) {
-      setAvgCost("")
+    if (bucket !== "CRYPTO" && bucket !== "US_STOCK") return
+
+    const qtyNum = parseFloat(qty)
+    const buyPriceNum = parseFloat(buyPrice)
+    const avgCostNum = parseFloat(avgCost)
+
+    // Scenario 1: Calculate Quantity from Buy Price and Avg Cost
+    if (lastEditedField !== 'qty' && buyPrice && avgCost && !isNaN(buyPriceNum) && !isNaN(avgCostNum) && avgCostNum > 0) {
+      const calculatedQty = buyPriceNum / avgCostNum
+      setQty(calculatedQty.toFixed(10))
     }
-  }, [buyPrice, qty, bucket])
+    // Scenario 2: Calculate Avg Cost from Buy Price and Quantity
+    else if (lastEditedField !== 'avgCost' && buyPrice && qty && !isNaN(buyPriceNum) && !isNaN(qtyNum) && qtyNum > 0) {
+      const calculatedAvgCost = buyPriceNum / qtyNum
+      setAvgCost(calculatedAvgCost.toFixed(10))
+    }
+    // Scenario 3: Calculate Buy Price from Avg Cost and Quantity
+    else if (lastEditedField !== 'buyPrice' && avgCost && qty && !isNaN(avgCostNum) && !isNaN(qtyNum)) {
+      const calculatedBuyPrice = avgCostNum * qtyNum
+      setBuyPrice(calculatedBuyPrice.toFixed(2))
+    }
+  }, [qty, buyPrice, avgCost, bucket, lastEditedField])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -249,13 +264,33 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
     setIsLoading(true)
 
     try {
-      // For CRYPTO and US_STOCK, validate buyPrice; for others, validate avgCost
-      const priceToValidate = avgCost
-
-      if (!bucket || !symbol || !name || !qty || !priceToValidate) {
+      // Basic validation
+      if (!bucket || !symbol || !name) {
         toast.error("Please fill in all required fields")
         setIsLoading(false)
         return
+      }
+
+      // For CRYPTO and US_STOCK, validate that at least 2 of 3 fields are filled
+      if (bucket === "CRYPTO" || bucket === "US_STOCK") {
+        const filledFields = [qty, buyPrice, avgCost].filter(f => f && parseFloat(f) > 0).length
+        if (filledFields < 2) {
+          toast.error("Please fill in at least 2 of the 3 fields (Buy Price, Avg Cost, Quantity)")
+          setIsLoading(false)
+          return
+        }
+        if (!qty || !avgCost) {
+          toast.error("Quantity and Average Cost are required")
+          setIsLoading(false)
+          return
+        }
+      } else {
+        // For other buckets, validate qty and avgCost
+        if (!qty || !avgCost) {
+          toast.error("Please fill in all required fields")
+          setIsLoading(false)
+          return
+        }
       }
 
       const body = {
@@ -340,6 +375,8 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
                 setSearchResults([])
                 setBuyPrice("")
                 setAvgCost("")
+                setQty("")
+                setLastEditedField(null)
               }}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select bucket" />
@@ -532,45 +569,103 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
             </>
           )}
 
-          {/* Quantity and Buy Price/Average Cost */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="qty">
-                {bucket === "EMERGENCY_FUND" ? "Amount" : "Quantity"} *
-              </Label>
-              <Input
-                id="qty"
-                type="number"
-                step={bucket === "CRYPTO" ? "0.00000001" : "0.000001"}
-                min="0"
-                value={qty}
-                onChange={(e) => setQty(e.target.value)}
-                placeholder="0.00"
-                required
-                ref={qtyInputRef}
-              />
-            </div>
-
-            {(bucket === "CRYPTO" || bucket === "US_STOCK") ? (
-              <div className="space-y-2">
-                <Label htmlFor="buyPrice">
-                  Buy Price ({currency === "USD" ? "$" : "₹"}) *
-                </Label>
-                <Input
-                  id="buyPrice"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={buyPrice}
-                  onChange={(e) => setBuyPrice(e.target.value)}
-                  placeholder="0.00"
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  Price paid for purchased units
+          {/* Buy Price and Average Cost / Quantity */}
+          {(bucket === "CRYPTO" || bucket === "US_STOCK") ? (
+            <div className="space-y-4">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-blue-900 dark:text-blue-100 font-medium mb-1">
+                  Smart Calculator
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  Enter any 2 values and the 3rd will be calculated automatically
                 </p>
               </div>
-            ) : (
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="buyPrice">
+                    Total Buy Price ({currency === "USD" ? "$" : "₹"})
+                  </Label>
+                  <Input
+                    id="buyPrice"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={buyPrice}
+                    onChange={(e) => {
+                      setBuyPrice(e.target.value)
+                      setLastEditedField('buyPrice')
+                    }}
+                    placeholder="0.00"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Total amount paid
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="avgCost">
+                    Avg Cost Per Unit ({currency === "USD" ? "$" : "₹"})
+                  </Label>
+                  <Input
+                    id="avgCost"
+                    type="number"
+                    step="0.00000001"
+                    min="0"
+                    value={avgCost}
+                    onChange={(e) => {
+                      setAvgCost(e.target.value)
+                      setLastEditedField('avgCost')
+                    }}
+                    placeholder="0.00"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Price per unit
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="qty">
+                    Quantity
+                  </Label>
+                  <Input
+                    id="qty"
+                    type="number"
+                    step="0.0000000001"
+                    min="0"
+                    value={qty}
+                    onChange={(e) => {
+                      setQty(e.target.value)
+                      setLastEditedField('qty')
+                    }}
+                    placeholder="0.00"
+                    ref={qtyInputRef}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Number of units
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="qty">
+                  {bucket === "EMERGENCY_FUND" ? "Amount" : "Quantity"} *
+                </Label>
+                <Input
+                  id="qty"
+                  type="number"
+                  step={bucket === "CRYPTO" ? "0.00000001" : "0.000001"}
+                  min="0"
+                  value={qty}
+                  onChange={(e) => setQty(e.target.value)}
+                  placeholder="0.00"
+                  required
+                  ref={qtyInputRef}
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="avgCost">
                   {bucket === "EMERGENCY_FUND" ? "Value" : "Average Cost"} ({currency === "USD" ? "$" : "₹"}) *
@@ -586,48 +681,27 @@ export function AddHoldingDialog({ open, onOpenChange, onSuccess }: AddHoldingDi
                   required
                 />
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Average Cost and Current Price for fractional purchases */}
+          {/* Current Price for all buckets */}
           {(bucket === "CRYPTO" || bucket === "US_STOCK") && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="avgCost">
-                  Average Cost ({currency === "USD" ? "$" : "₹"})
-                </Label>
-                <Input
-                  id="avgCost"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={avgCost}
-                  readOnly
-                  className="bg-gray-50 dark:bg-gray-900"
-                  placeholder="Auto-filled from buy price"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Auto-calculated from buy price
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="currentPrice">
-                  Current Price ({currency === "USD" ? "$" : "₹"}) (Optional)
-                </Label>
-                <Input
-                  id="currentPrice"
-                  type="number"
-                  step="any"
-                  min="0"
-                  value={currentPrice}
-                  onChange={(e) => setCurrentPrice(e.target.value)}
-                  placeholder="0.00"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Leave blank if unknown
-                </p>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="currentPrice">
+                Current Price ({currency === "USD" ? "$" : "₹"}) (Optional)
+              </Label>
+              <Input
+                id="currentPrice"
+                type="number"
+                step="any"
+                min="0"
+                value={currentPrice}
+                onChange={(e) => setCurrentPrice(e.target.value)}
+                placeholder="0.00"
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave blank if unknown - will be fetched automatically if available
+              </p>
             </div>
           )}
 
