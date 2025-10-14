@@ -273,6 +273,8 @@ model Loan {
   isActive            Boolean       @default(true)
   isClosed            Boolean       @default(false)
   closedAt            DateTime?
+  preclosureCharges   Decimal?      @db.Decimal(12, 2) // Charges for early closure
+  additionalInterest  Decimal?      @db.Decimal(12, 2) // Additional interest at preclosure
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 

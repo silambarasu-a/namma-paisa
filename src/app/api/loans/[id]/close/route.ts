@@ -11,6 +11,8 @@ const closeSchema = z.object({
   paidDate: z.string(),
   paymentMethod: z.enum(["CASH", "CARD", "UPI", "NET_BANKING", "OTHER"]),
   paymentNotes: z.string().optional(),
+  preclosureCharges: z.number().nonnegative().optional().default(0),
+  additionalInterest: z.number().nonnegative().optional().default(0),
 })
 
 export async function POST(
@@ -73,10 +75,13 @@ export async function POST(
       0
     )
 
+    // Calculate total amount including additional charges
+    const totalExpectedAmount = totalRemainingEMI + data.preclosureCharges + data.additionalInterest
+
     // Warn if paid amount doesn't match (allow it but log)
-    if (Math.abs(data.paidAmount - totalRemainingEMI) > 0.01) {
+    if (Math.abs(data.paidAmount - totalExpectedAmount) > 0.01) {
       console.warn(
-        `Loan closure amount mismatch: Paid ${data.paidAmount}, Expected ${totalRemainingEMI}`
+        `Loan closure amount mismatch: Paid ${data.paidAmount}, Expected ${totalExpectedAmount} (EMI: ${totalRemainingEMI} + Preclosure: ${data.preclosureCharges} + Interest: ${data.additionalInterest})`
       )
     }
 
@@ -114,11 +119,19 @@ export async function POST(
 
       // Update loan as closed
       const newTotalPaid = Number(loan.totalPaid) + data.paidAmount
+
+      // Update principal amount to reflect actual total loan cost
+      // Original principal + preclosure charges + additional interest
+      const newPrincipalAmount = Number(loan.principalAmount) + data.preclosureCharges + data.additionalInterest
+
       const updatedLoan = await tx.loan.update({
         where: { id: loanId },
         data: {
+          principalAmount: new Prisma.Decimal(newPrincipalAmount),
           currentOutstanding: new Prisma.Decimal(0),
           totalPaid: new Prisma.Decimal(newTotalPaid),
+          preclosureCharges: data.preclosureCharges > 0 ? new Prisma.Decimal(data.preclosureCharges) : null,
+          additionalInterest: data.additionalInterest > 0 ? new Prisma.Decimal(data.additionalInterest) : null,
           isClosed: true,
           closedAt: new Date(data.paidDate),
           isActive: false,
@@ -136,6 +149,8 @@ export async function POST(
         emiAmount: Number(result.emiAmount),
         currentOutstanding: Number(result.currentOutstanding),
         totalPaid: Number(result.totalPaid),
+        preclosureCharges: result.preclosureCharges ? Number(result.preclosureCharges) : null,
+        additionalInterest: result.additionalInterest ? Number(result.additionalInterest) : null,
       },
       message: "Loan closed successfully!",
     })

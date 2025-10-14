@@ -168,9 +168,15 @@ export default function LoansPage() {
     return unique
   }
 
-  // Calculate summary statistics
-  const totalLoanAmount = loans.reduce((sum, loan) => sum + loan.principalAmount, 0)
-  const totalOutstanding = loans.reduce((sum, loan) => sum + loan.currentOutstanding, 0)
+  // Calculate summary statistics (excluding closed loans)
+  const totalLoanAmount = loans.reduce((sum, loan) => {
+    if (loan.isClosed || !loan.isActive) return sum
+    return sum + loan.principalAmount
+  }, 0)
+  const totalOutstanding = loans.reduce((sum, loan) => {
+    if (loan.isClosed || !loan.isActive) return sum
+    return sum + loan.currentOutstanding
+  }, 0)
 
   const currentMonthEMITotal = loans.reduce((sum, loan) => {
     if (loan.isClosed || !loan.isActive) return sum

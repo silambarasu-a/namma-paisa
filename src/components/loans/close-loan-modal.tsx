@@ -29,6 +29,14 @@ const closeSchema = z.object({
   paidDate: z.string().min(1, "Payment date is required"),
   paymentMethod: z.enum(["CASH", "CARD", "UPI", "NET_BANKING", "OTHER"]),
   paymentNotes: z.string().optional(),
+  preclosureCharges: z.string().optional().refine(
+    (val) => !val || (!isNaN(Number(val)) && Number(val) >= 0),
+    "Preclosure charges must be a non-negative number"
+  ),
+  additionalInterest: z.string().optional().refine(
+    (val) => !val || (!isNaN(Number(val)) && Number(val) >= 0),
+    "Additional interest must be a non-negative number"
+  ),
 })
 
 type CloseFormData = z.infer<typeof closeSchema>
@@ -63,10 +71,15 @@ export function CloseLoanModal({
       paidAmount: currentOutstanding.toString(),
       paidDate: new Date().toISOString().split("T")[0],
       paymentMethod: undefined,
+      preclosureCharges: "0",
+      additionalInterest: "0",
     },
   })
 
   const paymentMethod = watch("paymentMethod")
+  const preclosureCharges = watch("preclosureCharges")
+  const additionalInterest = watch("additionalInterest")
+  const paidAmount = watch("paidAmount")
 
   const onSubmit = async (data: CloseFormData) => {
     try {
@@ -77,6 +90,8 @@ export function CloseLoanModal({
         paidDate: data.paidDate,
         paymentMethod: data.paymentMethod,
         paymentNotes: data.paymentNotes,
+        preclosureCharges: Number(data.preclosureCharges || 0),
+        additionalInterest: Number(data.additionalInterest || 0),
       }
 
       const response = await fetch(`/api/loans/${loanId}/close`, {
@@ -142,9 +157,76 @@ export function CloseLoanModal({
               <p className="text-sm text-red-500">{errors.paidAmount.message}</p>
             )}
             <p className="text-xs text-muted-foreground">
-              Outstanding Amount: ₹{currentOutstanding.toLocaleString()}
+              Outstanding Balance: ₹{currentOutstanding.toLocaleString()}
             </p>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="preclosureCharges">
+              Preclosure Charges (₹)
+            </Label>
+            <Input
+              id="preclosureCharges"
+              type="number"
+              step="0.01"
+              placeholder="0"
+              {...register("preclosureCharges")}
+            />
+            {errors.preclosureCharges && (
+              <p className="text-sm text-red-500">{errors.preclosureCharges.message}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Any early closure penalty fees
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="additionalInterest">
+              Additional Interest (₹)
+            </Label>
+            <Input
+              id="additionalInterest"
+              type="number"
+              step="0.01"
+              placeholder="0"
+              {...register("additionalInterest")}
+            />
+            {errors.additionalInterest && (
+              <p className="text-sm text-red-500">{errors.additionalInterest.message}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Any accumulated interest at closure
+            </p>
+          </div>
+
+          {(Number(preclosureCharges || 0) > 0 || Number(additionalInterest || 0) > 0) && (
+            <Alert className="border-blue-500 bg-blue-50 dark:bg-blue-900/20">
+              <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <AlertTitle className="text-blue-900 dark:text-blue-100">Total Amount Breakdown</AlertTitle>
+              <AlertDescription className="text-blue-800 dark:text-blue-200 space-y-1">
+                <div className="flex justify-between">
+                  <span>Outstanding Balance:</span>
+                  <span className="font-semibold">₹{Number(paidAmount || 0).toLocaleString()}</span>
+                </div>
+                {Number(preclosureCharges || 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span>Preclosure Charges:</span>
+                    <span className="font-semibold">₹{Number(preclosureCharges).toLocaleString()}</span>
+                  </div>
+                )}
+                {Number(additionalInterest || 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span>Additional Interest:</span>
+                    <span className="font-semibold">₹{Number(additionalInterest).toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-2 border-t border-blue-300 dark:border-blue-700">
+                  <span className="font-bold">Total to Pay:</span>
+                  <span className="font-bold">₹{(Number(paidAmount || 0) + Number(preclosureCharges || 0) + Number(additionalInterest || 0)).toLocaleString()}</span>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="paidDate">
