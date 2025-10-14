@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -116,11 +116,7 @@ export default function MembersPage() {
   } | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchMembers()
-  }, [categoryFilter])
-
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
     try {
       setIsLoading(true)
       const params = new URLSearchParams()
@@ -140,7 +136,11 @@ export default function MembersPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [categoryFilter])
+
+  useEffect(() => {
+    fetchMembers()
+  }, [fetchMembers])
 
   const handleAddMember = () => {
     setIsEditing(false)

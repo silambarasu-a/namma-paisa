@@ -162,11 +162,15 @@ export async function POST(
       }
 
       if (createdIncomeId) {
-        transactionUpdateData.settlementIncomeId = createdIncomeId
+        transactionUpdateData.settlementIncome = {
+          connect: { id: createdIncomeId }
+        }
       }
 
       if (createdExpenseId) {
-        transactionUpdateData.settlementExpenseId = createdExpenseId
+        transactionUpdateData.settlementExpense = {
+          connect: { id: createdExpenseId }
+        }
       }
 
       const transaction = await tx.memberTransaction.update({

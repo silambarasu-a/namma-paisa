@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -136,11 +136,7 @@ export default function MemberDetailPage() {
   const [settledAmount, setSettledAmount] = useState("")
   const [useCustomAmount, setUseCustomAmount] = useState(false)
 
-  useEffect(() => {
-    fetchMemberDetails()
-  }, [memberId])
-
-  const fetchMemberDetails = async () => {
+  const fetchMemberDetails = useCallback(async () => {
     try {
       setIsLoading(true)
       const response = await fetch(`/api/members/${memberId}`)
@@ -155,7 +151,11 @@ export default function MemberDetailPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [memberId, router])
+
+  useEffect(() => {
+    fetchMemberDetails()
+  }, [fetchMemberDetails])
 
   const handleAddTransaction = () => {
     setDialogOpen(true)
