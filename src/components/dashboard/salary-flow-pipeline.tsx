@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
-import { IndianRupee, Receipt, Calculator, Wallet, Repeat, PieChart, TrendingUp, ChevronDown, ChevronUp } from "lucide-react"
+import { IndianRupee, Receipt, Calculator, Wallet, Repeat, PieChart, TrendingUp, ChevronDown, ChevronUp, Users, ArrowDownRight, ArrowUpRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface InvestmentAllocation {
@@ -49,6 +49,11 @@ interface SalaryFlowPipelineProps {
   afterLoans: number
   sipsData: { totalAmount: number; count: number }
   afterSIPs: number
+  memberTransactionsData: {
+    borrowed: number
+    lent: number
+    count: number
+  }
   financialSummary: FinancialSummary
   allocations: Allocation[]
   hasAllocations: boolean
@@ -75,6 +80,7 @@ export function SalaryFlowPipeline({
   taxPercentage,
   loansData,
   sipsData,
+  memberTransactionsData,
   financialSummary,
   allocations,
   hasAllocations,
@@ -227,6 +233,47 @@ export function SalaryFlowPipeline({
               </div>
             </div>
 
+            {/* Member Transactions Card */}
+            {memberTransactionsData.count > 0 && (
+              <div className="flex flex-col p-3 sm:p-4 bg-gradient-to-br from-pink-50/90 to-pink-100/70 dark:from-pink-900/30 dark:to-pink-800/20 backdrop-blur-sm rounded-xl border-2 border-pink-200 dark:border-pink-700 hover:shadow-lg transition-all">
+                <div className="flex items-center justify-between mb-2">
+                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-pink-600 dark:text-pink-400" />
+                  <Badge variant="secondary" className="text-xs">{memberTransactionsData.count} txn{memberTransactionsData.count !== 1 ? 's' : ''}</Badge>
+                </div>
+                <h4 className="text-xs font-medium text-pink-700 dark:text-pink-300 mb-1">Member Transactions</h4>
+                <div className="space-y-1 mb-2">
+                  {memberTransactionsData.borrowed > 0 && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <ArrowDownRight className="h-3 w-3 text-red-500" />
+                        <span className="text-[10px] text-red-600 dark:text-red-400">Borrowed</span>
+                      </div>
+                      <span className="text-sm font-bold text-red-600 dark:text-red-400">
+                        -₹{memberTransactionsData.borrowed.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  )}
+                  {memberTransactionsData.lent > 0 && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <ArrowUpRight className="h-3 w-3 text-green-500" />
+                        <span className="text-[10px] text-green-600 dark:text-green-400">Lent</span>
+                      </div>
+                      <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                        +₹{memberTransactionsData.lent.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="text-xs text-pink-600/80 dark:text-pink-400/80 mt-auto">
+                  <div className="flex justify-between items-center pt-2 border-t border-pink-200 dark:border-pink-700">
+                    <span>After Members:</span>
+                    <span className="font-semibold">₹{(financialSummary.afterSIPs + memberTransactionsData.borrowed - memberTransactionsData.lent).toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Available Card */}
             <div className="flex flex-col p-3 sm:p-4 bg-gradient-to-br from-blue-50/90 to-blue-100/70 dark:from-blue-900/30 dark:to-blue-800/20 backdrop-blur-sm rounded-xl border-2 border-blue-200 dark:border-blue-700 hover:shadow-lg transition-all">
               <div className="flex items-center justify-between mb-2">
@@ -237,7 +284,7 @@ export function SalaryFlowPipeline({
                 ₹{financialSummary.availableSurplus.toLocaleString('en-IN')}
               </p>
               <div className="text-xs text-blue-600/80 dark:text-blue-400/80">
-                <p>After tax, EMI & SIPs</p>
+                <p>After tax, EMI, SIPs & members</p>
                 <p className="text-xs mt-1">For expenses & investments</p>
               </div>
             </div>

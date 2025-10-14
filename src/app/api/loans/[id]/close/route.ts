@@ -3,6 +3,8 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { validateMonthNotClosed } from "@/lib/snapshot-utils"
+import { Prisma } from "@/generated/prisma"
 
 const closeSchema = z.object({
   paidAmount: z.number().positive(),
@@ -26,7 +28,11 @@ export async function POST(
     const body = await request.json()
     const data = closeSchema.parse(body)
 
-    // Verify loan belongs to user
+    // Validate that the closure date is not in a closed month
+    const paidDate = new Date(data.paidDate)
+    await validateMonthNotClosed(session.user.id, paidDate, "close this loan")
+
+    // Verify loan belongs to user and get all unpaid EMIs
     const loan = await prisma.loan.findFirst({
       where: {
         id: loanId,
@@ -52,37 +58,85 @@ export async function POST(
       )
     }
 
-    // Mark all unpaid EMIs as paid
     const unpaidEmis = loan.emis
-    for (const emi of unpaidEmis) {
-      await prisma.eMI.update({
-        where: { id: emi.id },
-        data: {
-          isPaid: true,
-          paidAmount: Number(emi.emiAmount),
-          paidDate: new Date(data.paidDate),
-          principalPaid: Number(emi.emiAmount),
-          paymentMethod: data.paymentMethod,
-          paymentNotes: `Loan closed early. ${data.paymentNotes || ""}`.trim(),
-        },
-      })
+
+    if (unpaidEmis.length === 0) {
+      return NextResponse.json(
+        { error: "No unpaid EMIs to close" },
+        { status: 400 }
+      )
     }
 
-    // Update loan as closed
-    const newTotalPaid = Number(loan.totalPaid) + Number(data.paidAmount)
-    const updatedLoan = await prisma.loan.update({
-      where: { id: loanId },
-      data: {
-        currentOutstanding: 0,
-        totalPaid: newTotalPaid,
-        isClosed: true,
-        closedAt: new Date(data.paidDate),
-        isActive: false,
-      },
+    // Calculate total remaining amount from unpaid EMIs
+    const totalRemainingEMI = unpaidEmis.reduce(
+      (sum, emi) => sum + Number(emi.emiAmount),
+      0
+    )
+
+    // Warn if paid amount doesn't match (allow it but log)
+    if (Math.abs(data.paidAmount - totalRemainingEMI) > 0.01) {
+      console.warn(
+        `Loan closure amount mismatch: Paid ${data.paidAmount}, Expected ${totalRemainingEMI}`
+      )
+    }
+
+    // Use transaction to ensure atomicity
+    const result = await prisma.$transaction(async (tx) => {
+      // Calculate interest rate per period for proper principal/interest split
+      const monthlyRate = Number(loan.interestRate) / 100 / 12
+      let remainingPrincipal = Number(loan.currentOutstanding)
+
+      // Mark all unpaid EMIs as paid with proper principal/interest split
+      for (const emi of unpaidEmis) {
+        const emiAmount = Number(emi.emiAmount)
+
+        // Calculate interest on remaining principal
+        const interestPortion = remainingPrincipal * monthlyRate
+        const principalPortion = emiAmount - interestPortion
+
+        // Update remaining principal
+        remainingPrincipal = Math.max(0, remainingPrincipal - principalPortion)
+
+        await tx.eMI.update({
+          where: { id: emi.id },
+          data: {
+            isPaid: true,
+            paidAmount: new Prisma.Decimal(emiAmount),
+            paidDate: new Date(data.paidDate),
+            principalPaid: new Prisma.Decimal(principalPortion),
+            interestPaid: new Prisma.Decimal(interestPortion),
+            lateFee: new Prisma.Decimal(0),
+            paymentMethod: data.paymentMethod,
+            paymentNotes: `Loan closed early. ${data.paymentNotes || ""}`.trim(),
+          },
+        })
+      }
+
+      // Update loan as closed
+      const newTotalPaid = Number(loan.totalPaid) + data.paidAmount
+      const updatedLoan = await tx.loan.update({
+        where: { id: loanId },
+        data: {
+          currentOutstanding: new Prisma.Decimal(0),
+          totalPaid: new Prisma.Decimal(newTotalPaid),
+          isClosed: true,
+          closedAt: new Date(data.paidDate),
+          isActive: false,
+        },
+      })
+
+      return updatedLoan
     })
 
     return NextResponse.json({
-      loan: updatedLoan,
+      loan: {
+        ...result,
+        principalAmount: Number(result.principalAmount),
+        interestRate: Number(result.interestRate),
+        emiAmount: Number(result.emiAmount),
+        currentOutstanding: Number(result.currentOutstanding),
+        totalPaid: Number(result.totalPaid),
+      },
       message: "Loan closed successfully!",
     })
   } catch (error) {
@@ -91,6 +145,9 @@ export async function POST(
         { error: error.issues[0]?.message || "Validation error" },
         { status: 400 }
       )
+    }
+    if (error instanceof Error && error.message.includes("month has been closed")) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
     }
     console.error("Error closing loan:", error)
     return NextResponse.json(

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Receipt, PlusCircle, Wallet, Calendar, TrendingUp, TrendingDown, DollarSign, Trash2, Edit as EditIcon, AlertCircle, CreditCard as CardIcon, Info } from "lucide-react"
+import { Receipt, PlusCircle, Wallet, Calendar, TrendingUp, TrendingDown, DollarSign, Trash2, Edit as EditIcon, AlertCircle, CreditCard as CardIcon, Info, Search, UserPlus, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -66,6 +66,20 @@ export default function ExpensesPage() {
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "UPI" | "NET_BANKING" | "OTHER">("CASH")
   const [creditCardId, setCreditCardId] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Member tracking states
+  const [members, setMembers] = useState<Array<{id: string, name: string, category: string}>>([])
+  const [memberId, setMemberId] = useState("")
+  const [paidByMember, setPaidByMember] = useState(false)
+  const [paidForMember, setPaidForMember] = useState(false)
+  const [memberSearch, setMemberSearch] = useState("")
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false)
+  const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false)
+
+  // New member form states
+  const [newMemberName, setNewMemberName] = useState("")
+  const [newMemberCategory, setNewMemberCategory] = useState<"FAMILY" | "FRIEND" | "RELATIVE" | "OTHER">("FAMILY")
+  const [isAddingMember, setIsAddingMember] = useState(false)
 
   useEffect(() => {
     loadAvailableAmount()
@@ -221,7 +235,7 @@ export default function ExpensesPage() {
     setDeleteDialogOpen(true)
   }
 
-  // Load credit cards when dialog opens
+  // Load credit cards and members when dialog opens
   useEffect(() => {
     if (dialogOpen) {
       const loadCreditCards = async () => {
@@ -235,7 +249,21 @@ export default function ExpensesPage() {
           console.error("Error loading credit cards:", error)
         }
       }
+
+      const loadMembers = async () => {
+        try {
+          const response = await fetch("/api/members")
+          if (response.ok) {
+            const data = await response.json()
+            setMembers(data.members)
+          }
+        } catch (error) {
+          console.error("Error loading members:", error)
+        }
+      }
+
       loadCreditCards()
+      loadMembers()
     }
   }, [dialogOpen])
 
@@ -247,6 +275,19 @@ export default function ExpensesPage() {
       setAmount((needs + avoid).toString())
     }
   }, [category, needsPortion, avoidPortion])
+
+  // Close member dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (showMemberDropdown && !target.closest('.member-dropdown-container')) {
+        setShowMemberDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showMemberDropdown])
 
   // Check if dialog should open from query params
   useEffect(() => {
@@ -271,6 +312,9 @@ export default function ExpensesPage() {
       setAvoidPortion(expense.avoidPortion?.toString() || "")
       setPaymentMethod(expense.paymentMethod)
       setCreditCardId(expense.creditCardId || "")
+      setMemberId(expense.memberId || "")
+      setPaidByMember(expense.paidByMember || false)
+      setPaidForMember(expense.paidForMember || false)
     } else {
       setIsEditing(false)
       setCurrentExpense(null)
@@ -285,6 +329,9 @@ export default function ExpensesPage() {
       setAvoidPortion("")
       setPaymentMethod("CASH")
       setCreditCardId("")
+      setMemberId("")
+      setPaidByMember(false)
+      setPaidForMember(false)
     }
     setDialogOpen(true)
   }
@@ -336,7 +383,13 @@ export default function ExpensesPage() {
         return
       }
 
-      const body: Record<string, string | number | undefined> = {
+      if ((paidByMember || paidForMember) && !memberId) {
+        toast.error("Please select a member")
+        setIsSubmitting(false)
+        return
+      }
+
+      const body: Record<string, string | number | boolean | undefined> = {
         date,
         title,
         description: description || undefined,
@@ -353,6 +406,12 @@ export default function ExpensesPage() {
 
       if (paymentMethod === "CARD" && creditCardId) {
         body.creditCardId = creditCardId
+      }
+
+      if (memberId) {
+        body.memberId = memberId
+        body.paidByMember = paidByMember
+        body.paidForMember = paidForMember
       }
 
       const url = isEditing ? `/api/expenses/${currentExpense?.id}` : "/api/expenses"
@@ -391,6 +450,49 @@ export default function ExpensesPage() {
     // Allow editing for current month and future months
     return (expenseYear > currentYear) || (expenseYear === currentYear && expenseMonth >= currentMonth)
   }
+
+  const handleAddNewMember = async () => {
+    if (!newMemberName.trim()) {
+      toast.error("Please enter a member name")
+      return
+    }
+
+    setIsAddingMember(true)
+    try {
+      const response = await fetch("/api/members", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newMemberName.trim(),
+          category: newMemberCategory,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || "Failed to add member")
+      }
+
+      const newMember = await response.json()
+      setMembers([...members, { id: newMember.id, name: newMember.name, category: newMember.category }])
+      setMemberId(newMember.id)
+      setAddMemberDialogOpen(false)
+      setNewMemberName("")
+      setNewMemberCategory("FAMILY")
+      toast.success("Member added successfully")
+    } catch (error) {
+      console.error("Error adding member:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to add member")
+    } finally {
+      setIsAddingMember(false)
+    }
+  }
+
+  const selectedMember = members.find(m => m.id === memberId)
+  const filteredMembers = members.filter(m =>
+    m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
+    m.category.toLowerCase().includes(memberSearch.toLowerCase())
+  )
 
   const getCategoryBadge = (category: string) => {
     switch (category) {
@@ -1149,6 +1251,169 @@ export default function ExpensesPage() {
               )}
             </div>
 
+            {/* Member Tracking Section */}
+            <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-blue-600" />
+                <Label className="text-sm font-medium">Member Tracking (Optional)</Label>
+              </div>
+              <p className="text-xs text-gray-500">
+                Track if you paid for someone or if someone paid for you
+              </p>
+
+              <div className="space-y-2">
+                <div className="space-y-1.5 relative">
+                  <Label htmlFor="dialog-member" className="text-sm">Select Member</Label>
+
+                  {/* Custom Searchable Dropdown */}
+                  <div className="relative member-dropdown-container">
+                    <div
+                      className="flex items-center h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm cursor-pointer hover:bg-accent"
+                      onClick={() => setShowMemberDropdown(!showMemberDropdown)}
+                    >
+                      {selectedMember ? (
+                        <div className="flex items-center justify-between w-full">
+                          <span>{selectedMember.name} ({selectedMember.category})</span>
+                          <X
+                            className="h-4 w-4 opacity-50 hover:opacity-100"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setMemberId("")
+                              setPaidByMember(false)
+                              setPaidForMember(false)
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">Select member (optional)</span>
+                      )}
+                    </div>
+
+                    {/* Dropdown */}
+                    {showMemberDropdown && (
+                      <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg max-h-60 overflow-hidden">
+                        {/* Search Input */}
+                        <div className="p-2 border-b">
+                          <div className="relative">
+                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Search members..."
+                              value={memberSearch}
+                              onChange={(e) => setMemberSearch(e.target.value)}
+                              className="pl-8 h-8"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Member List */}
+                        <div className="overflow-y-auto max-h-40">
+                          {filteredMembers.length === 0 ? (
+                            <div className="p-4 text-sm text-center text-muted-foreground">
+                              No members found
+                            </div>
+                          ) : (
+                            filteredMembers.map((member) => (
+                              <div
+                                key={member.id}
+                                className="px-3 py-2 hover:bg-accent cursor-pointer text-sm"
+                                onClick={() => {
+                                  setMemberId(member.id)
+                                  setShowMemberDropdown(false)
+                                  setMemberSearch("")
+                                }}
+                              >
+                                {member.name} <span className="text-muted-foreground">({member.category})</span>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        {/* Add New Member Button */}
+                        <div className="border-t p-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-2"
+                            onClick={() => {
+                              setAddMemberDialogOpen(true)
+                              setShowMemberDropdown(false)
+                            }}
+                          >
+                            <UserPlus className="h-4 w-4" />
+                            Add New Member
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {memberId && memberId !== "__none__" && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div
+                      className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                        paidForMember
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                      }`}
+                      onClick={() => {
+                        if (paidForMember) {
+                          setPaidForMember(false)
+                        } else {
+                          setPaidForMember(true)
+                          setPaidByMember(false)
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          checked={paidForMember}
+                          onChange={() => {}}
+                          className="h-4 w-4"
+                        />
+                        <div>
+                          <p className="text-sm font-medium">I paid for them</p>
+                          <p className="text-xs text-gray-500">They owe you</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                        paidByMember
+                          ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                      }`}
+                      onClick={() => {
+                        if (paidByMember) {
+                          setPaidByMember(false)
+                        } else {
+                          setPaidByMember(true)
+                          setPaidForMember(false)
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          checked={paidByMember}
+                          onChange={() => {}}
+                          className="h-4 w-4"
+                        />
+                        <div>
+                          <p className="text-sm font-medium">They paid for me</p>
+                          <p className="text-xs text-gray-500">You owe them</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={closeDialog}>
                   Cancel
@@ -1159,6 +1424,74 @@ export default function ExpensesPage() {
               </DialogFooter>
             </form>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Member Dialog */}
+      <Dialog open={addMemberDialogOpen} onOpenChange={setAddMemberDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Member</DialogTitle>
+            <DialogDescription>
+              Quickly add a new member to track transactions
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-member-name">
+                Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="new-member-name"
+                value={newMemberName}
+                onChange={(e) => setNewMemberName(e.target.value)}
+                placeholder="Enter member name"
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="new-member-category">
+                Category <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={newMemberCategory}
+                onValueChange={(value) => setNewMemberCategory(value as "FAMILY" | "FRIEND" | "RELATIVE" | "OTHER")}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="FAMILY">Family</SelectItem>
+                  <SelectItem value="FRIEND">Friend</SelectItem>
+                  <SelectItem value="RELATIVE">Relative</SelectItem>
+                  <SelectItem value="OTHER">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setAddMemberDialogOpen(false)
+                setNewMemberName("")
+                setNewMemberCategory("FAMILY")
+              }}
+              disabled={isAddingMember}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddNewMember}
+              disabled={isAddingMember || !newMemberName.trim()}
+            >
+              {isAddingMember ? "Adding..." : "Add Member"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -61,6 +61,7 @@ const navigation: NavigationItem[] = [
     ],
   },
   { name: "Credit Cards", href: "/credit-cards", icon: CreditCard },
+  { name: "Members", href: "/members", icon: Users },
   { name: "Monthly Snapshot", href: "/monthly-snapshot", icon: Calendar },
 ]
 

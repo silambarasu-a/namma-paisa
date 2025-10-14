@@ -88,6 +88,20 @@ enum PaymentMethod {
   OTHER
 }
 
+enum MemberCategory {
+  FAMILY
+  FRIEND
+  RELATIVE
+  OTHER
+}
+
+enum MemberTransactionType {
+  GAVE // Money you gave to someone
+  OWE // Money you owe to someone
+  EXPENSE_PAID_FOR_THEM // You paid expense on their behalf
+  EXPENSE_PAID_BY_THEM // They paid expense on your behalf
+}
+
 model User {
   id                 String    @id @default(cuid())
   email              String    @unique
@@ -123,6 +137,8 @@ model User {
   creditCards       CreditCard[]
   transactions      Transaction[]
   sipExecutions     SIPExecution[]
+  members           Member[]
+  memberTransactions MemberTransaction[]
 
   @@map("users")
 }
@@ -215,6 +231,7 @@ model Income {
   updatedAt   DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  settlementTransaction MemberTransaction? @relation("SettlementIncome")
 
   @@map("incomes")
 }
@@ -457,26 +474,35 @@ model CreditCard {
 }
 
 model Expense {
-  id             String        @id @default(cuid())
-  userId         String
-  date           DateTime
-  title          String
-  description    String?
-  expenseType    ExpenseType
-  category       SpendCategory
-  amount         Decimal       @db.Decimal(12, 2)
-  needsPortion   Decimal?      @db.Decimal(12, 2)
-  avoidPortion   Decimal?      @db.Decimal(12, 2)
-  paymentMethod  PaymentMethod @default(CASH)
-  creditCardId   String?       // Reference to credit card if payment method is CARD
-  paymentDueDate DateTime?     // When the credit card payment is due (for CARD payment method)
-  receiptUrl     String?
-  tags           String[]
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id                  String        @id @default(cuid())
+  userId              String
+  date                DateTime
+  title               String
+  description         String?
+  expenseType         ExpenseType
+  category            SpendCategory
+  amount              Decimal       @db.Decimal(12, 2)
+  needsPortion        Decimal?      @db.Decimal(12, 2)
+  avoidPortion        Decimal?      @db.Decimal(12, 2)
+  paymentMethod       PaymentMethod @default(CASH)
+  creditCardId        String?       // Reference to credit card if payment method is CARD
+  paymentDueDate      DateTime?     // When the credit card payment is due (for CARD payment method)
+  receiptUrl          String?
+  tags                String[]
 
-  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  creditCard CreditCard?  @relation(fields: [creditCardId], references: [id], onDelete: SetNull)
+  // Member tracking - for expenses spent for someone or by someone
+  memberId            String?       // Reference to member if expense involves them
+  paidByMember        Boolean       @default(false) // True if member paid for you
+  paidForMember       Boolean       @default(false) // True if you paid for member
+
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creditCard        CreditCard?  @relation(fields: [creditCardId], references: [id], onDelete: SetNull)
+  member            Member?      @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  memberTransaction MemberTransaction?
+  settlementTransaction MemberTransaction? @relation("SettlementExpense")
 
   @@map("expenses")
 }
@@ -556,6 +582,12 @@ model MonthlySnapshot {
   loansClosed               Int      @default(0) // Count of loans closed this month
   loansClosedData           Json?    // Details of closed loans: [{ loanId, loanType, institution, closedAt }]
 
+  // Member Transactions
+  memberBorrowed            Decimal  @default(0) @db.Decimal(12, 2) // Money you borrowed from members (reduces surplus)
+  memberLent                Decimal  @default(0) @db.Decimal(12, 2) // Money you lent to members (adds to surplus)
+  memberTransactionsCount   Int      @default(0) // Count of member transactions this month
+  memberTransactionsData    Json?    // Details: [{ memberId, memberName, transactionType, amount, date }]
+
   // Status
   isClosed          Boolean  @default(false) // Whether month is closed
   closedAt          DateTime?
@@ -591,4 +623,55 @@ model ContactMessage {
   updatedAt DateTime @updatedAt
 
   @@map("contact_messages")
+}
+
+model Member {
+  id            String          @id @default(cuid())
+  userId        String
+  name          String
+  category      MemberCategory
+  phoneNumber   String?
+  email         String?
+  notes         String?
+  currentBalance Decimal        @default(0) @db.Decimal(12, 2) // Positive: they owe you, Negative: you owe them
+  extraSpent    Decimal         @default(0) @db.Decimal(12, 2) // Extra amount spent during settlements
+  extraOwe      Decimal         @default(0) @db.Decimal(12, 2) // Extra amount owed during settlements
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions MemberTransaction[]
+  expenses     Expense[]
+
+  @@unique([userId, name]) // Prevent duplicate member names per user
+  @@map("members")
+}
+
+model MemberTransaction {
+  id             String                 @id @default(cuid())
+  userId         String
+  memberId       String
+  transactionType MemberTransactionType
+  amount         Decimal                @db.Decimal(12, 2)
+  date           DateTime
+  description    String?
+  paymentMethod  PaymentMethod?
+  receiptUrl     String?
+  expenseId      String?                @unique // Link to expense if this transaction is from an expense
+  isSettled      Boolean                @default(false) // Track if this debt has been settled
+  settledDate    DateTime?
+  settledAmount  Decimal?               @db.Decimal(12, 2) // Custom settlement amount (if different from original)
+  settledNotes   String?
+  settlementIncomeId String?             @unique // Link to income created from settlement difference
+  settlementExpenseId String?            @unique // Link to expense created from settlement difference
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  member  Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  expense Expense? @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+  settlementIncome  Income?  @relation("SettlementIncome", fields: [settlementIncomeId], references: [id], onDelete: SetNull)
+  settlementExpense Expense? @relation("SettlementExpense", fields: [settlementExpenseId], references: [id], onDelete: SetNull)
+
+  @@map("member_transactions")
 }

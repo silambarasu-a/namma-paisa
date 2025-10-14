@@ -321,6 +321,27 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
     customAmount: a.customAmount ? Number(a.customAmount) : null,
   }))
 
+  // Get member transactions for this month (need this before calculating financial summary)
+  const memberTransactionsPrelim = await prisma.memberTransaction.findMany({
+    where: {
+      userId,
+      date: { gte: startDate, lt: endDate },
+      isSettled: false,
+    },
+  })
+
+  let memberBorrowedPrelim = 0
+  let memberLentPrelim = 0
+
+  memberTransactionsPrelim.forEach(txn => {
+    const amount = Number(txn.amount)
+    if (txn.transactionType === "OWE" || txn.transactionType === "EXPENSE_PAID_BY_THEM") {
+      memberBorrowedPrelim += amount
+    } else if (txn.transactionType === "GAVE" || txn.transactionType === "EXPENSE_PAID_FOR_THEM") {
+      memberLentPrelim += amount
+    }
+  })
+
   // Use financial summary calculation with budget/allocation logic
   const financialSummary = calculateFinancialSummary(
     salary,
@@ -329,7 +350,13 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
     totalSIPs,
     totalExpenses,
     budget,
-    allocations
+    allocations,
+    0, // oneTimeInvestments - will be calculated later
+    0, // sipExecutions - will be calculated later
+    0, // paidEMIs - will be calculated later
+    0, // additionalEMIPaid - will be calculated later
+    memberBorrowedPrelim,
+    memberLentPrelim
   )
 
   // Get previous month surplus
@@ -525,6 +552,38 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
     closedAt: loan.closedAt?.toISOString() || null,
   }))
 
+  // ============ MEMBER TRANSACTIONS ============
+  // Fetch member transactions with member details for snapshot data
+  const memberTransactionsWithDetails = await prisma.memberTransaction.findMany({
+    where: {
+      userId,
+      date: { gte: startDate, lt: endDate },
+      isSettled: false,
+    },
+    include: {
+      member: {
+        select: {
+          id: true,
+          name: true,
+          category: true,
+        },
+      },
+    },
+  })
+
+  const memberTransactionsData = memberTransactionsWithDetails.map(txn => ({
+    memberId: txn.member.id,
+    memberName: txn.member.name,
+    memberCategory: txn.member.category,
+    transactionType: txn.transactionType,
+    amount: Number(txn.amount),
+    date: txn.date.toISOString(),
+  }))
+
+  const memberTransactionsCount = memberTransactionsWithDetails.length
+  const memberBorrowed = memberBorrowedPrelim
+  const memberLent = memberLentPrelim
+
   // ============ SURPLUS CALCULATIONS ============
   // One-time purchases are now tracked through holdings, not separately
   const investmentsMade = 0
@@ -548,8 +607,11 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
   const actualSIPAmount = sipExecutionsAmount > 0 ? sipExecutionsAmount : totalSIPs
   const afterActualSIPs = afterActualEMIs - actualSIPAmount
 
+  // Apply member transactions: borrowed adds (like income), lent subtracts (like expense)
+  const afterActualMemberTransactions = afterActualSIPs + memberBorrowed - memberLent
+
   // Deduct actual expenses and one-time investments
-  const cashRemaining = afterActualSIPs - totalExpenses - oneTimeInvestments
+  const cashRemaining = afterActualMemberTransactions - totalExpenses - oneTimeInvestments
 
   return {
     salary,
@@ -607,5 +669,11 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
     loansAddedData,
     loansClosed: loansClosedCount,
     loansClosedData,
+
+    // Member Transactions
+    memberBorrowed,
+    memberLent,
+    memberTransactionsCount,
+    memberTransactionsData,
   }
 }

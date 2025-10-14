@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { requireCustomerAccess } from "@/lib/authz"
 import { prisma } from "@/lib/prisma"
-import { IndianRupee, Receipt, Wallet, Repeat, TrendingUp, ShoppingCart, CheckCircle, Banknote } from "lucide-react"
+import { IndianRupee, Receipt, Wallet, Repeat, TrendingUp, ShoppingCart, CheckCircle, Banknote, Users, ArrowUpRight, ArrowDownRight } from "lucide-react"
 import { DashboardFilter } from "@/components/dashboard/dashboard-filter"
 import { cn } from "@/lib/utils"
 import { calculateFinancialSummary } from "@/lib/budget-utils"
@@ -269,6 +269,52 @@ async function getRecentExpenses(userId: string, month: number, year: number) {
   return { expenses: serializedExpenses, totalExpenses }
 }
 
+async function getMemberTransactions(userId: string, month: number, year: number) {
+  const startDate = new Date(year, month - 1, 1)
+  const endDate = new Date(year, month, 1)
+
+  // Get all unsettled transactions for this month
+  const transactions = await prisma.memberTransaction.findMany({
+    where: {
+      userId,
+      date: {
+        gte: startDate,
+        lt: endDate,
+      },
+      isSettled: false,
+    },
+    include: {
+      member: {
+        select: {
+          id: true,
+          name: true,
+          category: true,
+        },
+      },
+    },
+  })
+
+  // Calculate borrowed (money you owe) and lent (money owed to you)
+  let borrowed = 0 // You owe them (OWE, EXPENSE_PAID_BY_THEM)
+  let lent = 0 // They owe you (GAVE, EXPENSE_PAID_FOR_THEM)
+
+  transactions.forEach((txn) => {
+    const amount = Number(txn.amount)
+    if (txn.transactionType === "OWE" || txn.transactionType === "EXPENSE_PAID_BY_THEM") {
+      borrowed += amount
+    } else if (txn.transactionType === "GAVE" || txn.transactionType === "EXPENSE_PAID_FOR_THEM") {
+      lent += amount
+    }
+  })
+
+  const serializedTransactions = transactions.map(txn => ({
+    ...txn,
+    amount: Number(txn.amount),
+  }))
+
+  return { borrowed, lent, count: transactions.length, transactions: serializedTransactions }
+}
+
 async function getOneTimeTransactions(userId: string, month: number, year: number) {
   const startDate = new Date(year, month - 1, 1)
   const endDate = new Date(year, month, 0, 23, 59, 59, 999)
@@ -459,6 +505,7 @@ export default async function Dashboard({
     holdingsData,
     paidEMIs,
     currentMonthReturns,
+    memberTransactionsData,
   ] = await Promise.all([
     getSalary(userId, selectedMonth, selectedYear),
     getAdditionalIncome(userId, selectedMonth, selectedYear),
@@ -472,12 +519,13 @@ export default async function Dashboard({
     getHoldingsValue(userId),
     getPaidEMIs(userId, selectedMonth, selectedYear),
     getCurrentMonthReturns(userId, selectedMonth, selectedYear),
+    getMemberTransactions(userId, selectedMonth, selectedYear),
   ])
 
   const totalIncome = salary + additionalIncome.totalIncome
   const { taxAmount, taxPercentage } = await getTaxCalculation(userId, totalIncome)
 
-  // Use new budget/allocation logic with current month's total EMI
+  // Use new budget/allocation logic with current month's total EMI and member transactions
   const financialSummary = calculateFinancialSummary(
     totalIncome,
     taxAmount,
@@ -489,7 +537,9 @@ export default async function Dashboard({
     oneTimeTransactions.totalAmount,
     sipExecutions.totalAmount,
     paidEMIs.totalPaid,
-    paidEMIs.additionalPaid
+    paidEMIs.additionalPaid,
+    memberTransactionsData.borrowed,
+    memberTransactionsData.lent
   )
 
   // Keep old variables for backwards compatibility
@@ -676,6 +726,48 @@ export default async function Dashboard({
           </div>
         )}
 
+        {/* Member Transactions Card */}
+        {(memberTransactionsData.borrowed > 0 || memberTransactionsData.lent > 0) && (
+          <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-pink-500/5 pointer-events-none"></div>
+            <div className="relative p-3 sm:p-4">
+              <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Member Transactions</div>
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-purple-100/80 dark:bg-purple-900/40 backdrop-blur-sm border border-purple-200/50 dark:border-purple-700/50 flex items-center justify-center shrink-0">
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                {memberTransactionsData.borrowed > 0 && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ArrowDownRight className="h-4 w-4 text-red-500" />
+                      <span className="text-xs text-muted-foreground">You Owe</span>
+                    </div>
+                    <div className="text-lg sm:text-xl font-bold text-red-600 dark:text-red-400">
+                      ₹{memberTransactionsData.borrowed.toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                )}
+                {memberTransactionsData.lent > 0 && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ArrowUpRight className="h-4 w-4 text-green-500" />
+                      <span className="text-xs text-muted-foreground">They Owe</span>
+                    </div>
+                    <div className="text-lg sm:text-xl font-bold text-green-600 dark:text-green-400">
+                      ₹{memberTransactionsData.lent.toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {memberTransactionsData.count} transaction{memberTransactionsData.count !== 1 ? 's' : ''} this month
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Cash Remaining Card - Shows actual cash after ALL transactions */}
         <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border-2 border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
           <div className={cn(
@@ -746,6 +838,7 @@ export default async function Dashboard({
         afterLoans={afterLoans}
         sipsData={sipsData}
         afterSIPs={afterSIPs}
+        memberTransactionsData={memberTransactionsData}
         financialSummary={financialSummary}
         allocations={allocations}
         hasAllocations={hasAllocations}

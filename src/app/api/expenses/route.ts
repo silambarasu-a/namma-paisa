@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { calculatePaymentDueDate } from "@/lib/credit-card-utils"
 import { validateMonthNotClosed } from "@/lib/snapshot-utils"
+import { Prisma } from "@/generated/prisma"
 
 const expenseSchema = z.object({
   date: z.string().refine((date) => !isNaN(Date.parse(date)), {
@@ -19,6 +20,10 @@ const expenseSchema = z.object({
   avoidPortion: z.number().optional(),
   paymentMethod: z.enum(["CASH", "CARD", "UPI", "NET_BANKING", "OTHER"]),
   creditCardId: z.string().optional(),
+  // Member tracking fields
+  memberId: z.string().optional(),
+  paidByMember: z.boolean().optional(),
+  paidForMember: z.boolean().optional(),
 }).refine((data) => {
   if (data.category === "PARTIAL_NEEDS") {
     if (!data.needsPortion && !data.avoidPortion) {
@@ -38,6 +43,18 @@ const expenseSchema = z.object({
   return true
 }, {
   message: "Credit card must be selected when payment method is CARD",
+}).refine((data) => {
+  // If paidByMember or paidForMember is true, memberId is required
+  if ((data.paidByMember || data.paidForMember) && !data.memberId) {
+    return false
+  }
+  // Cannot be both paidByMember and paidForMember
+  if (data.paidByMember && data.paidForMember) {
+    return false
+  }
+  return true
+}, {
+  message: "Member must be selected and only one of 'paid by' or 'paid for' can be true",
 })
 
 export async function GET(request: NextRequest) {
@@ -144,6 +161,16 @@ export async function GET(request: NextRequest) {
             dueDate: true,
           }
         },
+        memberId: true,
+        paidByMember: true,
+        paidForMember: true,
+        member: {
+          select: {
+            id: true,
+            name: true,
+            category: true,
+          }
+        },
         createdAt: true,
       },
     })
@@ -236,24 +263,89 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const expense = await prisma.expense.create({
-      data: {
-        userId: session.user.id,
-        date: new Date(validatedData.date),
-        title: validatedData.title,
-        description: validatedData.description || null,
-        expenseType: validatedData.expenseType,
-        category: validatedData.category,
-        amount: validatedData.amount,
-        needsPortion: validatedData.needsPortion || null,
-        avoidPortion: validatedData.avoidPortion || null,
-        paymentMethod: validatedData.paymentMethod,
-        creditCardId: validatedData.creditCardId || null,
-        paymentDueDate: paymentDueDate,
-      },
+    // If member is involved, verify they exist
+    if (validatedData.memberId) {
+      const member = await prisma.member.findFirst({
+        where: {
+          id: validatedData.memberId,
+          userId: session.user.id,
+        },
+      })
+
+      if (!member) {
+        return NextResponse.json(
+          { message: "Member not found" },
+          { status: 404 }
+        )
+      }
+    }
+
+    // Create expense and member transaction if applicable in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      const expense = await tx.expense.create({
+        data: {
+          userId: session.user.id,
+          date: new Date(validatedData.date),
+          title: validatedData.title,
+          description: validatedData.description || null,
+          expenseType: validatedData.expenseType,
+          category: validatedData.category,
+          amount: validatedData.amount,
+          needsPortion: validatedData.needsPortion || null,
+          avoidPortion: validatedData.avoidPortion || null,
+          paymentMethod: validatedData.paymentMethod,
+          creditCardId: validatedData.creditCardId || null,
+          paymentDueDate: paymentDueDate,
+          memberId: validatedData.memberId || null,
+          paidByMember: validatedData.paidByMember || false,
+          paidForMember: validatedData.paidForMember || false,
+        },
+      })
+
+      // Create member transaction if member is involved
+      if (validatedData.memberId && (validatedData.paidByMember || validatedData.paidForMember)) {
+        const transactionType = validatedData.paidForMember
+          ? "EXPENSE_PAID_FOR_THEM"
+          : "EXPENSE_PAID_BY_THEM"
+
+        let balanceChange = new Prisma.Decimal(0)
+
+        if (validatedData.paidForMember) {
+          // You paid for them - they owe you
+          balanceChange = new Prisma.Decimal(validatedData.amount)
+        } else if (validatedData.paidByMember) {
+          // They paid for you - you owe them
+          balanceChange = new Prisma.Decimal(validatedData.amount).negated()
+        }
+
+        await tx.memberTransaction.create({
+          data: {
+            userId: session.user.id,
+            memberId: validatedData.memberId,
+            transactionType,
+            amount: validatedData.amount,
+            date: new Date(validatedData.date),
+            description: `Expense: ${validatedData.title}`,
+            paymentMethod: validatedData.paymentMethod,
+            expenseId: expense.id,
+          },
+        })
+
+        // Update member balance
+        await tx.member.update({
+          where: { id: validatedData.memberId },
+          data: {
+            currentBalance: {
+              increment: balanceChange,
+            },
+          },
+        })
+      }
+
+      return expense
     })
 
-    return NextResponse.json(expense, { status: 201 })
+    return NextResponse.json(result, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

@@ -21,6 +21,14 @@ export interface Expense {
   paymentDueDate?: string
   creditCardId?: string | null
   creditCard?: CreditCardReference
+  memberId?: string | null
+  paidByMember?: boolean
+  paidForMember?: boolean
+  member?: {
+    id: string
+    name: string
+    category: string
+  }
   createdAt: string
 }
 

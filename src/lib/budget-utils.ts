@@ -124,14 +124,21 @@ export function calculateFinancialSummary(
   oneTimeInvestments: number = 0,
   sipExecutions: number = 0,
   paidEMIs: number = 0,
-  additionalEMIPaid: number = 0
+  additionalEMIPaid: number = 0,
+  borrowed: number = 0,  // Money you borrowed from them (adds to surplus like income)
+  lent: number = 0       // Money you lent to them (reduces surplus like expense)
 ) {
   const afterTax = income - tax
   const afterLoans = afterTax - loans
   const afterSIPs = afterLoans - sips
 
+  // Apply member transactions:
+  // - borrowed (you owe them): adds to surplus (like additional income received)
+  // - lent (they owe you): reduces surplus (like money spent)
+  const afterMemberTransactions = afterSIPs + borrowed - lent
+
   // This is the base amount available for expenses and investments
-  const availableSurplus = afterSIPs
+  const availableSurplus = afterMemberTransactions
 
   // Calculate expense amounts
   const expenseCalc = calculateAvailableForExpenses(availableSurplus, budget)
@@ -162,8 +169,11 @@ export function calculateFinancialSummary(
   const actualSIPAmount = sipExecutions > 0 ? sipExecutions : sips
   const afterActualSIPs = afterActualEMIs - actualSIPAmount
 
+  // Apply member transactions: borrowed adds, lent subtracts
+  const afterActualMemberTransactions = afterActualSIPs + borrowed - lent
+
   // Deduct actual expenses and one-time investments
-  const cashRemaining = afterActualSIPs - expenses - oneTimeInvestments
+  const cashRemaining = afterActualMemberTransactions - expenses - oneTimeInvestments
 
   // Calculate what additional transactions were made beyond planned
   // This includes:
@@ -179,6 +189,9 @@ export function calculateFinancialSummary(
     afterLoans,
     sips,
     afterSIPs,
+    borrowed,
+    lent,
+    afterMemberTransactions,
     availableSurplus,
 
     // Expense calculations
