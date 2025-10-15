@@ -12,6 +12,7 @@ import { RecentExpenses } from "@/components/dashboard/recent-expenses"
 import { UpcomingEMI } from "@/components/dashboard/upcoming-emi"
 import { InvestmentTracking } from "@/components/dashboard/investment-tracking"
 import { getAmountForMonth } from "@/lib/frequency-utils"
+import { getHoldingsValueWithFreshPrices } from "@/lib/holdings-calculator"
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -355,31 +356,9 @@ async function getSIPExecutions(userId: string, month: number, year: number) {
   return { count: executions.length, totalAmount: totalExecuted }
 }
 
+// Use the new function that fetches fresh prices
 async function getHoldingsValue(userId: string) {
-  const holdings = await prisma.holding.findMany({
-    where: { userId },
-  })
-
-  let totalCurrentValue = 0
-  let totalInvestment = 0
-
-  holdings.forEach(holding => {
-    const qty = Number(holding.qty)
-    const avgCost = Number(holding.avgCost)
-    const currentPrice = holding.currentPrice ? Number(holding.currentPrice) : avgCost
-
-    totalInvestment += qty * avgCost
-    totalCurrentValue += qty * currentPrice
-  })
-
-  const totalPL = totalCurrentValue - totalInvestment
-
-  return {
-    count: holdings.length,
-    totalInvestment,
-    totalCurrentValue,
-    totalPL,
-  }
+  return getHoldingsValueWithFreshPrices(userId)
 }
 
 async function getCurrentMonthReturns(userId: string, month: number, year: number) {
