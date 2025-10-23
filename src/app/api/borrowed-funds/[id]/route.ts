@@ -57,6 +57,8 @@ export async function GET(
       ...borrowedFund,
       borrowedAmount: Number(borrowedFund.borrowedAmount),
       returnedAmount: Number(borrowedFund.returnedAmount),
+      investedAmount: Number(borrowedFund.investedAmount),
+      surplusAmount: Number(borrowedFund.surplusAmount),
       currentValue: borrowedFund.currentValue
         ? Number(borrowedFund.currentValue)
         : null,
@@ -167,6 +169,26 @@ export async function PATCH(
       }
     }
 
+    // Recalculate invested and surplus amounts if transactionIds or borrowedAmount are being updated
+    const transactionIds = validatedData.transactionIds ?? borrowedFund.transactionIds
+    const borrowedAmount = validatedData.borrowedAmount ?? Number(borrowedFund.borrowedAmount)
+
+    let investedAmount = 0
+    if (transactionIds.length > 0) {
+      const transactions = await prisma.transaction.findMany({
+        where: {
+          id: { in: transactionIds },
+          userId: session.user.id,
+        },
+      })
+      investedAmount = transactions.reduce(
+        (sum, txn) => sum + Number(txn.amountInr || txn.amount),
+        0
+      )
+    }
+
+    const surplusAmount = borrowedAmount - investedAmount
+
     const updated = await prisma.borrowedFund.update({
       where: { id },
       data: {
@@ -192,6 +214,9 @@ export async function PATCH(
         ...(validatedData.sipExecutionIds && {
           sipExecutionIds: validatedData.sipExecutionIds,
         }),
+        // Always update invested and surplus amounts when recalculated
+        investedAmount,
+        surplusAmount,
         ...(validatedData.currentValue !== undefined && {
           currentValue: validatedData.currentValue,
         }),
@@ -216,6 +241,8 @@ export async function PATCH(
       ...updated,
       borrowedAmount: Number(updated.borrowedAmount),
       returnedAmount: Number(updated.returnedAmount),
+      investedAmount: Number(updated.investedAmount),
+      surplusAmount: Number(updated.surplusAmount),
       currentValue: updated.currentValue ? Number(updated.currentValue) : null,
       profitLoss: updated.profitLoss ? Number(updated.profitLoss) : null,
       interestRate: updated.interestRate ? Number(updated.interestRate) : null,

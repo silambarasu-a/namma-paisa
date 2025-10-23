@@ -30,6 +30,17 @@ interface LoanData {
   closedAt: string | null
 }
 
+interface BorrowedFundData {
+  fundId: string
+  lenderName: string
+  borrowedAmount: number
+  returnedAmount: number
+  currentValue: number | null
+  profitLoss: number | null
+  investedIn: string | null
+  isFullyReturned: boolean
+}
+
 interface MonthlySnapshot {
   id: string
   month: number
@@ -50,6 +61,11 @@ interface MonthlySnapshot {
   previousSurplus: number
   investmentsMade: number | null
   loansData?: LoanData[]
+  borrowedFundsReceived?: number
+  borrowedFundsReturned?: number
+  borrowedFundsCount?: number
+  borrowedFundsData?: BorrowedFundData[]
+  borrowedFundsProfit?: number
   isClosed: boolean
   closedAt: string | null
 }
@@ -86,6 +102,15 @@ export default function MonthlySnapshotPage() {
       const response = await fetch(`/api/monthly-snapshot?month=${selectedMonth}&year=${selectedYear}`)
       if (response.ok) {
         const data = await response.json()
+        console.log("📊 Snapshot data:", {
+          month: data.month,
+          year: data.year,
+          isClosed: data.isClosed,
+          borrowedFundsReceived: data.borrowedFundsReceived,
+          borrowedFundsReturned: data.borrowedFundsReturned,
+          borrowedFundsCount: data.borrowedFundsCount,
+          borrowedFundsData: data.borrowedFundsData
+        })
         setSnapshot(data)
       } else {
         setSnapshot(null)
@@ -551,6 +576,95 @@ export default function MonthlySnapshotPage() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Borrowed Funds - Only show if there are borrowed funds or activity */}
+      {((snapshot.borrowedFundsCount ?? 0) > 0 ||
+        (snapshot.borrowedFundsReceived ?? 0) > 0 ||
+        (snapshot.borrowedFundsReturned ?? 0) > 0) && (
+        <div className="backdrop-blur-md bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-cyan-500/10 dark:from-cyan-500/20 dark:via-blue-500/20 dark:to-cyan-500/20 border border-cyan-500/20 rounded-lg shadow-lg">
+          <div className="p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div>
+                <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Borrowed Funds
+                </h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Money borrowed and investment tracking
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto"
+                onClick={() => window.location.href = `/borrowed-funds`}
+              >
+                View All Funds
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+              <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                <p className="text-xs text-muted-foreground mb-1">Received This Month</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  ₹{(snapshot.borrowedFundsReceived ?? 0).toLocaleString()}
+                </p>
+              </div>
+
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-xs text-muted-foreground mb-1">Returned This Month</p>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  ₹{(snapshot.borrowedFundsReturned ?? 0).toLocaleString()}
+                </p>
+              </div>
+
+              <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                <p className="text-xs text-muted-foreground mb-1">Investment Profit/Loss</p>
+                <p className={`text-2xl font-bold ${(snapshot.borrowedFundsProfit ?? 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  {(snapshot.borrowedFundsProfit ?? 0) >= 0 ? '+' : ''}₹{Math.abs(snapshot.borrowedFundsProfit ?? 0).toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            {snapshot.borrowedFundsData && snapshot.borrowedFundsData.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-muted-foreground">Active Funds</h4>
+                {snapshot.borrowedFundsData.map((fund) => (
+                  <div key={fund.fundId} className="p-4 border rounded-lg bg-white dark:bg-gray-900">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="flex-1">
+                        <p className="font-medium">{fund.lenderName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Borrowed: ₹{fund.borrowedAmount.toLocaleString()}
+                          {fund.returnedAmount > 0 && ` • Returned: ₹{fund.returnedAmount.toLocaleString()}`}
+                        </p>
+                        {fund.investedIn && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Invested in: {fund.investedIn}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {fund.profitLoss !== null && fund.profitLoss !== 0 && (
+                          <Badge variant={fund.profitLoss >= 0 ? "default" : "destructive"}>
+                            {fund.profitLoss >= 0 ? '+' : ''}₹{Math.abs(fund.profitLoss).toLocaleString()}
+                          </Badge>
+                        )}
+                        {fund.isFullyReturned && (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Returned
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

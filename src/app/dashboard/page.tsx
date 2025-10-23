@@ -316,6 +316,40 @@ async function getMemberTransactions(userId: string, month: number, year: number
   return { borrowed, lent, count: transactions.length, transactions: serializedTransactions }
 }
 
+async function getBorrowedFundsSurplus(userId: string, month: number, year: number) {
+  const startDate = new Date(year, month - 1, 1)
+  const endDate = new Date(year, month, 0, 23, 59, 59, 999)
+
+  // Get all borrowed funds that were borrowed this month
+  const borrowedFunds = await prisma.borrowedFund.findMany({
+    where: {
+      userId,
+      borrowedDate: {
+        gte: startDate,
+        lte: endDate,
+      },
+    },
+  })
+
+  // Sum up the surplus amounts (borrowed money not invested)
+  const totalSurplus = borrowedFunds.reduce(
+    (sum, fund) => sum + Number(fund.surplusAmount),
+    0
+  )
+
+  return {
+    totalSurplus,
+    count: borrowedFunds.length,
+    funds: borrowedFunds.map(f => ({
+      id: f.id,
+      lenderName: f.lenderName,
+      borrowedAmount: Number(f.borrowedAmount),
+      investedAmount: Number(f.investedAmount),
+      surplusAmount: Number(f.surplusAmount),
+    }))
+  }
+}
+
 async function getOneTimeTransactions(userId: string, month: number, year: number) {
   const startDate = new Date(year, month - 1, 1)
   const endDate = new Date(year, month, 0, 23, 59, 59, 999)
@@ -485,6 +519,7 @@ export default async function Dashboard({
     paidEMIs,
     currentMonthReturns,
     memberTransactionsData,
+    borrowedFundsSurplus,
   ] = await Promise.all([
     getSalary(userId, selectedMonth, selectedYear),
     getAdditionalIncome(userId, selectedMonth, selectedYear),
@@ -499,6 +534,7 @@ export default async function Dashboard({
     getPaidEMIs(userId, selectedMonth, selectedYear),
     getCurrentMonthReturns(userId, selectedMonth, selectedYear),
     getMemberTransactions(userId, selectedMonth, selectedYear),
+    getBorrowedFundsSurplus(userId, selectedMonth, selectedYear),
   ])
 
   const totalIncome = salary + additionalIncome.totalIncome
@@ -518,7 +554,8 @@ export default async function Dashboard({
     paidEMIs.totalPaid,
     paidEMIs.additionalPaid,
     memberTransactionsData.borrowed,
-    memberTransactionsData.lent
+    memberTransactionsData.lent,
+    borrowedFundsSurplus.totalSurplus
   )
 
   // Keep old variables for backwards compatibility
@@ -742,6 +779,27 @@ export default async function Dashboard({
               </div>
               <p className="text-xs text-muted-foreground mt-2">
                 {memberTransactionsData.count} transaction{memberTransactionsData.count !== 1 ? 's' : ''} this month
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Borrowed Funds Surplus Card - Only show if amount exists */}
+        {borrowedFundsSurplus.totalSurplus > 0 && (
+          <div className="relative overflow-hidden rounded-xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200">
+            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-blue-500/5 pointer-events-none"></div>
+            <div className="relative p-3 sm:p-4">
+              <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Borrowed Cash</div>
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-cyan-100/80 dark:bg-cyan-900/40 backdrop-blur-sm border border-cyan-200/50 dark:border-cyan-700/50 flex items-center justify-center shrink-0">
+                  <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-600 dark:text-cyan-400" />
+                </div>
+              </div>
+              <div className="text-xl sm:text-2xl font-bold text-cyan-600 dark:text-cyan-400 break-words">
+                +₹{borrowedFundsSurplus.totalSurplus.toLocaleString('en-IN')}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {borrowedFundsSurplus.count} borrowed fund{borrowedFundsSurplus.count !== 1 ? 's' : ''} (surplus added to cash)
               </p>
             </div>
           </div>

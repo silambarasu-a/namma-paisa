@@ -126,7 +126,8 @@ export function calculateFinancialSummary(
   paidEMIs: number = 0,
   additionalEMIPaid: number = 0,
   borrowed: number = 0,  // Money you borrowed from them (adds to surplus like income)
-  lent: number = 0       // Money you lent to them (reduces surplus like expense)
+  lent: number = 0,      // Money you lent to them (reduces surplus like expense)
+  borrowedFundsSurplus: number = 0  // Money borrowed from external sources (not invested)
 ) {
   const afterTax = income - tax
   const afterLoans = afterTax - loans
@@ -137,8 +138,11 @@ export function calculateFinancialSummary(
   // - lent (they owe you): reduces surplus (like money spent)
   const afterMemberTransactions = afterSIPs + borrowed - lent
 
+  // Add borrowed funds surplus (money borrowed but not invested)
+  const afterBorrowedFunds = afterMemberTransactions + borrowedFundsSurplus
+
   // This is the base amount available for expenses and investments
-  const availableSurplus = afterMemberTransactions
+  const availableSurplus = afterBorrowedFunds
 
   // Calculate expense amounts
   const expenseCalc = calculateAvailableForExpenses(availableSurplus, budget)
@@ -172,8 +176,11 @@ export function calculateFinancialSummary(
   // Apply member transactions: borrowed adds, lent subtracts
   const afterActualMemberTransactions = afterActualSIPs + borrowed - lent
 
+  // Add borrowed funds surplus to actual cash
+  const afterActualBorrowedFunds = afterActualMemberTransactions + borrowedFundsSurplus
+
   // Deduct actual expenses and one-time investments
-  const cashRemaining = afterActualMemberTransactions - expenses - oneTimeInvestments
+  const cashRemaining = afterActualBorrowedFunds - expenses - oneTimeInvestments
 
   // Calculate what additional transactions were made beyond planned
   // This includes:
@@ -192,6 +199,8 @@ export function calculateFinancialSummary(
     borrowed,
     lent,
     afterMemberTransactions,
+    borrowedFundsSurplus,
+    afterBorrowedFunds,
     availableSurplus,
 
     // Expense calculations

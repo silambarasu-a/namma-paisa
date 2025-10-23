@@ -74,6 +74,24 @@ export async function POST(
     // Check if this return completes the fund
     const isFullyReturned = newReturnedAmount >= borrowedAmount
 
+    // Create an expense for the return payment
+    // This represents money going out to repay the borrowed fund
+    await prisma.expense.create({
+      data: {
+        userId: session.user.id,
+        date: returnDate,
+        title: `Returned borrowed fund - ${borrowedFund.lenderName}`,
+        description: validatedData.notes
+          ? `Partial return of ₹${validatedData.returnAmount}. ${validatedData.notes}`
+          : `Partial return of ₹${validatedData.returnAmount}`,
+        expenseType: "EXPECTED",
+        category: "NEEDS",
+        amount: validatedData.returnAmount,
+        paymentMethod: "CASH",
+        tags: ["borrowed-fund-return"],
+      },
+    })
+
     const updated = await prisma.borrowedFund.update({
       where: { id },
       data: {
@@ -95,6 +113,8 @@ export async function POST(
       ...updated,
       borrowedAmount: Number(updated.borrowedAmount),
       returnedAmount: Number(updated.returnedAmount),
+      investedAmount: Number(updated.investedAmount),
+      surplusAmount: Number(updated.surplusAmount),
       currentValue: updated.currentValue ? Number(updated.currentValue) : null,
       profitLoss: updated.profitLoss ? Number(updated.profitLoss) : null,
       interestRate: updated.interestRate ? Number(updated.interestRate) : null,

@@ -60,6 +60,8 @@ export async function GET() {
       ...fund,
       borrowedAmount: Number(fund.borrowedAmount),
       returnedAmount: Number(fund.returnedAmount),
+      investedAmount: Number(fund.investedAmount),
+      surplusAmount: Number(fund.surplusAmount),
       currentValue: fund.currentValue ? Number(fund.currentValue) : null,
       profitLoss: fund.profitLoss ? Number(fund.profitLoss) : null,
       interestRate: fund.interestRate ? Number(fund.interestRate) : null,
@@ -146,6 +148,24 @@ export async function POST(req: Request) {
       }
     }
 
+    // Calculate invested amount from linked transactions
+    let investedAmount = 0
+    if (validatedData.transactionIds && validatedData.transactionIds.length > 0) {
+      const transactions = await prisma.transaction.findMany({
+        where: {
+          id: { in: validatedData.transactionIds },
+          userId: session.user.id,
+        },
+      })
+      investedAmount = transactions.reduce(
+        (sum, txn) => sum + Number(txn.amountInr || txn.amount),
+        0
+      )
+    }
+
+    // Calculate surplus amount (borrowed - invested)
+    const surplusAmount = validatedData.borrowedAmount - investedAmount
+
     const borrowedFund = await prisma.borrowedFund.create({
       data: {
         userId: session.user.id,
@@ -159,6 +179,8 @@ export async function POST(req: Request) {
         investedInHoldingId: validatedData.investedInHoldingId,
         transactionIds: validatedData.transactionIds || [],
         sipExecutionIds: validatedData.sipExecutionIds || [],
+        investedAmount,
+        surplusAmount,
         currentValue: validatedData.currentValue,
         profitLoss: validatedData.profitLoss,
         purpose: validatedData.purpose,
@@ -177,6 +199,8 @@ export async function POST(req: Request) {
       ...borrowedFund,
       borrowedAmount: Number(borrowedFund.borrowedAmount),
       returnedAmount: Number(borrowedFund.returnedAmount),
+      investedAmount: Number(borrowedFund.investedAmount),
+      surplusAmount: Number(borrowedFund.surplusAmount),
       currentValue: borrowedFund.currentValue
         ? Number(borrowedFund.currentValue)
         : null,

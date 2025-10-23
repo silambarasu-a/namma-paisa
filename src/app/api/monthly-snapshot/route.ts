@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { calculateFinancialSummary } from "@/lib/budget-utils"
 import { getAmountForMonth } from "@/lib/frequency-utils"
+import { calculateBorrowedFundsSummary } from "@/lib/borrowed-funds-calculator"
 
 // Get current month snapshot - returns saved snapshot or calculates preview
 export async function GET(request: Request) {
@@ -56,7 +57,7 @@ export async function GET(request: Request) {
   }
 }
 
-// Close current month and create snapshot
+// Close current month and create snapshot (or force recalculate existing)
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { month, year } = body
+    const { month, year, forceRecalculate } = body
 
     if (!month || !year) {
       return NextResponse.json(
@@ -85,9 +86,9 @@ export async function POST(request: Request) {
       },
     })
 
-    if (existing?.isClosed) {
+    if (existing?.isClosed && !forceRecalculate) {
       return NextResponse.json(
-        { error: "Month already closed" },
+        { error: "Month already closed. Use forceRecalculate to update." },
         { status: 400 }
       )
     }
@@ -613,6 +614,9 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
   // Deduct actual expenses and one-time investments
   const cashRemaining = afterActualMemberTransactions - totalExpenses - oneTimeInvestments
 
+  // Calculate borrowed funds summary
+  const borrowedFundsSummary = await calculateBorrowedFundsSummary(userId, month, year)
+
   return {
     salary,
     taxAmount,
@@ -675,5 +679,12 @@ async function calculateMonthlyData(userId: string, year: number, month: number)
     memberLent,
     memberTransactionsCount,
     memberTransactionsData,
+
+    // Borrowed Funds
+    borrowedFundsReceived: borrowedFundsSummary.borrowedFundsReceived,
+    borrowedFundsReturned: borrowedFundsSummary.borrowedFundsReturned,
+    borrowedFundsCount: borrowedFundsSummary.borrowedFundsCount,
+    borrowedFundsData: borrowedFundsSummary.borrowedFundsData,
+    borrowedFundsProfit: borrowedFundsSummary.borrowedFundsProfit,
   }
 }
