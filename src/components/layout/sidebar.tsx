@@ -24,6 +24,7 @@ import {
   Calendar,
   Users,
   Shield,
+  Banknote,
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
@@ -62,6 +63,7 @@ const navigation: NavigationItem[] = [
   },
   { name: "Credit Cards", href: "/credit-cards", icon: CreditCard },
   { name: "Members", href: "/members", icon: Users },
+  { name: "Borrowed Funds", href: "/borrowed-funds", icon: Banknote },
   { name: "Monthly Snapshot", href: "/monthly-snapshot", icon: Calendar },
 ]
 
