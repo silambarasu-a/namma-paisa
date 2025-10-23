@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
-import { Loader2, ArrowLeft, IndianRupee, CheckCircle } from "lucide-react"
+import { Loader2, IndianRupee, CheckCircle } from "lucide-react"
 
 const returnFormSchema = z.object({
   returnAmount: z

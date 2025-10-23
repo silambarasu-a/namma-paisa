@@ -10,7 +10,6 @@ import {
   TrendingDown,
   ArrowRight,
   User,
-  IndianRupee,
 } from "lucide-react"
 
 interface BorrowedFund {
