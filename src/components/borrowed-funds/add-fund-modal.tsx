@@ -424,12 +424,6 @@ export function AddFundModal({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="create-new" className="text-primary font-medium">
-                          <div className="flex items-center">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Create New Member
-                          </div>
-                        </SelectItem>
                         {members.length === 0 && !loadingData && (
                           <SelectItem value="no-members" disabled>
                             No members found
@@ -443,6 +437,12 @@ export function AddFundModal({
                             </SelectItem>
                           )
                         })}
+                        <SelectItem value="create-new" className="text-primary font-medium">
+                          <div className="flex items-center">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create New Member
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     {members.length > 0 && (
