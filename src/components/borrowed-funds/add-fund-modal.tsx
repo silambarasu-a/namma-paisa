@@ -66,6 +66,8 @@ interface Transaction {
   qty: number
   price: number
   amount: number
+  currency: string
+  amountInr?: number | null
   purchaseDate: string
   transactionType: string
   bucket: string
@@ -601,7 +603,7 @@ export function AddFundModal({
                               {txn.symbol} - {txn.name}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {txn.transactionType} • {txn.qty} @ ₹{txn.price.toLocaleString()}
+                              {txn.transactionType} • {txn.qty} @ {txn.currency === "USD" ? "$" : "₹"}{txn.price.toLocaleString()}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {format(new Date(txn.purchaseDate), "PP")}
@@ -609,8 +611,13 @@ export function AddFundModal({
                           </div>
                           <div className="text-right">
                             <p className="font-semibold text-sm">
-                              ₹{txn.amount.toLocaleString()}
+                              ₹{(txn.currency === "USD" && txn.amountInr ? txn.amountInr : txn.amount).toLocaleString()}
                             </p>
+                            {txn.currency === "USD" && txn.amountInr && (
+                              <p className="text-xs text-muted-foreground">
+                                ${txn.amount.toLocaleString()}
+                              </p>
+                            )}
                             <p className="text-xs text-muted-foreground">
                               {txn.bucket}
                             </p>
